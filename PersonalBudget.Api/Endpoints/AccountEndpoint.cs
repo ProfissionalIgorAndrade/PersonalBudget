@@ -1,4 +1,4 @@
-using PersonalBudget.Api.Application.Services;
+using PersonalBudget.Application.Services;
 
 namespace PersonalBudget.Api.Endpoints;
 public static class AccountEndpoints

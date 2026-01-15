@@ -22,7 +22,7 @@ POST {{PersonalBudget.Api_HostAddress}}/api/transactions
 Content-Type: application/json
 
 {
-  "accountId": "02262173-b3bc-4795-80fb-5015970520b5",
+  "accountId": "90545716-ccf3-418e-b31e-bbdcba1bd7d8",
   "type": 1,
   "amount": 2000,
   "status": 2
@@ -34,7 +34,7 @@ POST {{PersonalBudget.Api_HostAddress}}/api/transactions
 Content-Type: application/json
 
 {
-  "accountId": "02262173-b3bc-4795-80fb-5015970520b5",
+  "accountId": "90545716-ccf3-418e-b31e-bbdcba1bd7d8",
   "type": 1,
   "amount": 600,
   "status": 1
@@ -47,7 +47,7 @@ POST {{PersonalBudget.Api_HostAddress}}/api/transactions
 Content-Type: application/json
 
 {
-  "accountId": "02262173-b3bc-4795-80fb-5015970520b5",
+  "accountId": "90545716-ccf3-418e-b31e-bbdcba1bd7d8",
   "type": 2,
   "amount": 1200,
   "status": 2
@@ -59,7 +59,7 @@ POST {{PersonalBudget.Api_HostAddress}}/api/transactions
 Content-Type: application/json
 
 {
-  "accountId": "02262173-b3bc-4795-80fb-5015970520b5",
+  "accountId": "90545716-ccf3-418e-b31e-bbdcba1bd7d8",
   "type": 2,
   "amount": 300,
   "status": 1

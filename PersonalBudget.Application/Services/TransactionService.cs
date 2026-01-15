@@ -1,4 +1,5 @@
-namespace PersonalBudget.Api.Application.Services;
+namespace PersonalBudget.Application.Services;
+
 public class TransactionService
 {
     private readonly AccountService _accountService;

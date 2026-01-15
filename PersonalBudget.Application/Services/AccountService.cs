@@ -1,4 +1,4 @@
-namespace PersonalBudget.Api.Application.Services;
+namespace PersonalBudget.Application.Services;
 public class AccountService
 {
     private static readonly List<Account> _accounts = new();

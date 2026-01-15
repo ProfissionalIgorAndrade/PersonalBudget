@@ -1,6 +1,6 @@
 
 
-using PersonalBudget.Api.Application.Services;
+using PersonalBudget.Application.Services;
 using PersonalBudget.Api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
