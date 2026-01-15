@@ -1,6 +1,22 @@
 @PersonalBudget.Api_HostAddress = http://localhost:5047
 
-GET {{PersonalBudget.Api_HostAddress}}/weatherforecast/
+# Health Check
+GET {{PersonalBudget.Api_HostAddress}}/api/health
 Accept: application/json
 
+###
+
+# Create Account
+POST {{PersonalBudget.Api_HostAddress}}/api/accounts
+Content-Type: application/json
+
+{
+  "name": "Minha Conta",
+  "initialBalance": 1000
+}
+
+###
+
+# Get All Accounts
+GET {{PersonalBudget.Api_HostAddress}}/api/accounts
 ###
