@@ -1,3 +1,4 @@
+namespace PersonalBudget.Api.Application.Services;
 public class AccountService
 {
     private static readonly List<Account> _accounts = new();
@@ -10,4 +11,6 @@ public class AccountService
         _accounts.Add(account);
         return account;
     }
+
+    public Account? GetById(Guid id) => _accounts.FirstOrDefault(a => a.Id == id);
 }

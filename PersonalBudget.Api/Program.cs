@@ -1,10 +1,14 @@
-using PersonalBudget.Api;
+
+
+using PersonalBudget.Api.Application.Services;
+using PersonalBudget.Api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-
-builder.Services.AddSingleton<AccountService>();
+builder.Services.AddControllers();
+builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<TransactionService>();
 
 var app = builder.Build();
 
@@ -17,8 +21,10 @@ else
     app.UseHttpsRedirection();
 }
 
+app.MapControllers();
+
 // Endpoints
-app.MapHealthEndpoints();
 app.MapAccountEndpoints();
+app.MapTransactionEndpoints();
 
 app.Run();

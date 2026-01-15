@@ -1,3 +1,6 @@
+using PersonalBudget.Api.Application.Services;
+
+namespace PersonalBudget.Api.Endpoints;
 public static class AccountEndpoints
 {
     public static void MapAccountEndpoints(this WebApplication app)

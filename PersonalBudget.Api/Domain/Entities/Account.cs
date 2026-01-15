@@ -11,4 +11,14 @@ public class Account
         Name = name;
         Balance = initialBalance;
     }
+
+    public void Credit(decimal amount)
+    {
+        Balance += amount;
+    }
+
+    public void Debit(decimal amount)
+    {
+        Balance -= amount;
+    }
 }

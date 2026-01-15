@@ -1,22 +1,69 @@
 @PersonalBudget.Api_HostAddress = http://localhost:5047
 
-# Health Check
-GET {{PersonalBudget.Api_HostAddress}}/api/health
-Accept: application/json
-
 ###
-
 # Create Account
 POST {{PersonalBudget.Api_HostAddress}}/api/accounts
 Content-Type: application/json
 
 {
   "name": "Minha Conta",
-  "initialBalance": 1000
+  "initialBalance": 5000
 }
 
-###
 
+###
 # Get All Accounts
 GET {{PersonalBudget.Api_HostAddress}}/api/accounts
+
+
+###
+# Create Transactions with Income Type, Amount 2000, Status Completed
+POST {{PersonalBudget.Api_HostAddress}}/api/transactions
+Content-Type: application/json
+
+{
+  "accountId": "02262173-b3bc-4795-80fb-5015970520b5",
+  "type": 1,
+  "amount": 2000,
+  "status": 2
+}
+
+
+#### Create Transactions with Income Type, Amount 600, Status Pending
+POST {{PersonalBudget.Api_HostAddress}}/api/transactions
+Content-Type: application/json
+
+{
+  "accountId": "02262173-b3bc-4795-80fb-5015970520b5",
+  "type": 1,
+  "amount": 600,
+  "status": 1
+}
+
+
+###
+# Create Transactions with Expense Type, Amount 1200, Status Completed
+POST {{PersonalBudget.Api_HostAddress}}/api/transactions
+Content-Type: application/json
+
+{
+  "accountId": "02262173-b3bc-4795-80fb-5015970520b5",
+  "type": 2,
+  "amount": 1200,
+  "status": 2
+}
+
+
+#### Create Transactions with Expense Type, Amount 300, Status Pending
+POST {{PersonalBudget.Api_HostAddress}}/api/transactions
+Content-Type: application/json
+
+{
+  "accountId": "02262173-b3bc-4795-80fb-5015970520b5",
+  "type": 2,
+  "amount": 300,
+  "status": 1
+}
+
+
 ###
