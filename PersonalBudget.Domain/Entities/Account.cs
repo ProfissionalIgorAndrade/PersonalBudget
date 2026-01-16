@@ -19,6 +19,8 @@ public class Account
 
     public void Debit(decimal amount)
     {
+        if(Balance < 0)
+            throw new InvalidOperationException("Insufficient funds."); 
         Balance -= amount;
     }
 }
