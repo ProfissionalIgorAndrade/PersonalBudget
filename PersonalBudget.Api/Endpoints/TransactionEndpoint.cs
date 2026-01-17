@@ -10,6 +10,7 @@ public static class TransactionEndpoint
             {
                 var transaction = service.Create(
                     request.AccountId,
+                    request.CategoryId,
                     request.Type,
                     request.Amount,
                     request.Status

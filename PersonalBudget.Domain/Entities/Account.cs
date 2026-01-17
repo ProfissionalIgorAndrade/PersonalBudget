@@ -1,26 +1,26 @@
 public class Account
 {
-    public Guid Id { get; private set; }
-    public string Name { get; private set; }
-
-    public decimal Balance { get; private set; }
-
-    public Account(string name, decimal initialBalance)
+    public Account(string name, Money initialBalance)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("Account name cannot be empty.");
+            
         Id = Guid.NewGuid();
         Name = name;
         Balance = initialBalance;
     }
 
-    public void Credit(decimal amount)
+    public Guid Id { get; private set; }
+    public string Name { get; private set; }
+    public Money Balance { get; private set; }
+
+    public void Credit(Money amount)
     {
-        Balance += amount;
+        Balance = Balance.Add(amount);
     }
 
-    public void Debit(decimal amount)
+    public void Debit(Money amount)
     {
-        if(Balance < 0)
-            throw new InvalidOperationException("Insufficient funds."); 
-        Balance -= amount;
+        Balance = Balance.Subtract(amount);
     }
 }

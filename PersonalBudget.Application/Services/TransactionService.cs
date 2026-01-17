@@ -12,6 +12,7 @@ public class TransactionService
 
     public Transaction Create(
         Guid accountId,
+        Guid categoryId,
         TransactionType type,
         decimal amount,
         TransactionStatus status)
@@ -21,23 +22,18 @@ public class TransactionService
         if (account is null)
             throw new Exception("Account not found.");
 
+        var moneyAmount = new Money(amount);
+
         var transaction = new Transaction(
             accountId,
-            amount,
-            DateTime.UtcNow,
+            categoryId,
+            moneyAmount,
             type,
-            status
+            status,
+            DateTime.UtcNow
         );
 
-        // REGRA DE NEGÓCIO CENTRAL
-        if (transaction.IsCompleted())
-        {
-            if (type == TransactionType.Income)
-                account.Credit(amount);
-
-            if (type == TransactionType.Expense)
-                account.Debit(amount);
-        }
+        TransactionApplier.Apply(account, transaction);
 
         _transactions.Add(transaction);
         return transaction;

@@ -9,6 +9,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<TransactionService>();
+builder.Services.AddSingleton<CategoryService>();
+
 
 builder.Services.AddCors(options =>
 {

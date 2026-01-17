@@ -7,7 +7,7 @@ public class AccountService
 
     public Account CreateAccount(string name, decimal initialBalance)
     {
-        var account = new Account(name, initialBalance);
+        var account = new Account(name, new Money(initialBalance));
         _accounts.Add(account);
         return account;
     }
