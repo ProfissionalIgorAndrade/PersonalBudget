@@ -15,9 +15,9 @@ public class Category
 
     public Guid Id { get; set; }
     public string Name { get; set; }
+    public CategoryType Type { get; set; }
     public bool IsSystem { get; }
     public bool IsActive { get; private set; }
-    public CategoryType Type { get; set; }
 
     public static bool Exists(string name, List<Category> categories) => categories.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
@@ -25,6 +25,7 @@ public class Category
     {
         Name = newName;
     }
+    
     public void Deactivate()
     {
         IsActive = false;

@@ -33,14 +33,10 @@ public class InstallmentPlan
         CategoryId = categoryId;
         CreditCardId = creditCardId;
         PaymentMethod = paymentMethod;
-
         Description = description;
         TotalInstallments = totalInstallments;
         TotalAmount = totalAmount;
-
-        InstallmentAmount = new Money(
-            totalAmount.Amount / totalInstallments);
-
+        InstallmentAmount = new Money(totalAmount.Amount / totalInstallments);
         StartDate = startDate;
         IsCancelled = false;
     }

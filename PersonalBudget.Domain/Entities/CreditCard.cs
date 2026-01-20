@@ -1,24 +1,5 @@
 public class CreditCard
 {
-    // Identidade
-    public Guid Id { get; }
-
-    // Contexto
-    public Guid AccountId { get; }
-
-    // Dados do cartão
-    public string Name { get; }
-    public string LastFourDigits { get; }
-    public string Brand { get; }
-
-    // Regras do cartão
-    public Money CreditLimit { get; }
-    public int ClosingDay { get; }
-    public int DueDay { get; }
-
-    // Estado
-    public bool IsActive { get; private set; }
-
     public CreditCard(
         Guid accountId,
         string name,
@@ -53,6 +34,16 @@ public class CreditCard
         DueDay = dueDay;
         IsActive = true;
     }
+
+    public Guid Id { get; }
+    public Guid AccountId { get; }
+    public string Name { get; }
+    public string LastFourDigits { get; }
+    public string Brand { get; }
+    public Money CreditLimit { get; }
+    public int ClosingDay { get; }
+    public int DueDay { get; }
+    public bool IsActive { get; private set; }
 
     public void Deactivate()
     {
