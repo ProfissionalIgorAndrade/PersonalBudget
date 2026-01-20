@@ -1,69 +1,38 @@
-@PersonalBudget.Api_HostAddress = http://localhost:5047
+@localhost = http://localhost:5047
+@prod = https://personalbudget.fly.dev
+
+# Select environment: localhost or prod
+@HostAddress = {{localhost}}
+
+###
+### ============================================
+### ACCOUNT ENDPOINTS
+### ============================================
 
 ###
 # Create Account
-POST {{PersonalBudget.Api_HostAddress}}/api/accounts
+# Creates a new account with an initial balance
+POST {{HostAddress}}/api/accounts
 Content-Type: application/json
 
 {
-  "name": "Minha Conta",
+  "name": "Minha Conta Corrente",
   "initialBalance": 5000
 }
 
-
 ###
 # Get All Accounts
-GET {{PersonalBudget.Api_HostAddress}}/api/accounts
+# Retrieves all existing accounts
+GET {{HostAddress}}/api/accounts
+
+
 
 
 ###
-# Create Transactions with Income Type, Amount 2000, Status Completed
-POST {{PersonalBudget.Api_HostAddress}}/api/transactions
-Content-Type: application/json
-
-{
-  "accountId": "90545716-ccf3-418e-b31e-bbdcba1bd7d8",
-  "type": 1,
-  "amount": 2000,
-  "status": 2
-}
-
-
-#### Create Transactions with Income Type, Amount 600, Status Pending
-POST {{PersonalBudget.Api_HostAddress}}/api/transactions
-Content-Type: application/json
-
-{
-  "accountId": "90545716-ccf3-418e-b31e-bbdcba1bd7d8",
-  "type": 1,
-  "amount": 600,
-  "status": 1
-}
-
-
-###
-# Create Transactions with Expense Type, Amount 1200, Status Completed
-POST {{PersonalBudget.Api_HostAddress}}/api/transactions
-Content-Type: application/json
-
-{
-  "accountId": "90545716-ccf3-418e-b31e-bbdcba1bd7d8",
-  "type": 2,
-  "amount": 1200,
-  "status": 2
-}
-
-
-#### Create Transactions with Expense Type, Amount 300, Status Pending
-POST {{PersonalBudget.Api_HostAddress}}/api/transactions
-Content-Type: application/json
-
-{
-  "accountId": "90545716-ccf3-418e-b31e-bbdcba1bd7d8",
-  "type": 2,
-  "amount": 300,
-  "status": 1
-}
+# SWAGGER UI (Testing via browser)
+# Development: http://localhost:5047/swagger
+# Production (when EnableSwagger=true): https://personalbudget.fly.dev/swagger
+# OpenAPI Schema: {{HostAddress}}/swagger/v1/swagger.json
 
 
 ###

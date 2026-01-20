@@ -28,14 +28,18 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Enable Swagger in all environments
-app.MapOpenApi();
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false);
+
+if (enableSwagger)
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Personal Budget API v1");
-    c.RoutePrefix = "swagger";
-});
+    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Personal Budget API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
 
 if (!app.Environment.IsDevelopment())
 {
