@@ -1,15 +1,15 @@
-# fly.toml app configuration file generated for personalbudget on 2026-01-16T22:35:53Z
+# fly.toml app configuration file generated for personalbudget on 2026-01-20T01:15:04Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
 app = 'personalbudget'
-primary_region = 'iad'
+primary_region = 'gru'
 
 [build]
 
 [http_service]
-  internal_port = 5047
+  internal_port = 8080
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
