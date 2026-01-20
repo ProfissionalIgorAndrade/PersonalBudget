@@ -10,7 +10,7 @@ public class TransactionApplierTests
             Guid.NewGuid(),
             new Money(50),
             TransactionType.Expense,
-            TransactionStatus.Pending,
+            PaymentMethod.DebitCard,
             DateTime.UtcNow
         );
 
@@ -29,7 +29,7 @@ public class TransactionApplierTests
             Guid.NewGuid(),
             new Money(50),
             TransactionType.Income,
-            TransactionStatus.Pending,
+            PaymentMethod.DebitCard,
             DateTime.UtcNow
         );
 
@@ -50,7 +50,7 @@ public class TransactionApplierTests
             Guid.NewGuid(),
             new Money(30),
             TransactionType.Expense,
-            TransactionStatus.Pending,
+            PaymentMethod.DebitCard,
             DateTime.UtcNow
         );
 

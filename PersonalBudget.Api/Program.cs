@@ -8,7 +8,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddScoped<AccountService>();
-builder.Services.AddScoped<TransactionService>();
 builder.Services.AddSingleton<CategoryService>();
 
 
@@ -38,7 +37,6 @@ app.MapControllers();
 
 // Endpoints
 app.MapAccountEndpoints();
-app.MapTransactionEndpoints();
 
 app.UseCors("AllowAll");
 

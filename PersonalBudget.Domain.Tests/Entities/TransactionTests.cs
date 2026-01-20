@@ -1,5 +1,19 @@
+using FluentAssertions;
+
 public class TransactionTests
 {
+    private Transaction CreateValidTransaction()
+    {
+        return new Transaction(
+            accountId: Guid.NewGuid(),
+            categoryId: Guid.NewGuid(),
+            amount: new Money(100),
+            type: TransactionType.Expense,
+            paymentMethod: PaymentMethod.Pix,
+            occurredAt: DateTime.Today
+        );
+    }
+
     [Fact]
     public void Should_create_transaction_as_pending()
     {
@@ -8,7 +22,7 @@ public class TransactionTests
             Guid.NewGuid(),
             new Money(100),
             TransactionType.Expense,
-            TransactionStatus.Pending,
+            PaymentMethod.DebitCard,
             DateTime.UtcNow
         );
 
@@ -24,7 +38,7 @@ public class TransactionTests
                 Guid.NewGuid(),
                 new Money(100),
                 TransactionType.Expense,
-                TransactionStatus.Pending,
+                PaymentMethod.DebitCard,
                 DateTime.UtcNow
             ));
     }
@@ -38,7 +52,7 @@ public class TransactionTests
                 Guid.Empty,
                 new Money(100),
                 TransactionType.Expense,
-                TransactionStatus.Pending,
+                PaymentMethod.DebitCard,
                 DateTime.UtcNow
             ));
     }
@@ -51,12 +65,49 @@ public class TransactionTests
             Guid.NewGuid(),
             new Money(100),
             TransactionType.Income,
-            TransactionStatus.Pending,
+            PaymentMethod.DebitCard,
             DateTime.UtcNow
         );
 
         transaction.MarkAsCompleted();
 
         Assert.Throws<DomainException>(() => transaction.MarkAsCompleted());
+    }
+
+    [Fact]
+    public void Transaction_Should_Start_As_Pending()
+    {
+        var transaction = CreateValidTransaction();
+
+        transaction.Status.Should().Be(TransactionStatus.Pending);
+    }
+
+    [Fact]
+    public void Transaction_With_CreditCard_Must_Have_CreditCardId()
+    {
+        Action act = () =>
+            new Transaction(
+                accountId: Guid.NewGuid(),
+                categoryId: Guid.NewGuid(),
+                amount: new Money(100),
+                type: TransactionType.Expense,
+                paymentMethod: PaymentMethod.CreditCard,
+                occurredAt: DateTime.Today,
+                creditCardId: null
+            );
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void Completed_Transaction_Cannot_Be_Completed_Again()
+    {
+        var transaction = CreateValidTransaction();
+
+        transaction.MarkAsCompleted();
+
+        Action act = () => transaction.MarkAsCompleted();
+
+        act.Should().Throw<DomainException>();
     }
 }
