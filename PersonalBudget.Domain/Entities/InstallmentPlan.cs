@@ -80,7 +80,9 @@ public class InstallmentPlan
                 type: TransactionType.Expense,
                 paymentMethod: PaymentMethod,
                 occurredAt: date,
-                creditCardId: CreditCardId
+                creditCardId: CreditCardId,
+                installmentPlanId: Id,
+                description: $"{Description} ({i + 1}/{TotalInstallments})"
             );
 
             transactions.Add(transaction);

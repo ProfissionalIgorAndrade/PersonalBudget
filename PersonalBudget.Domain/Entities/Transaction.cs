@@ -4,11 +4,13 @@ public class Transaction
     public Guid AccountId { get; }
     public Guid CategoryId { get; }
     public Guid? CreditCardId { get; }
+    public Guid? InstallmentPlanId { get; }
     public PaymentMethod PaymentMethod { get; }
     public TransactionType Type { get; }
     public Money Amount { get; }
     public DateTime OccurredAt { get; }
     public TransactionStatus Status { get; private set; }
+    public string Description { get; }
 
     public Transaction(
         Guid accountId,
@@ -17,7 +19,9 @@ public class Transaction
         TransactionType type,
         PaymentMethod paymentMethod,
         DateTime occurredAt,
-        Guid? creditCardId = null)
+        Guid? creditCardId = null,
+        Guid? installmentPlanId = null,
+        string description = "")
     {
         if (accountId == Guid.Empty)
             throw new DomainException("Transaction must have an account.");
@@ -38,7 +42,9 @@ public class Transaction
         Type = type;
         PaymentMethod = paymentMethod;
         CreditCardId = creditCardId;
+        InstallmentPlanId = installmentPlanId;
         OccurredAt = occurredAt;
+        Description = description;
 
         Status = TransactionStatus.Pending;
     }
