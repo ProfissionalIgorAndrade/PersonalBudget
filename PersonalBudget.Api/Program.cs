@@ -40,6 +40,13 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
+    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Personal Budget API v1");
+        c.RoutePrefix = "swagger";
+    });
     app.UseHttpsRedirection();
 }
 
