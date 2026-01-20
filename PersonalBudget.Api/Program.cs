@@ -26,22 +26,12 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-else
-{
-    app.MapOpenApi();
-    app.UseHttpsRedirection();
-}
+app.UseCors("AllowAll");
+
+app.MapOpenApi();
 
 app.MapControllers();
-
-// Endpoints
 app.MapAccountEndpoints();
 app.MapGet("/health", () => "OK");
-
-app.UseCors("AllowAll");
 
 app.Run();

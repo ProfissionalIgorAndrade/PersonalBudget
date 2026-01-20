@@ -15,26 +15,22 @@ RUN dotnet restore "PersonalBudget.sln"
 # Copy source code
 COPY . .
 
-# Build the project
-WORKDIR "/src/PersonalBudget.Api"
-RUN dotnet build "PersonalBudget.Api.csproj" -c Release -o /app/build
-
 # Publish
+WORKDIR "/src/PersonalBudget.Api"
 RUN dotnet publish "PersonalBudget.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 
-# Copy published files from build stage
+# Copy published files
 COPY --from=build /app/publish .
 
-# Expose port (match your launchSettings.json)
-EXPOSE 5047
+# Expose Fly default port
+EXPOSE 8080
 
-# Set environment variables
-ENV ASPNETCORE_URLS=http://+:5047
+# Environment
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Run the application
+# Run
 ENTRYPOINT ["dotnet", "PersonalBudget.Api.dll"]
