@@ -7,6 +7,7 @@ COPY ["PersonalBudget.sln", ""]
 COPY ["PersonalBudget.Api/PersonalBudget.Api.csproj", "PersonalBudget.Api/"]
 COPY ["PersonalBudget.Application/PersonalBudget.Application.csproj", "PersonalBudget.Application/"]
 COPY ["PersonalBudget.Domain/PersonalBudget.Domain.csproj", "PersonalBudget.Domain/"]
+COPY ["PersonalBudget.Domain.Tests/PersonalBudget.Domain.Tests.csproj", "PersonalBudget.Domain.Tests/"]
 
 # Restore dependencies
 RUN dotnet restore "PersonalBudget.sln"
