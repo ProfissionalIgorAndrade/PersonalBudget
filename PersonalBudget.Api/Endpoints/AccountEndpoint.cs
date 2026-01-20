@@ -24,7 +24,6 @@ public static class AccountEndpoints
             return Results.Ok(result);
         })
         .WithName("CreateAccount")
-        .WithOpenApi()
         .Produces(200);
 
         /// <summary>
@@ -37,7 +36,6 @@ public static class AccountEndpoints
             return Results.Ok(service.GetAllAccounts());
         })
         .WithName("GetAllAccounts")
-        .WithOpenApi()
         .Produces(200);
     }
 }
