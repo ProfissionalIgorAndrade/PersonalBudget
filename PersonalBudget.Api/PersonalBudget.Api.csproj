@@ -5,11 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.12" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PersonalBudget.Domain\PersonalBudget.Domain.csproj" />
     <ProjectReference Include="..\PersonalBudget.Application\PersonalBudget.Application.csproj" />
+    <ProjectReference Include="..\PersonalBudget.Infrastructure\PersonalBudget.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

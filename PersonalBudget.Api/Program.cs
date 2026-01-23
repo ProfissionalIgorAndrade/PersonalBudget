@@ -2,11 +2,20 @@
 
 using PersonalBudget.Application.Services;
 using PersonalBudget.Api.Endpoints;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseInMemoryDatabase("PersonalBudgetDb");
+});
+
 builder.Services.AddControllers();
+
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
