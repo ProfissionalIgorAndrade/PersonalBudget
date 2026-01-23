@@ -16,6 +16,7 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -48,7 +49,7 @@ app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "PersonalBudget API v1");
-    options.RoutePrefix = "swagger"; // /swagger
+    options.RoutePrefix = "swagger"; 
 });
 
 app.Run();
