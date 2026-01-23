@@ -13,6 +13,8 @@ public class User
         CreatedAt = DateTime.UtcNow;
         IsActive = true;
     }
+    
+    protected User() { }
 
     public Guid Id { get; set; }
     public string Name { get; set; }

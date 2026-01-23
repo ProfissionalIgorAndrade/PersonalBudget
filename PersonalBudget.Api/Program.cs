@@ -1,8 +1,8 @@
 
 
 using PersonalBudget.Application.Services;
-using PersonalBudget.Api.Endpoints;
 using Microsoft.EntityFrameworkCore;
+using PersonalBudget.Api.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,12 +11,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseInMemoryDatabase("PersonalBudgetDb");
 });
 
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("Jwt"));
+
 builder.Services.AddControllers();
 
-builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddSingleton<JwtTokenGenerator>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -41,15 +44,17 @@ if (!builder.Environment.IsDevelopment())
 var app = builder.Build();
 
 app.UseCors("AllowAll");
-
-app.MapControllers();
-app.MapAccountEndpoints();
-app.MapGet("/health", () => "OK");
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "PersonalBudget API v1");
     options.RoutePrefix = "swagger"; 
 });
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
 
 app.Run();

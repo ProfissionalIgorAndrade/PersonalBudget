@@ -10,29 +10,24 @@
 ### ============================================
 
 ###
-# Create Account
-# Creates a new account with an initial balance
-POST {{HostAddress}}/api/accounts
+# Create new user in system
+POST {{HostAddress}}/api/authentication/signin
 Content-Type: application/json
 
 {
-  "name": "Minha Conta Corrente",
-  "initialBalance": 5000
+  "Name": "User default",
+  "Email": "email@email.com",
+  "Password": "Password123@"
 }
 
-###
-# Get All Accounts
-# Retrieves all existing accounts
-GET {{HostAddress}}/api/accounts
-
-
-
 
 ###
-# SWAGGER UI (Testing via browser)
-# Development: http://localhost:5047/swagger
-# Production (when EnableSwagger=true): https://personalbudget.fly.dev/swagger
-# OpenAPI Schema: {{HostAddress}}/swagger/v1/swagger.json
+# Login with user in system
+POST {{HostAddress}}/api/authentication/login
+Content-Type: application/json
 
+{
+  "Email": "email@email.com",
+  "Password": "Password123@"
+}
 
-###

@@ -9,7 +9,7 @@ public class UserService : IUserService
         _passwordHasher = passwordHasher;
     }
 
-    public async Task<Guid> CreateUserAsync(RegisterUserCommand command)
+    public async Task<Guid> CreateUserAsync(SigninRequest command)
     {
         var email = new Email(command.Email);
 
@@ -26,19 +26,19 @@ public class UserService : IUserService
         return user.Id;
     }
 
-    public async Task<AuthenticationResult> AuthenticationUserAsync(AuthenticateUserCommand command)
+    public async Task<Guid> AuthenticationUserAsync(AuthenticateUserRequest command)
     {
         var email = new Email(command.Email);
-
         var user = await _userRepository.GetByEmailAsync(email);
+
         if (user == null)
-            return AuthenticationResult.Fail();
+            throw new ApplicationException("User does not exist.");
 
         var passwordHash = _passwordHasher.Hash(command.Password);
 
         if (!user.CanAuthenticate(passwordHash))
-            return AuthenticationResult.Fail();
+            throw new ApplicationException("Invalid password");
 
-        return AuthenticationResult.Ok(user.Id);
+        return user.Id;
     }
 }

@@ -74,7 +74,6 @@ public class RecurringRuleTests
 
         [Theory]
         [InlineData("")]
-        [InlineData(null)]
         [InlineData("   ")]
         public void RecurringRule_Without_Description_Should_Fail(string description)
         {

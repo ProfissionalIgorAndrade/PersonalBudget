@@ -1,5 +1,5 @@
 public interface IUserService
 {
-    public Task<Guid> CreateUserAsync(RegisterUserCommand command);
-    public Task<AuthenticationResult> AuthenticationUserAsync(AuthenticateUserCommand command);
+    public Task<Guid> CreateUserAsync(SigninRequest command);
+    public Task<Guid> AuthenticationUserAsync(AuthenticateUserRequest command);
 }

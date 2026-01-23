@@ -1,0 +1,1 @@
+public record SigninRequest(string Name, string Email, string Password);
