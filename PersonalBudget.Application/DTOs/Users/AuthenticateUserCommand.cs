@@ -1,0 +1,1 @@
+public record AuthenticateUserCommand(string Email, string Password);
