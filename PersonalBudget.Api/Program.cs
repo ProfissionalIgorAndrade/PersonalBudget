@@ -15,6 +15,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
