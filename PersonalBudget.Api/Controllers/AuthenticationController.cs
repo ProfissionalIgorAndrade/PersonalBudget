@@ -24,18 +24,18 @@ public class AuthenticationController : ControllerBase
 
         var token = _jwtTokenGenerator.Generate(userId);
 
-        return Ok(AuthenticationUserResponse.Ok(userId, token));
+        return Ok(LoginUserResponse.Ok(userId, token));
     }
 
     [HttpPost("login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Authenticate(
-        [FromBody] AuthenticateUserRequest request)
+        [FromBody] LoginUserRequest request)
     {
         var userId = await _userService.AuthenticationUserAsync(request);
 
         var token = _jwtTokenGenerator.Generate(userId);
 
-        return Ok(AuthenticationUserResponse.Ok(userId, token));
+        return Ok(LoginUserResponse.Ok(userId, token));
     }
 }

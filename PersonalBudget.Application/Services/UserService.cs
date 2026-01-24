@@ -26,7 +26,7 @@ public class UserService : IUserService
         return user.Id;
     }
 
-    public async Task<Guid> AuthenticationUserAsync(AuthenticateUserRequest command)
+    public async Task<Guid> AuthenticationUserAsync(LoginUserRequest command)
     {
         var email = new Email(command.Email);
         var user = await _userRepository.GetByEmailAsync(email);
