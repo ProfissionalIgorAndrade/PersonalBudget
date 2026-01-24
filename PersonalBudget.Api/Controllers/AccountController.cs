@@ -23,16 +23,10 @@ public class AccountController : ControllerBase
         return CreatedAtAction(
             nameof(Create),
             new { accountId },
-            new { AccountId = accountId });
-    }
-
-    [HttpPost("join")]
-    public async Task<IActionResult> Join(JoinAccountRequest request)
-    {
-        var userId = UserContext.GetUserId(User);
-        var command = new JoinAccountCommand(userId, request.AccountId);
-        await _accountService.JoinAccountAsync(command);
-
-        return NoContent();
+            new
+            {
+                AccountId = accountId,
+                Balance = request.Balance
+            });
     }
 }
