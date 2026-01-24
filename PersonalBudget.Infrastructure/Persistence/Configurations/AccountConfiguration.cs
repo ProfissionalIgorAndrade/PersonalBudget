@@ -13,6 +13,13 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.OwnsOne(a => a.Balance, money =>
+        {
+            money.Property(m => m.Amount)
+                 .HasColumnName("balance")
+                 .IsRequired();
+        });
+
         builder.Property(a => a.CreatedAt)
             .IsRequired();
     }

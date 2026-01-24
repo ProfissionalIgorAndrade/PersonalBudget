@@ -1,19 +1,24 @@
 public sealed class Money
 {
-    public decimal Amount { get; }
+    public decimal Amount { get; private set; }
 
+    // ✅ Construtor de domínio (uso normal)
     public Money(decimal amount)
     {
-        if (amount <= 0)
-            throw new DomainException("Money amount must be greater than zero.");
+        if (amount < 0)
+            throw new DomainException("Money amount cannot be negative.");
 
         Amount = amount;
     }
 
-    public Money Add(Money other)
+    // ✅ Construtor para EF Core (OBRIGATÓRIO)
+    private Money()
     {
-        return new Money(Amount + other.Amount);
+        Amount = 0;
     }
+
+    public Money Add(Money other)
+        => new Money(Amount + other.Amount);
 
     public Money Subtract(Money other)
     {
@@ -23,13 +28,11 @@ public sealed class Money
         return new Money(Amount - other.Amount);
     }
 
-    public override bool Equals(object? obj)
-    {
-        if (obj is not Money other)
-            return false;
+    public bool IsZero() => Amount == 0;
+    public bool IsNegative() => Amount < 0;
 
-        return Amount == other.Amount;
-    }
+    public override bool Equals(object? obj)
+        => obj is Money other && Amount == other.Amount;
 
     public override int GetHashCode()
         => Amount.GetHashCode();

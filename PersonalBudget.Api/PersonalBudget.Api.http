@@ -4,6 +4,9 @@
 # Select environment: localhost or prod
 @HostAddress = {{localhost}}
 
+# JWT token (cole aqui o token retornado no login)
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzYTQ1NTQ5Yi0wNWY2LTQ4NzgtODI3ZC1iOTU3ZDE1M2I0MjYiLCJleHAiOjE3NjkyNjY1MTMsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.QbPJIJFOVjWnLlbk5SswWbogaulRw1myuUM-9Y4wLco
+
 ###
 ### ============================================
 ### ACCOUNT ENDPOINTS
@@ -31,3 +34,24 @@ Content-Type: application/json
   "Password": "Password123@"
 }
 
+###
+# Create new account (requires auth)
+POST {{HostAddress}}/api/accounts
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Family Account"
+}
+
+###
+# Join existing account (requires auth)# JWT token (cole aqui o token retornado no login)
+@accountId = "051b9eda-40fb-4047-93ab-c8237488282a"
+
+POST {{HostAddress}}/api/accounts/join
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "AccountId": {{accountId}}
+}

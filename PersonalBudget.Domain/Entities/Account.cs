@@ -1,14 +1,21 @@
 public class Account
 {
-    public Account(string name, Money initialBalance)
+    public Account(string name, Money balance)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Account name cannot be empty.");
-            
+
         Id = Guid.NewGuid();
         Name = name;
-        Balance = initialBalance;
+        Balance = balance;
         CreatedAt = DateTime.Now;
+    }
+
+    protected Account()
+    {
+        // EF Core only
+        Balance = new Money(0);
+        CreatedAt = DateTime.UtcNow;
     }
 
     public Guid Id { get; private set; }
