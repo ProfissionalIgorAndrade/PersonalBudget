@@ -3,7 +3,7 @@ public class TransactionApplierTests
     [Fact]
     public void Should_not_apply_pending_transaction()
     {
-        var account = new Account("Main", new Money(100));
+        var account = new Account("Main", new Money(100), Guid.NewGuid());
 
         var transaction = new Transaction(
             account.Id,
@@ -22,7 +22,7 @@ public class TransactionApplierTests
     [Fact]
     public void Should_apply_completed_income_transaction()
     {
-        var account = new Account("Main", new Money(100));
+        var account = new Account("Main", new Money(100), Guid.NewGuid());
 
         var transaction = new Transaction(
             account.Id,
@@ -43,7 +43,7 @@ public class TransactionApplierTests
     [Fact]
     public void Should_apply_completed_expense_transaction()
     {
-        var account = new Account("Main", new Money(100));
+        var account = new Account("Main", new Money(100), Guid.NewGuid());
 
         var transaction = new Transaction(
             account.Id,

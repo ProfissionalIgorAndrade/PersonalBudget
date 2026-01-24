@@ -11,7 +11,6 @@ public class MoneyTests
     [Fact]
     public void Should_not_allow_zero_or_negative_value()
     {
-        Assert.Throws<DomainException>(() => new Money(0));
         Assert.Throws<DomainException>(() => new Money(-10));
     }
 

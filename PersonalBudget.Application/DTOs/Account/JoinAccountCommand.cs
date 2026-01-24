@@ -1,1 +1,0 @@
-public record JoinAccountCommand(Guid UserId, Guid AccountId);

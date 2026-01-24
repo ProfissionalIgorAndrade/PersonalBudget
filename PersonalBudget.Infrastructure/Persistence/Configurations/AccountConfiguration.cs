@@ -9,6 +9,11 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.HasKey(a => a.Id);
 
+        builder.Property(a => a.UserId)
+            .IsRequired();
+
+        builder.HasIndex(a => a.UserId);
+
         builder.Property(a => a.Name)
             .IsRequired()
             .HasMaxLength(200);

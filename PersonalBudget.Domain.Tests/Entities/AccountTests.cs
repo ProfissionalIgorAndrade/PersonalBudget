@@ -4,13 +4,13 @@ public class AccountTests
     public void Should_not_create_account_without_name()
     {
         Assert.Throws<DomainException>(() =>
-            new Account("", new Money(100)));
+            new Account("", new Money(100), Guid.NewGuid()));
     }
 
     [Fact]
     public void Should_credit_account()
     {
-        var account = new Account("Main", new Money(100));
+        var account = new Account("Main", new Money(100), Guid.NewGuid());
 
         account.Credit(new Money(50));
 
@@ -20,7 +20,7 @@ public class AccountTests
     [Fact]
     public void Should_debit_account()
     {
-        var account = new Account("Main", new Money(100));
+        var account = new Account("Main", new Money(100), Guid.NewGuid());
 
         account.Debit(new Money(40));
 
@@ -30,7 +30,7 @@ public class AccountTests
     [Fact]
     public void Should_not_allow_debit_more_than_balance()
     {
-        var account = new Account("Main", new Money(100));
+        var account = new Account("Main", new Money(100), Guid.NewGuid());
 
         Assert.Throws<DomainException>(() =>
             account.Debit(new Money(200)));
