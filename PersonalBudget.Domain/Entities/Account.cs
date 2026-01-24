@@ -1,6 +1,6 @@
 public class Account
 {
-    public Account(string name, Money initialBalance, DateTime dateTime)
+    public Account(string name, Money initialBalance)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Account name cannot be empty.");
@@ -8,7 +8,7 @@ public class Account
         Id = Guid.NewGuid();
         Name = name;
         Balance = initialBalance;
-        CreatedAt = dateTime;
+        CreatedAt = DateTime.Now;
     }
 
     public Guid Id { get; private set; }

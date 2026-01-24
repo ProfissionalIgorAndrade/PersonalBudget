@@ -1,16 +1,61 @@
+
+using PersonalBudget.Domain.Enums;
+
 namespace PersonalBudget.Application.Services;
-public class AccountService
+
+public class AccountService : IAccountService
 {
-    private static readonly List<Account> _accounts = new();
+    private readonly IAccountRepository _accountRepository;
+    private readonly IAccountUserRepository _accountUserRepository;
 
-    public IEnumerable<Account> GetAllAccounts() => _accounts;
-
-    public Account CreateAccount(string name, decimal initialBalance)
+    public AccountService(IAccountRepository accountRepository, IAccountUserRepository accountUserRepository)
     {
-        var account = new Account(name, new Money(initialBalance));
-        _accounts.Add(account);
-        return account;
+        _accountRepository = accountRepository;
+        _accountUserRepository = accountUserRepository;
     }
 
-    public Account? GetById(Guid id) => _accounts.FirstOrDefault(a => a.Id == id);
+    public async Task<Guid> CreateAccountAsync(CreateAccountRequest request)
+    {
+        if (request.UserId == Guid.Empty)
+            throw new ApplicationException("UserId is required.");
+
+        var balance = new Money(request.Balance);
+        var account = new Account(request.Name, balance);
+
+        await _accountRepository.AddAsync(account);
+
+        var accountUser = new AccountUser(
+            accountId: account.Id,
+            userId: request.UserId,
+            role: AccountRole.Owner
+        );
+
+        await _accountUserRepository.AddAsync(accountUser);
+
+        return account.Id;
+    }
+
+    public async Task JoinAccountAsync(JoinAccountRequest request)
+    {
+        if (request.UserId == Guid.Empty || request.AccountId == Guid.Empty)
+            throw new ApplicationException("UserId and AccountId are required.");
+
+        var account = await _accountRepository.GetByIdAsync(request.AccountId);
+        if (account == null)
+            throw new ApplicationException("Account not found.");
+
+        var alreadyLinked = await _accountUserRepository
+            .ExistsAsync(request.AccountId, request.UserId);
+
+        if (alreadyLinked)
+            throw new ApplicationException("User already belongs to this account.");
+
+        var accountUser = new AccountUser(
+            accountId: request.AccountId,
+            userId: request.UserId,
+            role: AccountRole.Member
+        );
+
+        await _accountUserRepository.AddAsync(accountUser);
+    }
 }
