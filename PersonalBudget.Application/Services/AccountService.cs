@@ -14,7 +14,7 @@ public class AccountService : IAccountService
         _accountUserRepository = accountUserRepository;
     }
 
-    public async Task<Guid> CreateAccountAsync(CreateAccountRequest request)
+    public async Task<Guid> CreateAccountAsync(CreateAccountCommand request)
     {
         if (request.UserId == Guid.Empty)
             throw new ApplicationException("UserId is required.");
@@ -35,7 +35,7 @@ public class AccountService : IAccountService
         return account.Id;
     }
 
-    public async Task JoinAccountAsync(JoinAccountRequest request)
+    public async Task JoinAccountAsync(JoinAccountCommand request)
     {
         if (request.UserId == Guid.Empty || request.AccountId == Guid.Empty)
             throw new ApplicationException("UserId and AccountId are required.");

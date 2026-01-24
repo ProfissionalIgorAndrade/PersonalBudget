@@ -1,1 +1,1 @@
-public record JoinAccountRequest(Guid UserId, Guid AccountId);
+public record JoinAccountRequest(Guid AccountId);

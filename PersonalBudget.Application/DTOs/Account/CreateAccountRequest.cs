@@ -1,1 +1,1 @@
-public record CreateAccountRequest(Guid UserId, string Name, decimal Balance);
+public record CreateAccountRequest(string Name, decimal Balance);

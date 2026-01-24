@@ -1,5 +1,5 @@
 public interface IAccountService
 {
-    public Task<Guid> CreateAccountAsync(CreateAccountRequest request);
-    public Task JoinAccountAsync(JoinAccountRequest request);
+    public Task<Guid> CreateAccountAsync(CreateAccountCommand request);
+    public Task JoinAccountAsync(JoinAccountCommand request);
 }
