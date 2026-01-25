@@ -7,7 +7,7 @@ public class CategoryService
         if (Category.Exists(name, _categories))
             throw new InvalidOperationException("Category already exists.");
 
-        var category = new Category(name, isSystem: false, type);
+        var category = new Category(Guid.NewGuid(), name, isSystem: false, type);
         _categories.Add(category);
         return category;
     }
