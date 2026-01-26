@@ -1,9 +1,21 @@
 public class TransactionApplierTests
 {
+    private static Account CreateValidAccount(
+        decimal initialBalance = 100)
+    {
+        return new Account(
+            userId: Guid.NewGuid(),
+            bank: Bank.Nubank,
+            agency: new BankAgency("0001"),
+            number: new BankAccountNumber("123456-7"),
+            initialBalance: new Money(initialBalance)
+        );
+    }
+    
     [Fact]
     public void Should_not_apply_pending_transaction()
     {
-        var account = new Account("Main", new Money(100), Guid.NewGuid());
+        var account = CreateValidAccount();
 
         var transaction = new Transaction(
             account.Id,
@@ -22,7 +34,7 @@ public class TransactionApplierTests
     [Fact]
     public void Should_apply_completed_income_transaction()
     {
-        var account = new Account("Main", new Money(100), Guid.NewGuid());
+        var account = CreateValidAccount(100);
 
         var transaction = new Transaction(
             account.Id,
@@ -43,7 +55,7 @@ public class TransactionApplierTests
     [Fact]
     public void Should_apply_completed_expense_transaction()
     {
-        var account = new Account("Main", new Money(100), Guid.NewGuid());
+        var account = CreateValidAccount(100);
 
         var transaction = new Transaction(
             account.Id,

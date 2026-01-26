@@ -8,7 +8,7 @@ public class Account
     public Money Balance { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
 
-    internal Account(
+    public Account(
         Guid userId,
         Bank bank,
         BankAgency agency,

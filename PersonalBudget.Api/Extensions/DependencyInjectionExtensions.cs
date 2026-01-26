@@ -1,5 +1,3 @@
-using PersonalBudget.Application.Services;
-
 namespace PersonalBudget.Api.Extensions;
 
 public static class DependencyInjectionExtensions
@@ -11,7 +9,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IAccountRepository, AccountRepository>();
 
         services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IAccountService, AccountService>();
+        //services.AddScoped<IAccountService, AccountService>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 
