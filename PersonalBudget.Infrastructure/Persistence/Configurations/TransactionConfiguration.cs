@@ -1,0 +1,64 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
+{
+    public void Configure(EntityTypeBuilder<Transaction> builder)
+    {
+        builder.ToTable("transactions");
+
+        builder.HasKey(t => t.Id);
+
+        builder.Property(t => t.UserId)
+            .IsRequired();
+
+        builder.Property(t => t.AccountId)
+            .IsRequired();
+
+        builder.Property(t => t.CategoryId);
+
+        builder.Property(t => t.CreditCardId);
+
+        builder.Property(t => t.Type)
+            .IsRequired()
+            .HasConversion<int>();
+
+        builder.Property(t => t.PaymentMethod)
+            .IsRequired()
+            .HasConversion<int>();
+
+        builder.Property(t => t.Status)
+            .IsRequired()
+            .HasConversion<int>();
+
+        // 🔹 Money (Value Object)
+        builder.OwnsOne(t => t.Amount, money =>
+        {
+            money.Property(m => m.Amount)
+                .HasColumnName("amount")
+                .IsRequired();
+        });
+
+        // 🔹 TransactionDate (Value Object)
+        builder.OwnsOne(t => t.Date, date =>
+        {
+            date.Property(d => d.Value)
+                .HasColumnName("transaction_date")
+                .IsRequired();
+        });
+
+        // 🔹 Description (Value Object)
+        builder.OwnsOne(t => t.Description, desc =>
+        {
+            desc.Property(d => d.Value)
+                .HasColumnName("description")
+                .HasMaxLength(200)
+                .IsRequired();
+        });
+
+        builder.HasIndex(t => t.UserId);
+        builder.HasIndex(t => t.AccountId);
+        builder.HasIndex(t => t.CreditCardId);
+        builder.HasIndex(t => t.Status);
+    }
+}
