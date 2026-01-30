@@ -5,9 +5,12 @@
 @HostAddress = {{localhost}}
 
 # JWT token (cole aqui o token retornado no login)
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1YzQwYzhhNC0zNzJiLTQ3NTktOTIwOS1kMWZhNzU1OWYwNmEiLCJleHAiOjE3Njk3Mzg2MDYsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.IN3OhioR8vFFG6BWJZLQ4YEnDte34uWZuWBL7Oa5r2U
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiMmM5NGRlZC0zZDA2LTQ0M2YtODJhYS1lNGIyZDA5NTcxMmIiLCJleHAiOjE3Njk4MDg5NDcsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.v7FAmPlyV-hISKK67fsLN4iop69hBKobIzkayutE_HY
+
 
 ### USER ENDPOINTS
+
+
 ###
 # Create new user in system
 POST {{HostAddress}}/api/authentication/signin
@@ -30,7 +33,10 @@ Content-Type: application/json
   "Password": "Password123@"
 }
 
+
 ### ACCOUNT ENDPOINTS
+
+
 ###
 # Create new account (requires auth)
 POST {{HostAddress}}/api/accounts
@@ -44,6 +50,7 @@ Content-Type: application/json
   "InitialBalance": 1005
 }
 
+
 ###
 # Get all accounts (requires auth)
 GET {{HostAddress}}/api/accounts
@@ -51,7 +58,8 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 # ⚠️ Substitua pelo AccountId retornado no GET
-@accountId = cd9f99d8-4cac-469c-9ab0-c85580bb4dac
+@accountId = d178d6c0-7ef1-41e6-a235-12ae89ede066
+
 
 ### Update Account
 PUT {{HostAddress}}/api/accounts/{{accountId}}
@@ -64,24 +72,36 @@ Content-Type: application/json
   "accountNumber": "654321"
 }
 
+
 ### Delete Account
 DELETE {{HostAddress}}/api/accounts/{{accountId}}
 Authorization: Bearer {{authToken}}
 
+
 ### Category ENDPOINTS
+
+
 ### Create Category of Type Income
 POST {{HostAddress}}/api/categories
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
-{ "Name": "Food", "Type": "Income" }
+{
+  "Name": "Food",
+  "Type": "Income"
+}
+
 
 ### Create Category of Type Expense
 POST {{HostAddress}}/api/categories
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
-{ "Name": "Food", "Type": "Expense" }
+{
+  "Name": "Food",
+  "Type": "Expense"
+}
+
 
 ### Get Categories
 GET {{HostAddress}}/api/categories
@@ -90,15 +110,61 @@ Authorization: Bearer {{authToken}}
 # ⚠️ Substitua pelo AccountId retornado no GET
 @categoryId = cd9f99d8-4cac-469c-9ab0-c85580bb4dac
 
+
 ### Update Category
 PUT {{HostAddress}}/api/categories/{{categoryId}}
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-  "Name": "Food truck", "Type": "Income"
+  "Name": "Food truck",
+  "Type": "Income"
 }
+
 
 ### Delete Category
 DELETE {{HostAddress}}/api/categories/{{categoryId}}
+Authorization: Bearer {{authToken}}
+
+# ===============================
+# CREDIT CARD
+# ===============================
+
+
+### Create Credit Card
+POST {{HostAddress}}/api/credit-cards
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "accountId": "{{accountId}}",
+  "name": "Visa Platinum",
+  "limit": 12000,
+  "closingDay": 10,
+  "dueDay": 29
+}
+
+
+### Get All Credit Cards
+GET {{HostAddress}}/api/credit-cards
+Authorization: Bearer {{authToken}}
+
+
+### Update Credit Card
+@creditCardId = 8b6104d3-8e88-4844-91cd-8e6159cc989f
+
+PUT {{HostAddress}}/api/credit-cards/{{creditCardId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Visa Platinum",
+  "limit": 3500,
+  "closingDay": 5,
+  "dueDay": 31
+}
+
+
+### Delete Credit Card
+DELETE {{HostAddress}}/api/credit-cards/{{creditCardId}}
 Authorization: Bearer {{authToken}}
