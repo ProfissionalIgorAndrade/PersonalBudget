@@ -1,71 +1,95 @@
 public class Transaction
 {
-    public Guid Id { get; }
-    public Guid AccountId { get; }
-    public Guid CategoryId { get; }
-    public Guid? CreditCardId { get; }
-    public Guid? InstallmentPlanId { get; }
-    public PaymentMethod PaymentMethod { get; }
-    public TransactionType Type { get; }
-    public Money Amount { get; }
-    public DateTime OccurredAt { get; }
-    public TransactionStatus Status { get; private set; }
-    public string Description { get; }
+    public Guid Id { get; private set; }
+    public Guid UserId { get; private set; }
+    public Guid AccountId { get; private set; }
 
-    public Transaction(
+    public Guid? CategoryId { get; private set; }
+    public Guid? CreditCardId { get; private set; }
+
+    public TransactionType Type { get; private set; }
+    public PaymentMethod PaymentMethod { get; private set; }
+    public TransactionStatus Status { get; private set; }
+
+    public Money Amount { get; private set; }
+    public TransactionDate Date { get; private set; }
+    public TransactionDescription Description { get; private set; }
+
+    private Transaction(
+        Guid userId,
         Guid accountId,
-        Guid categoryId,
         Money amount,
         TransactionType type,
         PaymentMethod paymentMethod,
-        DateTime occurredAt,
-        Guid? creditCardId = null,
-        Guid? installmentPlanId = null,
-        string description = "")
+        TransactionDate date,
+        TransactionDescription description,
+        Guid? categoryId,
+        Guid? creditCardId)
     {
+        if (userId == Guid.Empty)
+            throw new DomainException("Transaction must belong to a user.");
+
         if (accountId == Guid.Empty)
-            throw new DomainException("Transaction must have an account.");
+            throw new DomainException("Transaction must belong to an account.");
 
-        if (categoryId == Guid.Empty)
-            throw new DomainException("Transaction must have a category.");
+        if (paymentMethod == PaymentMethod.CreditCard && creditCardId is null)
+            throw new DomainException("Credit card transaction must reference a credit card.");
 
-        if (paymentMethod == PaymentMethod.CreditCard && creditCardId == null)
-            throw new DomainException("Credit card transactions must reference a credit card.");
-
-        if (paymentMethod != PaymentMethod.CreditCard && creditCardId != null)
+        if (paymentMethod != PaymentMethod.CreditCard && creditCardId is not null)
             throw new DomainException("Only credit card transactions can reference a credit card.");
 
         Id = Guid.NewGuid();
+        UserId = userId;
         AccountId = accountId;
         CategoryId = categoryId;
+        CreditCardId = creditCardId;
         Amount = amount;
         Type = type;
         PaymentMethod = paymentMethod;
-        CreditCardId = creditCardId;
-        InstallmentPlanId = installmentPlanId;
-        OccurredAt = occurredAt;
+        Date = date;
         Description = description;
         Status = TransactionStatus.Pending;
     }
 
     protected Transaction() { }
 
-    public void MarkAsCompleted()
+    public static Transaction Create(
+        Guid userId,
+        Guid accountId,
+        Money amount,
+        TransactionType type,
+        PaymentMethod paymentMethod,
+        DateTime date,
+        string description,
+        Guid? categoryId = null,
+        Guid? creditCardId = null)
     {
-        if (Status == TransactionStatus.Completed)
-            throw new DomainException("Transaction is already completed.");
+        return new Transaction(
+            userId,
+            accountId,
+            amount,
+            type,
+            paymentMethod,
+            new TransactionDate(date),
+            new TransactionDescription(description),
+            categoryId,
+            creditCardId
+        );
+    }
+
+    public void Complete()
+    {
+        if (Status != TransactionStatus.Pending)
+            throw new DomainException("Only pending transactions can be completed.");
 
         Status = TransactionStatus.Completed;
     }
 
-    public void MarkAsSimulated()
+    public void Cancel()
     {
         if (Status == TransactionStatus.Completed)
-            throw new DomainException("Completed transaction cannot be simulated.");
+            throw new DomainException("Completed transactions cannot be cancelled.");
 
-        Status = TransactionStatus.Simulated;
+        Status = TransactionStatus.Cancelled;
     }
-
-    public bool IsCompleted()
-        => Status == TransactionStatus.Completed;
 }
