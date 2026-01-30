@@ -62,31 +62,7 @@ public class InstallmentPlan
 
     public IEnumerable<Transaction> GenerateTransactions()
     {
-        if (IsCancelled)
-            throw new DomainException("Cancelled installment plan cannot generate transactions.");
-
-        var transactions = new List<Transaction>();
-
-        for (int i = 0; i < TotalInstallments; i++)
-        {
-            var date = StartDate.AddMonths(i);
-
-            var transaction = new Transaction(
-                accountId: AccountId,
-                categoryId: CategoryId,
-                amount: InstallmentAmount,
-                type: TransactionType.Expense,
-                paymentMethod: PaymentMethod,
-                occurredAt: date,
-                creditCardId: CreditCardId,
-                installmentPlanId: Id,
-                description: $"{Description} ({i + 1}/{TotalInstallments})"
-            );
-
-            transactions.Add(transaction);
-        }
-
-        return transactions;
+        return null; // To be implemented
     }
 
 }

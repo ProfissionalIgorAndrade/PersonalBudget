@@ -61,37 +61,7 @@ public class RecurringRule
 
     public IEnumerable<Transaction> GenerateTransactions(DateTime until)
     {
-        if (IsCancelled)
-            throw new DomainException("Cancelled recurring rule cannot generate transactions.");
-
-        if (until < StartDate)
-            throw new DomainException("Generation date must be after start date.");
-
-        var transactions = new List<Transaction>();
-        var currentDate = StartDate;
-
-        while (currentDate <= until)
-        {
-            if (EndDate.HasValue && currentDate > EndDate.Value)
-                break;
-
-            transactions.Add(
-                new Transaction(
-                    accountId: AccountId,
-                    categoryId: CategoryId,
-                    amount: Amount,
-                    type: Type,
-                    paymentMethod: PaymentMethod,
-                    occurredAt: currentDate,
-                    description: Description,
-                    creditCardId: CreditCardId
-                )
-            );
-
-            currentDate = AddFrequency(currentDate);
-        }
-
-        return transactions;
+        return null; // To be implemented
     }
 
     private DateTime AddFrequency(DateTime date)

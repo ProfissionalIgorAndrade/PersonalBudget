@@ -5,7 +5,7 @@
 @HostAddress = {{localhost}}
 
 # JWT token (cole aqui o token retornado no login)
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiMmM5NGRlZC0zZDA2LTQ0M2YtODJhYS1lNGIyZDA5NTcxMmIiLCJleHAiOjE3Njk4MDg5NDcsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.v7FAmPlyV-hISKK67fsLN4iop69hBKobIzkayutE_HY
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmODBmYWQxMi1kMGE1LTRkZWYtODQ0MS0yYTljZTM5ZjFiOWQiLCJleHAiOjE3Njk4MTA4NTEsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.0ryZochW23A9eMvbbPCA4jfZgtPwRTwGDjGCQ5pwlOE
 
 
 ### USER ENDPOINTS
@@ -58,7 +58,7 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 # ⚠️ Substitua pelo AccountId retornado no GET
-@accountId = d178d6c0-7ef1-41e6-a235-12ae89ede066
+@accountId = 0ad31c94-31c0-4f32-b4ff-d37c308d0fa9
 
 
 ### Update Account
@@ -108,7 +108,7 @@ GET {{HostAddress}}/api/categories
 Authorization: Bearer {{authToken}}
 
 # ⚠️ Substitua pelo AccountId retornado no GET
-@categoryId = cd9f99d8-4cac-469c-9ab0-c85580bb4dac
+@categoryId = 6fce348d-0f8b-4449-b8e2-9dffcb9cedcb
 
 
 ### Update Category
@@ -151,7 +151,7 @@ Authorization: Bearer {{authToken}}
 
 
 ### Update Credit Card
-@creditCardId = 8b6104d3-8e88-4844-91cd-8e6159cc989f
+@creditCardId = 5d083b97-6964-46c3-b918-648f6418fce9
 
 PUT {{HostAddress}}/api/credit-cards/{{creditCardId}}
 Authorization: Bearer {{authToken}}
@@ -190,26 +190,48 @@ Content-Type: application/json
   "autoComplete": true
 }
 
-### Create Expense (credit card - pending)
+### Create Expense (auto complete)
 POST {{HostAddress}}/api/transactions
 Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
   "accountId": "{{accountId}}",
-  "categoryId": "{{categoryId}}",
-  "creditCardId": "{{creditCardId}}",
+  "categoryId": null,
+  "creditCardId": null,
   "type": "Expense",
-  "paymentMethod": "CreditCard",
-  "amount": 1200,
+  "paymentMethod": "Account",
+  "amount": 2300,
   "date": "2026-01-25",
-  "description": "TV purchase",
-  "autoComplete": false
+  "description": "Salary",
+  "autoComplete": true
 }
 
 
+### Create Expense (credit card - pending)
+POST {{HostAddress}}/api/transactions
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "AccountId": "{{accountId}}",
+  "CategoryId": "{{categoryId}}",
+  "CreditCardId": "{{creditCardId}}",
+  "type": "Expense",
+  "paymentMethod": "CreditCard",
+  "amount": 3244,
+  "date": "2026-01-25",
+  "description": "TV purchase 123",
+  "autoComplete": false
+}
+
+###
 # ⚠️ Substitua pelo TransactionId retornado no GET
-@transactionId = 
+@transactionId = b422cb84-1267-4014-b032-9b0525bcca2e
+
+### Get Transactions by Account
+GET {{HostAddress}}/api/transactions/account/{{accountId}}
+Authorization: Bearer {{authToken}}
 
 ### Complete Transaction (ex: pay credit card)
 POST {{HostAddress}}/api/transactions/{{transactionId}}/complete
@@ -219,6 +241,3 @@ Authorization: Bearer {{authToken}}
 POST {{HostAddress}}/api/transactions/{{transactionId}}/cancel
 Authorization: Bearer {{authToken}}
 
-### Get Transactions by Account
-GET {{HostAddress}}/api/transactions/account/{{accountId}}
-Authorization: Bearer {{authToken}}
