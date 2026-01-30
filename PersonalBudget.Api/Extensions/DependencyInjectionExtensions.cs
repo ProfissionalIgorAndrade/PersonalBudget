@@ -15,6 +15,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<ICreditCardService, CreditCardService>();
+        services.AddScoped<ITransactionService, TransactionService>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 
