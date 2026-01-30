@@ -1,0 +1,1 @@
+public record DeleteCategoryCommand(Guid UserId, Guid CategoryId);

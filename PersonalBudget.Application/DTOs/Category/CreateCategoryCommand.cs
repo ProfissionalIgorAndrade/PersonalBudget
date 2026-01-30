@@ -1,0 +1,1 @@
+public record CreateCategoryCommand(Guid UserId, string Name, CategoryType Type);

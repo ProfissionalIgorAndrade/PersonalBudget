@@ -67,3 +67,38 @@ Content-Type: application/json
 ### Delete Account
 DELETE {{HostAddress}}/api/accounts/{{accountId}}
 Authorization: Bearer {{authToken}}
+
+### Category ENDPOINTS
+### Create Category of Type Income
+POST {{HostAddress}}/api/categories
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{ "Name": "Food", "Type": "Income" }
+
+### Create Category of Type Expense
+POST {{HostAddress}}/api/categories
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{ "Name": "Food", "Type": "Expense" }
+
+### Get Categories
+GET {{HostAddress}}/api/categories
+Authorization: Bearer {{authToken}}
+
+# ⚠️ Substitua pelo AccountId retornado no GET
+@categoryId = cd9f99d8-4cac-469c-9ab0-c85580bb4dac
+
+### Update Category
+PUT {{HostAddress}}/api/categories/{{categoryId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "Name": "Food truck", "Type": "Income"
+}
+
+### Delete Category
+DELETE {{HostAddress}}/api/categories/{{categoryId}}
+Authorization: Bearer {{authToken}}

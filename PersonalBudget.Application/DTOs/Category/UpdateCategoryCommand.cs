@@ -1,0 +1,1 @@
+public record UpdateCategoryCommand(Guid UserId, Guid CategoryId, string Name, CategoryType Type);
