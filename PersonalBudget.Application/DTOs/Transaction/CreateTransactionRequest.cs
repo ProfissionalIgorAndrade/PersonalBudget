@@ -6,5 +6,6 @@ public record CreateTransactionRequest(
     PaymentMethod PaymentMethod,
     decimal Amount,
     DateTime Date,
-    string Description
+    string Description,
+    bool AutoComplete
 );
