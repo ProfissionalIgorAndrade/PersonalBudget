@@ -1,5 +1,17 @@
 public class Transaction
 {
+    public Guid Id { get; }
+    public Guid AccountId { get; }
+    public Guid CategoryId { get; }
+    public Guid? CreditCardId { get; }
+    public Guid? InstallmentPlanId { get; }
+    public PaymentMethod PaymentMethod { get; }
+    public TransactionType Type { get; }
+    public Money Amount { get; }
+    public DateTime OccurredAt { get; }
+    public TransactionStatus Status { get; private set; }
+    public string Description { get; }
+
     public Transaction(
         Guid accountId,
         Guid categoryId,
@@ -36,17 +48,7 @@ public class Transaction
         Status = TransactionStatus.Pending;
     }
 
-    public Guid Id { get; }
-    public Guid AccountId { get; }
-    public Guid CategoryId { get; }
-    public Guid? CreditCardId { get; }
-    public Guid? InstallmentPlanId { get; }
-    public PaymentMethod PaymentMethod { get; }
-    public TransactionType Type { get; }
-    public Money Amount { get; }
-    public DateTime OccurredAt { get; }
-    public TransactionStatus Status { get; private set; }
-    public string Description { get; }
+    protected Transaction() { }
 
     public void MarkAsCompleted()
     {

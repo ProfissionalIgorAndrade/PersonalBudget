@@ -7,6 +7,7 @@ public class Account
     public BankAccountNumber Number { get; private set; } = null!;
     public Money Balance { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
+    public bool IsActive { get; private set; } = true;
 
     public Account(
         Guid userId,
@@ -26,6 +27,40 @@ public class Account
         Balance = initialBalance;
         CreatedAt = DateTime.UtcNow;
     }
+
+    protected Account() { }
+
+    public static Account Create(
+       Guid userId,
+       Bank bank,
+       BankAgency agency,
+       BankAccountNumber number,
+       Money initialBalance)
+    {
+        return new Account(userId, bank, agency, number, initialBalance);
+    }
+
+    public void UpdateBankInfo(
+        Bank bank,
+        BankAgency agency,
+        BankAccountNumber number)
+    {
+        if (!IsActive)
+            throw new DomainException("Inactive account cannot be updated.");
+
+        Bank = bank;
+        Agency = agency;
+        Number = number;
+    }
+
+    public void Deactivate()
+    {
+        if (!IsActive)
+            throw new DomainException("Account is already inactive.");
+
+        IsActive = false;
+    }
+
 
     public void Credit(Money amount)
     {

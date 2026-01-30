@@ -1,5 +1,18 @@
 public class RecurringRule
 {
+    public Guid Id { get; }
+    public Guid AccountId { get; }
+    public Guid CategoryId { get; }
+    public Guid? CreditCardId { get; }
+    public TransactionType Type { get; }
+    public PaymentMethod PaymentMethod { get; }
+    public Money Amount { get; }
+    public RecurrenceFrequency Frequency { get; }
+    public DateTime StartDate { get; }
+    public DateTime? EndDate { get; }
+    public string Description { get; }
+    public bool IsCancelled { get; private set; }
+
     public RecurringRule(
         Guid accountId,
         Guid categoryId,
@@ -39,18 +52,7 @@ public class RecurringRule
         IsCancelled = false;
     }
 
-    public Guid Id { get; }
-    public Guid AccountId { get; }
-    public Guid CategoryId { get; }
-    public Guid? CreditCardId { get; }
-    public TransactionType Type { get; }
-    public PaymentMethod PaymentMethod { get; }
-    public Money Amount { get; }
-    public RecurrenceFrequency Frequency { get; }
-    public DateTime StartDate { get; }
-    public DateTime? EndDate { get; }
-    public string Description { get; }
-    public bool IsCancelled { get; private set; }
+    protected RecurringRule() { }
 
     public void Cancel()
     {

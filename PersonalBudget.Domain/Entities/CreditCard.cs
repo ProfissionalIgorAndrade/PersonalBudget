@@ -1,5 +1,15 @@
 public class CreditCard
 {
+    public Guid Id { get; }
+    public Guid AccountId { get; }
+    public string Name { get; }
+    public string LastFourDigits { get; }
+    public string Brand { get; }
+    public Money CreditLimit { get; }
+    public int ClosingDay { get; }
+    public int DueDay { get; }
+    public bool IsActive { get; private set; }
+
     public CreditCard(
         Guid accountId,
         string name,
@@ -35,15 +45,7 @@ public class CreditCard
         IsActive = true;
     }
 
-    public Guid Id { get; }
-    public Guid AccountId { get; }
-    public string Name { get; }
-    public string LastFourDigits { get; }
-    public string Brand { get; }
-    public Money CreditLimit { get; }
-    public int ClosingDay { get; }
-    public int DueDay { get; }
-    public bool IsActive { get; private set; }
+    protected CreditCard() { }
 
     public void Deactivate()
     {

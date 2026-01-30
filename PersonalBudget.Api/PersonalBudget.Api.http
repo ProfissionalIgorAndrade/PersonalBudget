@@ -5,13 +5,9 @@
 @HostAddress = {{localhost}}
 
 # JWT token (cole aqui o token retornado no login)
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlOTEzOGQ4Ny1kZTlhLTRmYWQtYWU0YS02NTE5MmMxOTdlOTUiLCJleHAiOjE3NjkyNjk1MTUsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.zITSMqlgkPvSILWq5x5HiG8qSLuioM1hdhI5qz1rQqk
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1YzQwYzhhNC0zNzJiLTQ3NTktOTIwOS1kMWZhNzU1OWYwNmEiLCJleHAiOjE3Njk3Mzg2MDYsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.IN3OhioR8vFFG6BWJZLQ4YEnDte34uWZuWBL7Oa5r2U
 
-###
-### ============================================
-### ACCOUNT ENDPOINTS
-### ============================================
-
+### USER ENDPOINTS
 ###
 # Create new user in system
 POST {{HostAddress}}/api/authentication/signin
@@ -34,6 +30,7 @@ Content-Type: application/json
   "Password": "Password123@"
 }
 
+### ACCOUNT ENDPOINTS
 ###
 # Create new account (requires auth)
 POST {{HostAddress}}/api/accounts
@@ -41,5 +38,32 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-  "name": "Itau Account"
+  "Bank": "Caixa",
+  "Agency": "1301",
+  "AccountNumber": "123456-7",
+  "InitialBalance": 1005
 }
+
+###
+# Get all accounts (requires auth)
+GET {{HostAddress}}/api/accounts
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+# ⚠️ Substitua pelo AccountId retornado no GET
+@accountId = cd9f99d8-4cac-469c-9ab0-c85580bb4dac
+
+### Update Account
+PUT {{HostAddress}}/api/accounts/{{accountId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "bank": "Itau",
+  "agency": "0002",
+  "accountNumber": "654321"
+}
+
+### Delete Account
+DELETE {{HostAddress}}/api/accounts/{{accountId}}
+Authorization: Bearer {{authToken}}

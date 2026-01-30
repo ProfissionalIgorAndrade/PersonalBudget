@@ -1,5 +1,12 @@
 public class User
 {
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public Email Email { get; set; }
+    public PasswordHash PasswordHash { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+
     public User(string name, Email email, PasswordHash passwordHash)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -15,13 +22,6 @@ public class User
     }
     
     protected User() { }
-
-    public Guid Id { get; set; }
-    public string Name { get; set; }
-    public Email Email { get; set; }
-    public PasswordHash PasswordHash { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public void Deactivate()
     {

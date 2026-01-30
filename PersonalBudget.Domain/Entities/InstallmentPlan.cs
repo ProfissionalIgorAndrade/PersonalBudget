@@ -1,5 +1,17 @@
 public class InstallmentPlan
 {
+    public Guid Id { get; }
+    public Guid AccountId { get; }
+    public Guid CategoryId { get; }
+    public Guid CreditCardId { get; }
+    public PaymentMethod PaymentMethod { get; }
+    public string Description { get; }
+    public Money TotalAmount { get; }
+    public int TotalInstallments { get; }
+    public Money InstallmentAmount { get; }
+    public DateTime StartDate { get; }
+    public bool IsCancelled { get; private set; }
+
     public InstallmentPlan(
         Guid accountId,
         Guid categoryId,
@@ -41,17 +53,7 @@ public class InstallmentPlan
         IsCancelled = false;
     }
 
-    public Guid Id { get; }
-    public Guid AccountId { get; }
-    public Guid CategoryId { get; }
-    public Guid CreditCardId { get; }
-    public PaymentMethod PaymentMethod { get; }
-    public string Description { get; }
-    public Money TotalAmount { get; }
-    public int TotalInstallments { get; }
-    public Money InstallmentAmount { get; }
-    public DateTime StartDate { get; }
-    public bool IsCancelled { get; private set; }
+    protected InstallmentPlan() { }
 
     public void Cancel()
     {

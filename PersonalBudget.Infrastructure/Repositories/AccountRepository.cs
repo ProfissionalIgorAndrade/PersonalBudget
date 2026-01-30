@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 public class AccountRepository : IAccountRepository
 {
     private readonly AppDbContext _context;
@@ -15,6 +17,20 @@ public class AccountRepository : IAccountRepository
 
     public async Task<Account?> GetByIdAsync(Guid accountId)
     {
-        return await _context.Accounts.FindAsync(accountId);
+        return await _context.Accounts
+            .FirstOrDefaultAsync(a => a.Id == accountId);
+    }
+
+    public async Task<IEnumerable<Account>> GetByUserIdAsync(Guid userId)
+    {
+        return await _context.Accounts
+            .Where(a => a.UserId == userId && a.IsActive)
+            .ToListAsync();
+    }
+
+    public async Task UpdateAsync(Account account)
+    {
+        _context.Accounts.Update(account);
+        await _context.SaveChangesAsync();
     }
 }

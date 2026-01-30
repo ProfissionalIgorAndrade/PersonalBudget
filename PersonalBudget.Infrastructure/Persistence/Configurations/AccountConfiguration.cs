@@ -48,5 +48,8 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.Property(a => a.CreatedAt)
             .IsRequired();
+
+        builder.Property(a => a.IsActive)
+            .IsRequired();
     }
 }
