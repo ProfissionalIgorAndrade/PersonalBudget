@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-[Authorize]
 [ApiController]
 [Route("api/transactions")]
 public class TransactionsController : ControllerBase

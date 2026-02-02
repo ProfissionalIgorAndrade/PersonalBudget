@@ -10,7 +10,6 @@
 
 ### USER ENDPOINTS
 
-
 ###
 # Create new user in system
 POST {{HostAddress}}/api/authentication/signin
@@ -38,9 +37,9 @@ Content-Type: application/json
 
 
 ###
+
 # Create new account (requires auth)
 POST {{HostAddress}}/api/accounts
-Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
@@ -54,7 +53,6 @@ Content-Type: application/json
 ###
 # Get all accounts (requires auth)
 GET {{HostAddress}}/api/accounts
-Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 # ⚠️ Substitua pelo AccountId retornado no GET
@@ -63,9 +61,8 @@ Content-Type: application/json
 
 ### Update Account
 PUT {{HostAddress}}/api/accounts/{{accountId}}
-Authorization: Bearer {{authToken}}
-Content-Type: application/json
 
+Content-Type: application/json
 {
   "bank": "Itau",
   "agency": "0002",
@@ -75,7 +72,7 @@ Content-Type: application/json
 
 ### Delete Account
 DELETE {{HostAddress}}/api/accounts/{{accountId}}
-Authorization: Bearer {{authToken}}
+
 
 
 ### Category ENDPOINTS
@@ -83,7 +80,7 @@ Authorization: Bearer {{authToken}}
 
 ### Create Category of Type Income
 POST {{HostAddress}}/api/categories
-Authorization: Bearer {{authToken}}
+
 Content-Type: application/json
 
 {
@@ -94,7 +91,7 @@ Content-Type: application/json
 
 ### Create Category of Type Expense
 POST {{HostAddress}}/api/categories
-Authorization: Bearer {{authToken}}
+
 Content-Type: application/json
 
 {
@@ -105,7 +102,6 @@ Content-Type: application/json
 
 ### Get Categories
 GET {{HostAddress}}/api/categories
-Authorization: Bearer {{authToken}}
 
 # ⚠️ Substitua pelo AccountId retornado no GET
 @categoryId = 6fce348d-0f8b-4449-b8e2-9dffcb9cedcb
@@ -113,7 +109,7 @@ Authorization: Bearer {{authToken}}
 
 ### Update Category
 PUT {{HostAddress}}/api/categories/{{categoryId}}
-Authorization: Bearer {{authToken}}
+
 Content-Type: application/json
 
 {
@@ -124,7 +120,7 @@ Content-Type: application/json
 
 ### Delete Category
 DELETE {{HostAddress}}/api/categories/{{categoryId}}
-Authorization: Bearer {{authToken}}
+
 
 # ===============================
 # CREDIT CARD
@@ -133,7 +129,7 @@ Authorization: Bearer {{authToken}}
 
 ### Create Credit Card
 POST {{HostAddress}}/api/credit-cards
-Authorization: Bearer {{authToken}}
+
 Content-Type: application/json
 
 {
@@ -147,14 +143,12 @@ Content-Type: application/json
 
 ### Get All Credit Cards
 GET {{HostAddress}}/api/credit-cards
-Authorization: Bearer {{authToken}}
-
 
 ### Update Credit Card
 @creditCardId = 5d083b97-6964-46c3-b918-648f6418fce9
 
 PUT {{HostAddress}}/api/credit-cards/{{creditCardId}}
-Authorization: Bearer {{authToken}}
+
 Content-Type: application/json
 
 {
@@ -167,7 +161,7 @@ Content-Type: application/json
 
 ### Delete Credit Card
 DELETE {{HostAddress}}/api/credit-cards/{{creditCardId}}
-Authorization: Bearer {{authToken}}
+
 
 # ===============================
 # TRANSACTIONS
@@ -175,7 +169,7 @@ Authorization: Bearer {{authToken}}
 
 ### Create Income (auto complete)
 POST {{HostAddress}}/api/transactions
-Authorization: Bearer {{authToken}}
+
 Content-Type: application/json
 
 {
@@ -192,7 +186,7 @@ Content-Type: application/json
 
 ### Create Expense (auto complete)
 POST {{HostAddress}}/api/transactions
-Authorization: Bearer {{authToken}}
+
 Content-Type: application/json
 
 {
@@ -210,7 +204,7 @@ Content-Type: application/json
 
 ### Create Expense (credit card - pending)
 POST {{HostAddress}}/api/transactions
-Authorization: Bearer {{authToken}}
+
 Content-Type: application/json
 
 {
@@ -231,13 +225,13 @@ Content-Type: application/json
 
 ### Get Transactions by Account
 GET {{HostAddress}}/api/transactions/account/{{accountId}}
-Authorization: Bearer {{authToken}}
+
 
 ### Complete Transaction (ex: pay credit card)
 POST {{HostAddress}}/api/transactions/{{transactionId}}/complete
-Authorization: Bearer {{authToken}}
+
 
 ### Cancel Transaction
 POST {{HostAddress}}/api/transactions/{{transactionId}}/cancel
-Authorization: Bearer {{authToken}}
+
 

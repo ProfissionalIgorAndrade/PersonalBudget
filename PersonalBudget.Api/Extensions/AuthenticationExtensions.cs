@@ -32,7 +32,7 @@ public static class AuthenticationExtensions
                 };
             });
 
-        services.AddAuthorization();
+        //services.AddAuthorization();
 
         services.AddSingleton<JwtTokenGenerator>();
 

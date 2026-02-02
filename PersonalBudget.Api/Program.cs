@@ -66,8 +66,8 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
 
-app.UseAuthentication();
-app.UseAuthorization();
+// builder.Services.AddAuthentication(...)
+// builder.Services.AddAuthorization(...)
 
 app.MapControllers();
 
