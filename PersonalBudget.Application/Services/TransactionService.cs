@@ -86,4 +86,9 @@ public class TransactionService : ITransactionService
 
         return await _transactionRepository.GetByAccountAsync(query.AccountId);
     }
+
+    public async Task<IEnumerable<Transaction>> GetByUserAsync(GetAllTransactionByUserQuery query)
+    {
+        return await _transactionRepository.GetByUserAsync(query.UserId);
+    }
 }

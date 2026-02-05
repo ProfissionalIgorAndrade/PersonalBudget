@@ -48,7 +48,18 @@ public class TransactionsController : ControllerBase
 
         return Ok(transactions);
     }
+    
+    [HttpGet]
+    public async Task<IActionResult> GetAll(Guid accountId)
+    {
+        var userId = UserContext.GetUserId(User);
 
+        var query = new GetAllTransactionByUserQuery(userId);
+        var transactions = await _transactionService.GetByUserAsync(query);
+
+        return Ok(transactions);
+    }
+   
     [HttpPost("{transactionId}/complete")]
     public async Task<IActionResult> Complete(Guid transactionId)
     {
