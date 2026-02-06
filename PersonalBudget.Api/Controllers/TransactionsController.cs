@@ -50,7 +50,7 @@ public class TransactionsController : ControllerBase
     }
     
     [HttpGet]
-    public async Task<IActionResult> GetAll(Guid accountId)
+    public async Task<IActionResult> GetAll()
     {
         var userId = UserContext.GetUserId(User);
 

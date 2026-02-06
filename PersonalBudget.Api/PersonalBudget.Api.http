@@ -226,10 +226,11 @@ Content-Type: application/json
 ### Get Transactions by Account
 GET {{HostAddress}}/api/transactions/account/{{accountId}}
 
+### Get Transactions by Userid
+GET {{HostAddress}}/api/transactions
 
 ### Complete Transaction (ex: pay credit card)
 POST {{HostAddress}}/api/transactions/{{transactionId}}/complete
-
 
 ### Cancel Transaction
 POST {{HostAddress}}/api/transactions/{{transactionId}}/cancel
