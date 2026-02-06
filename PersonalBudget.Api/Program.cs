@@ -1,6 +1,7 @@
 using PersonalBudget.Api.Extensions;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
+using PersonalBudget.Infrastructure.Persistence.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +61,10 @@ if (!builder.Environment.IsDevelopment())
 }
 
 var app = builder.Build();
+using var scope = app.Services.CreateScope();
+var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+DevUser.Id = await DatabaseSeeder.SeedAsync(context);
 
 app.UseSwagger();
 app.UseSwaggerUI();

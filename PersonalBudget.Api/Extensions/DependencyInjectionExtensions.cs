@@ -10,6 +10,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<ICreditCardRepository, CreditCardRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<ITransactionQueryRepository, TransactionQueryRepository>();
 
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAccountService, AccountService>();

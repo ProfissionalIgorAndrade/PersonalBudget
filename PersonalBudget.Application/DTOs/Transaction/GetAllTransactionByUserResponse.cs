@@ -1,0 +1,15 @@
+public record GetAllTransactionByUserResponse(
+    Guid Id,
+    Guid AccountId,
+    string AccountName,
+    Guid? CategoryId,
+    string? CategoryName,
+    string? CategoryType,
+    Guid? CreditCardId,
+    string? CreditCardName,
+    string type,
+    string Status,
+    string PaymentMethod,
+    decimal Amount,
+    DateTime Date,
+    string Description);

@@ -1,13 +1,16 @@
 public class TransactionService : ITransactionService
 {
     private readonly ITransactionRepository _transactionRepository;
+    private readonly ITransactionQueryRepository _transactionQueryRepository;
     private readonly IAccountRepository _accountRepository;
 
     public TransactionService(
         ITransactionRepository transactionRepository,
+        ITransactionQueryRepository transactionQueryRepository,
         IAccountRepository accountRepository)
     {
         _transactionRepository = transactionRepository;
+        _transactionQueryRepository = transactionQueryRepository;
         _accountRepository = accountRepository;
     }
 
@@ -87,8 +90,8 @@ public class TransactionService : ITransactionService
         return await _transactionRepository.GetByAccountAsync(query.AccountId);
     }
 
-    public async Task<IEnumerable<Transaction>> GetByUserAsync(GetAllTransactionByUserQuery query)
+    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAsync(GetAllTransactionByUserQuery query)
     {
-        return await _transactionRepository.GetByUserAsync(query.UserId);
+        return await _transactionQueryRepository.GetByUserAsync(query.UserId);
     }
 }
