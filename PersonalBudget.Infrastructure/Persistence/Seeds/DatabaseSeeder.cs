@@ -10,8 +10,8 @@ public static class DatabaseSeeder
         // USER
         var user = new User(
             name: "Demo User",
-            email: new Email("demo@budget.com"),
-            passwordHash: new PasswordHasher().Hash("password123")
+            email: new Email("email@email.com"),
+            passwordHash: new PasswordHasher().Hash("Password123@")
         );
 
         context.Users.Add(user);

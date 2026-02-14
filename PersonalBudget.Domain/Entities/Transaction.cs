@@ -38,6 +38,9 @@ public class Transaction
         if (paymentMethod != PaymentMethod.CreditCard && creditCardId is not null)
             throw new DomainException("Only credit card transactions can reference a credit card.");
 
+        if(paymentMethod == PaymentMethod.CreditCard)
+            Status = TransactionStatus.Pending;
+
         Id = Guid.NewGuid();
         UserId = userId;
         AccountId = accountId;
