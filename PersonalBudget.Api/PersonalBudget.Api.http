@@ -5,7 +5,7 @@
 @HostAddress = {{localhost}}
 
 # JWT token (cole aqui o token retornado no login)
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4MDcwNjQ2ZS05N2Y5LTQyMDUtOTE3NC1jZmMwZGY4NDEwMTAiLCJleHAiOjE3NzExMDMzMDMsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.qGSa4ehSIx3v4acLxJDCBX4VAArupbQ9sUgRB-JE5iQ
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwZDZkZGEyMC0zYjg3LTRkZWItOGE5MC0yNTcwNjVlYjcyYWMiLCJleHAiOjE3NzExMDUzMTksImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.E3CoHqKJ6B6JRMZ_TBxJQQSuG2L9kSAeY8xnSlGfrbY
 
 
 ### USER ENDPOINTS
@@ -239,6 +239,10 @@ Authorization: Bearer {{authToken}}
 
 ### Get Transactions by Userid
 GET {{HostAddress}}/api/transactions
+Authorization: Bearer {{authToken}}
+
+### Get Transaction grouped by Category
+GET {{HostAddress}}/api/transactions/grouped-by-category
 Authorization: Bearer {{authToken}}
 
 ### Complete Transaction (ex: pay credit card)

@@ -50,7 +50,38 @@ public class TransactionsController : ControllerBase
 
         return Ok(transactions);
     }
-    
+
+    [HttpGet("grouped-by-category")]
+    public async Task<IActionResult> GetByCategory()
+    {
+        var userId = UserContext.GetUserId(User);
+
+        var query = new GetAllTransactionByUserQuery(userId);
+        var transactions = await _transactionService.GetByUserAsync(query);
+        var groupedTransactions = transactions
+            .GroupBy(t => t.CategoryName)
+            .Select(g => new
+            {
+                Category = g.Key,
+                TotalAmount = g.Sum(t => t.Amount),
+                Transactions = g.Select(t => new
+                {
+                    t.Id,
+                    t.AccountId,
+                    t.CategoryId,
+                    t.CreditCardId,
+                    t.Type,
+                    t.PaymentMethod,
+                    t.Amount,
+                    t.Date,
+                    t.Description,
+                    t.Status
+                })
+            });
+
+        return Ok(groupedTransactions);
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
