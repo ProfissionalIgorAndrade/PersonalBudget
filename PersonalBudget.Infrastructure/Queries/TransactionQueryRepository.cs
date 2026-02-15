@@ -10,6 +10,43 @@ public class TransactionQueryRepository : ITransactionQueryRepository
         _context = context;
     }
 
+    public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(Guid userId, int month, int year)
+    {
+        return await _context.Transactions
+            .Where(t => t.UserId == userId && t.Date.Value.Month == month && t.Date.Value.Year == year)
+            .Join(_context.Accounts,
+                t => t.AccountId,
+                a => a.Id,
+                (t, a) => new { Transaction = t, Account = a })
+            .GroupJoin(_context.Categories,
+                ta => ta.Transaction.CategoryId,
+                c => c.Id,
+                (ta, c) => new { ta.Transaction, ta.Account, Category = c.FirstOrDefault() })
+            .GroupJoin(_context.CreditCards,
+                tac => tac.Transaction.CreditCardId,
+                cc => cc.Id,
+                (tac, cc) => new { tac.Transaction, tac.Account, tac.Category, CreditCard = cc.FirstOrDefault() })
+            .OrderByDescending(tacc => tacc.Transaction.Date)
+            .Select(tacc => new GetAllTransactionByUserResponse(
+                tacc.Transaction.Id,
+                    tacc.Transaction.AccountId,
+                    tacc.Account.Agency.Value,
+                    tacc.Transaction.CategoryId,
+                    tacc.Category != null ? tacc.Category.Name : null,
+                    tacc.Category != null ? tacc.Category.Type.ToString() : null,
+                    tacc.Transaction.CreditCardId,
+                    tacc.CreditCard != null ? tacc.CreditCard.Name : null,
+                    tacc.Transaction.Type.ToString(),
+                    tacc.Transaction.Status.ToString(),
+                    tacc.Transaction.PaymentMethod.ToString(),
+                    tacc.Transaction.Amount.Amount,
+                    tacc.Transaction.Date.Value,
+                    tacc.Transaction.Description.Value
+             ))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByUserAsync(Guid userId)
     {
         return await

@@ -5,4 +5,5 @@ public interface ITransactionService
     Task CancelAsync(CancelTransactionCommand command);
     Task<IEnumerable<Transaction>> GetByAccountAsync(GetTransactionsByAccountQuery query);
     Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAsync(GetAllTransactionByUserQuery query);
+    Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(GetAllTransactionByUserAndMonthQuery query);
 }

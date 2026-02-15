@@ -92,7 +92,19 @@ public class TransactionsController : ControllerBase
 
         return Ok(transactions);
     }
-   
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllByMonth(int month, int year)
+    {
+        var userId = UserContext.GetUserId(User);
+
+        var query = new GetAllTransactionByUserAndMonthQuery(userId, month, year);
+        var transactions = await _transactionService.GetByUserAndMonthAsync(query);
+
+        return Ok(transactions);
+    }
+
+
     [HttpPost("{transactionId}/complete")]
     public async Task<IActionResult> Complete(Guid transactionId)
     {
