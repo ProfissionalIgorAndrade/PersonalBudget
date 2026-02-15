@@ -41,33 +41,67 @@ public static class DatabaseSeeder
         // CATEGORY
         var categoryExpense1 = Category.Create(
             userId: user.Id,
-            name: "Home",
+            name: "Casa",
+            type: CategoryType.Expense
+        );
+
+        var categoryExpenseMoradia = Category.Create(
+            userId: user.Id,
+            name: "Moradia",
             type: CategoryType.Expense
         );
 
         var categoryExpense2 = Category.Create(
             userId: user.Id,
-            name: "Food",
+            name: "Alimentação",
             type: CategoryType.Expense
         );
 
-        var categoryIncome1 = Category.Create(
-                    userId: user.Id,
-                    name: "Salary",
-                    type: CategoryType.Income
-                );
-
+        var categoryExpenseBesteiras = Category.Create(
+            userId: user.Id,
+            name: "Besteiras",
+            type: CategoryType.Expense
+        );
 
         var categoryExpense3 = Category.Create(
                     userId: user.Id,
-                    name: "Entertainment",
+                    name: "Diversão",
                     type: CategoryType.Expense
+                );
+
+        var categoryIncome1 = Category.Create(
+                    userId: user.Id,
+                    name: "Salário",
+                    type: CategoryType.Income
+                );
+
+        var categoryIncome2 = Category.Create(
+                    userId: user.Id,
+                    name: "Freelance",
+                    type: CategoryType.Income
+                );
+
+        var categoryIncome3 = Category.Create(
+                    userId: user.Id,
+                    name: "Investimentos",
+                    type: CategoryType.Income
+                );
+
+        var categoryIncome4 = Category.Create(
+                    userId: user.Id,
+                    name: "Outros",
+                    type: CategoryType.Income
                 );
 
         context.Categories.Add(categoryExpense1);
         context.Categories.Add(categoryExpense2);
         context.Categories.Add(categoryExpense3);
+        context.Categories.Add(categoryExpenseMoradia);
+        context.Categories.Add(categoryExpenseBesteiras);
         context.Categories.Add(categoryIncome1);
+        context.Categories.Add(categoryIncome2);
+        context.Categories.Add(categoryIncome3);
+        context.Categories.Add(categoryIncome4);
 
         // CREDIT CARD
         var card1 = CreditCard.Create(
@@ -105,10 +139,10 @@ public static class DatabaseSeeder
         var transactionExpense1 = Transaction.Create(
             userId: user.Id,
             accountId: account1.Id,
-            amount: new Money(1200),
+            amount: new Money(12000),
             type: TransactionType.Expense,
             paymentMethod: PaymentMethod.CreditCard,
-            description: "TV purchase",
+            description: "TV Samsung 65 Polegadas 4K UHD - Magazine Luiza",
             date: DateTime.UtcNow,
             categoryId: categoryExpense1.Id,
             creditCardId: card1.Id
@@ -117,10 +151,10 @@ public static class DatabaseSeeder
         var transactionExpense2 = Transaction.Create(
             userId: user.Id,
             accountId: account2.Id,
-            amount: new Money(1200),
+            amount: new Money(2500),
             type: TransactionType.Expense,
             paymentMethod: PaymentMethod.CreditCard,
-            description: "Home teatcher purchase",
+            description: "Home teatcher LG - Amazon",
             date: DateTime.UtcNow,
             categoryId: categoryExpense2.Id,
             creditCardId: card2.Id
@@ -129,10 +163,10 @@ public static class DatabaseSeeder
         var transactionExpense3 = Transaction.Create(
             userId: user.Id,
             accountId: account1.Id,
-            amount: new Money(600),
+            amount: new Money(4000),
             type: TransactionType.Expense,
             paymentMethod: PaymentMethod.CreditCard,
-            description: "Steam deck purchase",
+            description: "Nintendo Switch - Americanas",
             date: DateTime.UtcNow,
             categoryId: categoryExpense3.Id,
             creditCardId: card3.Id
@@ -141,10 +175,10 @@ public static class DatabaseSeeder
         var transactionIncome1 = Transaction.Create(
             userId: user.Id,
             accountId: account1.Id,
-            amount: new Money(1200),
+            amount: new Money(12000),
             type: TransactionType.Income,
             paymentMethod: PaymentMethod.Account,
-            description: "Salary payment",
+            description: "Salário - Empresa X",
             date: DateTime.UtcNow,
             categoryId: categoryIncome1.Id,
             creditCardId: null
@@ -157,9 +191,21 @@ public static class DatabaseSeeder
             amount: new Money(1500),
             type: TransactionType.Income,
             paymentMethod: PaymentMethod.Account,
-            description: "Freelance work payment",
+            description: "Freelance - Projeto Y",
             date: DateTime.UtcNow,
-            categoryId: categoryIncome1.Id,
+            categoryId: categoryIncome2.Id,
+            creditCardId: null
+        );
+
+        var transactionIncome3 = Transaction.Create(
+            userId: user.Id,
+            accountId: account2.Id,
+            amount: new Money(950),
+            type: TransactionType.Income,
+            paymentMethod: PaymentMethod.Account,
+            description: "Investimentos - Ações Z",
+            date: DateTime.UtcNow,
+            categoryId: categoryIncome3.Id,
             creditCardId: null
         );
 
@@ -168,6 +214,7 @@ public static class DatabaseSeeder
         context.Transactions.Add(transactionExpense3);
         context.Transactions.Add(transactionIncome1);
         context.Transactions.Add(transactionIncome2);
+        context.Transactions.Add(transactionIncome3);
 
         await context.SaveChangesAsync();
 

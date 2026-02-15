@@ -5,22 +5,10 @@
 @HostAddress = {{localhost}}
 
 # JWT token (cole aqui o token retornado no login)
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwZDZkZGEyMC0zYjg3LTRkZWItOGE5MC0yNTcwNjVlYjcyYWMiLCJleHAiOjE3NzExMDUzMTksImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.E3CoHqKJ6B6JRMZ_TBxJQQSuG2L9kSAeY8xnSlGfrbY
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMmM3MTU2Zi04OWRjLTRhOTItYTRkOS1iODhlZmQzMWFhMzEiLCJleHAiOjE3NzExMjU2NjAsImlzcyI6IlBlcnNvbmFsQnVkZ2V0IiwiYXVkIjoiUGVyc29uYWxCdWRnZXQuV2ViIn0.mGHwNWK66hbFlVEgngWFhpBwh66jaNO-86t7XNIVr6U
 
 
 ### USER ENDPOINTS
-
-###
-# Create new user in system
-POST {{HostAddress}}/api/authentication/signin
-Content-Type: application/json
-
-{
-  "Name": "User default",
-  "Email": "email@email.com",
-  "Password": "Password123@"
-}
-
 
 ###
 # Login with user in system
@@ -29,7 +17,7 @@ Content-Type: application/json
 
 {
   "Email": "email@email.com",
-  "Password": "Password123@"
+  "Password": "Email123@"
 }
 
 
@@ -232,17 +220,15 @@ Content-Type: application/json
 ###
 # ⚠️ Substitua pelo TransactionId retornado no GET
 @transactionId = b422cb84-1267-4014-b032-9b0525bcca2e
-
-### Get Transactions by Account
-GET {{HostAddress}}/api/transactions/account/{{accountId}}
-Authorization: Bearer {{authToken}}
+@month = 2
+@year = 2026
 
 ### Get Transactions by Userid
 GET {{HostAddress}}/api/transactions
 Authorization: Bearer {{authToken}}
 
-### Get Transaction grouped by Category
-GET {{HostAddress}}/api/transactions/grouped-by-category
+### Get Transaction by Month and Year
+GET {{HostAddress}}/api/transactions/month/{{month}}/year/{{year}}
 Authorization: Bearer {{authToken}}
 
 ### Complete Transaction (ex: pay credit card)

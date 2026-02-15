@@ -34,52 +34,10 @@ public class TransactionsController : ControllerBase
 
         var transactionId = await _transactionService.CreateAsync(command);
 
-        return CreatedAtAction(nameof(GetByAccount), new { accountId = request.AccountId }, new
+        return CreatedAtAction(nameof(GetAll), new { accountId = request.AccountId }, new
         {
             TransactionId = transactionId
         });
-    }
-
-    [HttpGet("account/{accountId}")]
-    public async Task<IActionResult> GetByAccount(Guid accountId)
-    {
-        var userId = UserContext.GetUserId(User);
-
-        var query = new GetTransactionsByAccountQuery(userId, accountId);
-        var transactions = await _transactionService.GetByAccountAsync(query);
-
-        return Ok(transactions);
-    }
-
-    [HttpGet("grouped-by-category")]
-    public async Task<IActionResult> GetByCategory()
-    {
-        var userId = UserContext.GetUserId(User);
-
-        var query = new GetAllTransactionByUserQuery(userId);
-        var transactions = await _transactionService.GetByUserAsync(query);
-        var groupedTransactions = transactions
-            .GroupBy(t => t.CategoryName)
-            .Select(g => new
-            {
-                Category = g.Key,
-                TotalAmount = g.Sum(t => t.Amount),
-                Transactions = g.Select(t => new
-                {
-                    t.Id,
-                    t.AccountId,
-                    t.CategoryId,
-                    t.CreditCardId,
-                    t.Type,
-                    t.PaymentMethod,
-                    t.Amount,
-                    t.Date,
-                    t.Description,
-                    t.Status
-                })
-            });
-
-        return Ok(groupedTransactions);
     }
 
     [HttpGet]
@@ -93,7 +51,7 @@ public class TransactionsController : ControllerBase
         return Ok(transactions);
     }
 
-    [HttpGet]
+    [HttpGet("month/{month}/year/{year}")]
     public async Task<IActionResult> GetAllByMonth(int month, int year)
     {
         var userId = UserContext.GetUserId(User);
