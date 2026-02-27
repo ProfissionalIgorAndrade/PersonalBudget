@@ -62,7 +62,6 @@ public class TransactionsController : ControllerBase
         return Ok(transactions);
     }
 
-
     [HttpPost("{transactionId}/complete")]
     public async Task<IActionResult> Complete(Guid transactionId)
     {

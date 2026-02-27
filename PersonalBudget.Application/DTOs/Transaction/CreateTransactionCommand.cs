@@ -1,6 +1,6 @@
 public record CreateTransactionCommand(
     Guid UserId,
-    Guid AccountId,
+    Guid? AccountId,
     Guid? CategoryId,
     Guid? CreditCardId,
     TransactionType Type,

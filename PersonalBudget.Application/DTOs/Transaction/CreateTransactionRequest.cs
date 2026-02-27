@@ -1,5 +1,5 @@
 public record CreateTransactionRequest(
-    Guid AccountId,
+    Guid? AccountId,
     Guid? CategoryId,
     Guid? CreditCardId,
     TransactionType Type,

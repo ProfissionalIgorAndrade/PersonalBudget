@@ -3,27 +3,32 @@ public class TransactionService : ITransactionService
     private readonly ITransactionRepository _transactionRepository;
     private readonly ITransactionQueryRepository _transactionQueryRepository;
     private readonly IAccountRepository _accountRepository;
+    private readonly ICreditCardRepository _creditCardRepository;
 
     public TransactionService(
         ITransactionRepository transactionRepository,
         ITransactionQueryRepository transactionQueryRepository,
-        IAccountRepository accountRepository)
+        IAccountRepository accountRepository,
+        ICreditCardRepository creditCardRepository)
     {
         _transactionRepository = transactionRepository;
         _transactionQueryRepository = transactionQueryRepository;
         _accountRepository = accountRepository;
+        _creditCardRepository = creditCardRepository;
     }
 
     public async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
-        var account = await _accountRepository.GetByIdAsync(command.AccountId);
+        var accountId = await ResolveAccountIdAsync(command);
+
+        var account = await _accountRepository.GetByIdAsync(accountId);
 
         if (account is null || account.UserId != command.UserId)
             throw new DomainException("Account not found.");
 
         var transaction = Transaction.Create(
             command.UserId,
-            command.AccountId,
+            accountId,
             new Money(command.Amount),
             command.Type,
             command.PaymentMethod,
@@ -42,6 +47,22 @@ public class TransactionService : ITransactionService
 
         await _transactionRepository.AddAsync(transaction);
         return transaction.Id;
+    }
+
+    private async Task<Guid> ResolveAccountIdAsync(CreateTransactionCommand command)
+    {
+        if (command.AccountId is { } accountId)
+            return accountId;
+
+        if (command.CreditCardId is { } creditCardId)
+        {
+            var creditCard = await _creditCardRepository.GetByIdAsync(creditCardId);
+            if (creditCard is null || creditCard.UserId != command.UserId)
+                throw new DomainException("Credit card not found.");
+            return creditCard.AccountId;
+        }
+
+        throw new DomainException("Account or credit card must be provided.");
     }
 
     public async Task CompleteAsync(CompleteTransactionCommand command)
