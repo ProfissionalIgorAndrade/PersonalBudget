@@ -38,9 +38,6 @@ public class Transaction
         if (paymentMethod != PaymentMethod.CreditCard && creditCardId is not null)
             throw new DomainException("Only credit card transactions can reference a credit card.");
 
-        if(paymentMethod == PaymentMethod.CreditCard)
-            Status = TransactionStatus.Pending;
-
         Id = Guid.NewGuid();
         UserId = userId;
         AccountId = accountId;
@@ -94,5 +91,39 @@ public class Transaction
             throw new DomainException("Completed transactions cannot be cancelled.");
 
         Status = TransactionStatus.Cancelled;
+    }
+
+    /// <summary>
+    /// Altera o status da transação. Não permitido para transações de cartão de crédito.
+    /// Transições: Pending→Completed, Pending→Cancelled, Cancelled→Pending, Completed→Pending.
+    /// </summary>
+    public void SetStatus(TransactionStatus newStatus)
+    {
+        if (PaymentMethod == PaymentMethod.CreditCard || CreditCardId is not null)
+            throw new DomainException("Credit card transactions cannot have their status changed by this operation.");
+
+        if (Status == newStatus)
+            return;
+
+        switch (newStatus)
+        {
+            case TransactionStatus.Pending:
+                if (Status != TransactionStatus.Cancelled && Status != TransactionStatus.Completed)
+                    throw new DomainException("Only cancelled or completed transactions can be set back to pending.");
+                Status = TransactionStatus.Pending;
+                break;
+            case TransactionStatus.Completed:
+                if (Status != TransactionStatus.Pending)
+                    throw new DomainException("Only pending transactions can be completed.");
+                Status = TransactionStatus.Completed;
+                break;
+            case TransactionStatus.Cancelled:
+                if (Status == TransactionStatus.Completed)
+                    throw new DomainException("Completed transactions cannot be cancelled.");
+                Status = TransactionStatus.Cancelled;
+                break;
+            default:
+                throw new DomainException($"Status {newStatus} is not allowed for this operation.");
+        }
     }
 }

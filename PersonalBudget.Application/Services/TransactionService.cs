@@ -101,6 +101,41 @@ public class TransactionService : ITransactionService
         await _transactionRepository.UpdateAsync(transaction);
     }
 
+    public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)
+    {
+        var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
+
+        if (transaction is null || transaction.UserId != command.UserId)
+            throw new DomainException("Transaction not found.");
+
+        var previousStatus = transaction.Status;
+
+        if (command.Status == TransactionStatus.Pending && previousStatus == TransactionStatus.Completed)
+        {
+            var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
+            if (account is null)
+                throw new DomainException("Account not found.");
+            TransactionApplier.Revert(account, transaction);
+            transaction.SetStatus(command.Status);
+            await _accountRepository.UpdateAsync(account);
+        }
+        else
+        {
+            transaction.SetStatus(command.Status);
+
+            if (command.Status == TransactionStatus.Completed && previousStatus != TransactionStatus.Completed)
+            {
+                var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
+                if (account is null)
+                    throw new DomainException("Account not found.");
+                TransactionApplier.Apply(account, transaction);
+                await _accountRepository.UpdateAsync(account);
+            }
+        }
+
+        await _transactionRepository.UpdateAsync(transaction);
+    }
+
     public async Task<IEnumerable<Transaction>> GetByAccountAsync(GetTransactionsByAccountQuery query)
     {
         var account = await _accountRepository.GetByIdAsync(query.AccountId);

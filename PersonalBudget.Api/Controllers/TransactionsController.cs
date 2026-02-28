@@ -62,24 +62,17 @@ public class TransactionsController : ControllerBase
         return Ok(transactions);
     }
 
-    [HttpPost("{transactionId}/complete")]
-    public async Task<IActionResult> Complete(Guid transactionId)
+    /// <summary>
+    /// Atualiza o status da transação. Aceita: Pending (1), Completed (2), Cancelled (4).
+    /// Transações de cartão de crédito não podem ser alteradas por este endpoint.
+    /// </summary>
+    [HttpPatch("{transactionId}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid transactionId, [FromBody] UpdateTransactionStatusRequest request)
     {
         var userId = UserContext.GetUserId(User);
 
-        var command = new CompleteTransactionCommand(userId, transactionId);
-        await _transactionService.CompleteAsync(command);
-
-        return NoContent();
-    }
-
-    [HttpPost("{transactionId}/cancel")]
-    public async Task<IActionResult> Cancel(Guid transactionId)
-    {
-        var userId = UserContext.GetUserId(User);
-
-        var command = new CancelTransactionCommand(userId, transactionId);
-        await _transactionService.CancelAsync(command);
+        var command = new UpdateTransactionStatusCommand(userId, transactionId, request.Status);
+        await _transactionService.UpdateStatusAsync(command);
 
         return NoContent();
     }

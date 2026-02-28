@@ -1,50 +1,52 @@
+using Bogus;
+
 namespace PersonalBudget.Infrastructure.Persistence.Seed;
 
 public static class DatabaseSeeder
 {
+    /// <summary>
+    /// Faker com locale pt_BR para nomes, datas e números realistas.
+    /// Bogus: https://github.com/bchavez/Bogus
+    /// </summary>
+    private static readonly Faker Faker = new Faker("pt_BR");
+
     public static async Task<Guid> SeedAsync(AppDbContext context)
     {
         if (context.Users.Any())
             return Guid.Empty; // banco já populado
 
-        // USER
+        // USER (nome e email aleatórios)
+        var userName = Faker.Person.FullName;
+        var userEmail = "email@email.com";
         var user = new User(
-            name: "Demo User",
-            email: new Email("email@email.com"),
+            name: userName,
+            email: new Email(userEmail),
             passwordHash: new PasswordHasher().Hash("Email123@")
         );
 
         context.Users.Add(user);
 
-        // ACCOUNT 1
+        // ACCOUNT 1 (agência, número e saldo aleatórios)
         var account1 = Account.Create(
             userId: user.Id,
             bank: Bank.Nubank,
-            agency: new BankAgency("0001"),
-            number: new BankAccountNumber("123456-7"),
+            agency: new BankAgency(Faker.Random.Int(1000, 9999).ToString()),
+            number: new BankAccountNumber($"{Faker.Random.Int(100000, 999999)}-{Faker.Random.Int(1, 9)}"),
+            initialBalance: new Money(100)
+        );
+
+        var account2 = Account.Create(
+            userId: user.Id,
+            bank: Bank.Itau,
+            agency: new BankAgency(Faker.Random.Int(1000, 9999).ToString()),
+            number: new BankAccountNumber($"{Faker.Random.Int(100000, 999999)}-{Faker.Random.Int(1, 9)}"),
             initialBalance: new Money(5000)
         );
 
         context.Accounts.Add(account1);
-
-        // ACCOUNT 2
-        var account2 = Account.Create(
-            userId: user.Id,
-            bank: Bank.Santander,
-            agency: new BankAgency("10101"),
-            number: new BankAccountNumber("78945-7"),
-            initialBalance: new Money(9000)
-        );
-
         context.Accounts.Add(account2);
 
         // CATEGORY
-        var categoryExpense1 = Category.Create(
-            userId: user.Id,
-            name: "Casa",
-            type: CategoryType.Expense
-        );
-
         var categoryExpenseMoradia = Category.Create(
             userId: user.Id,
             name: "Moradia",
@@ -54,12 +56,6 @@ public static class DatabaseSeeder
         var categoryExpense2 = Category.Create(
             userId: user.Id,
             name: "Alimentação",
-            type: CategoryType.Expense
-        );
-
-        var categoryExpenseBesteiras = Category.Create(
-            userId: user.Id,
-            name: "Besteiras",
             type: CategoryType.Expense
         );
 
@@ -75,12 +71,6 @@ public static class DatabaseSeeder
                     type: CategoryType.Income
                 );
 
-        var categoryIncome2 = Category.Create(
-                    userId: user.Id,
-                    name: "Freelance",
-                    type: CategoryType.Income
-                );
-
         var categoryIncome3 = Category.Create(
                     userId: user.Id,
                     name: "Investimentos",
@@ -93,93 +83,81 @@ public static class DatabaseSeeder
                     type: CategoryType.Income
                 );
 
-        context.Categories.Add(categoryExpense1);
         context.Categories.Add(categoryExpense2);
         context.Categories.Add(categoryExpense3);
         context.Categories.Add(categoryExpenseMoradia);
-        context.Categories.Add(categoryExpenseBesteiras);
         context.Categories.Add(categoryIncome1);
-        context.Categories.Add(categoryIncome2);
         context.Categories.Add(categoryIncome3);
         context.Categories.Add(categoryIncome4);
 
-        // CREDIT CARD
+        // CREDIT CARD (nome e limite aleatórios, dias entre 1-28)
+        var cardNames = new[] { "Visa Platinum", "Smiles Premium", "Ultravioleta Infinite", "Mastercard Gold", "Elo Nanquim" };
         var card1 = CreditCard.Create(
             userId: user.Id,
             accountId: account1.Id,
-            name: "Visa Platinum",
+            name: Faker.PickRandom(cardNames),
             limit: 8000,
-            closingDay: 5,
-            dueDay: 12
+            closingDay: 30,
+            dueDay: 10
         );
 
         var card2 = CreditCard.Create(
             userId: user.Id,
             accountId: account2.Id,
-            name: "Smiles Premium",
-            limit: 8500,
-            closingDay: 15,
+            name: Faker.PickRandom(cardNames),
+            limit: 5000,
+            closingDay: 28,
             dueDay: 06
-        );
-
-        var card3 = CreditCard.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            name: "Ultravioleta Infinite",
-            limit: 19000,
-            closingDay: 15,
-            dueDay: 19
         );
 
         context.CreditCards.Add(card1);
         context.CreditCards.Add(card2);
-        context.CreditCards.Add(card3);
 
         // TRANSACTION
         var transactionExpense1 = Transaction.Create(
             userId: user.Id,
             accountId: account1.Id,
-            amount: new Money(12000),
+            amount: new Money(6800),
             type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "TV Samsung 65 Polegadas 4K UHD - Magazine Luiza",
-            date: DateTime.UtcNow,
-            categoryId: categoryExpense1.Id,
-            creditCardId: card1.Id
+            paymentMethod: PaymentMethod.Account,
+            description: "Aluguel",
+            date: DateTime.UtcNow.AddDays(-1),
+            categoryId: categoryExpenseMoradia.Id,
+            creditCardId: null
         );
 
         var transactionExpense2 = Transaction.Create(
             userId: user.Id,
-            accountId: account2.Id,
+            accountId: account1.Id,
             amount: new Money(2500),
             type: TransactionType.Expense,
             paymentMethod: PaymentMethod.CreditCard,
             description: "Home teatcher LG - Amazon",
-            date: DateTime.UtcNow,
+            date: DateTime.UtcNow.AddDays(-9),
             categoryId: categoryExpense2.Id,
-            creditCardId: card2.Id
+            creditCardId: card1.Id
         );
 
         var transactionExpense3 = Transaction.Create(
             userId: user.Id,
             accountId: account1.Id,
-            amount: new Money(4000),
+            amount: new Money(600),
             type: TransactionType.Expense,
             paymentMethod: PaymentMethod.CreditCard,
-            description: "Nintendo Switch - Americanas",
-            date: DateTime.UtcNow,
+            description: "Contas de luz, água e internet",
+            date: DateTime.UtcNow.AddDays(-7),
             categoryId: categoryExpense3.Id,
-            creditCardId: card3.Id
+            creditCardId: card1.Id
         );
 
         var transactionIncome1 = Transaction.Create(
             userId: user.Id,
             accountId: account1.Id,
-            amount: new Money(12000),
+            amount: new Money(8000),
             type: TransactionType.Income,
             paymentMethod: PaymentMethod.Account,
             description: "Salário - Empresa X",
-            date: DateTime.UtcNow,
+            date: DateTime.UtcNow.AddDays(-16),
             categoryId: categoryIncome1.Id,
             creditCardId: null
         );
@@ -187,13 +165,13 @@ public static class DatabaseSeeder
         
         var transactionIncome2 = Transaction.Create(
             userId: user.Id,
-            accountId: account2.Id,
-            amount: new Money(1500),
+            accountId: account1.Id,
+            amount: new Money(2000),
             type: TransactionType.Income,
             paymentMethod: PaymentMethod.Account,
-            description: "Freelance - Projeto Y",
-            date: DateTime.UtcNow,
-            categoryId: categoryIncome2.Id,
+            description: "Investimentos - Ações Z",
+            date: DateTime.UtcNow.AddDays(-7),
+            categoryId: categoryIncome3.Id,
             creditCardId: null
         );
 
@@ -203,9 +181,9 @@ public static class DatabaseSeeder
             amount: new Money(950),
             type: TransactionType.Income,
             paymentMethod: PaymentMethod.Account,
-            description: "Investimentos - Ações Z",
-            date: DateTime.UtcNow,
-            categoryId: categoryIncome3.Id,
+            description: "Bonus de desempenho",
+            date: DateTime.UtcNow.AddDays(-10),
+            categoryId: categoryIncome4.Id,
             creditCardId: null
         );
 

@@ -1,0 +1,1 @@
+public record UpdateTransactionStatusRequest(TransactionStatus Status);
