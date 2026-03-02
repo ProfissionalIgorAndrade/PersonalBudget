@@ -19,6 +19,12 @@ public class TransactionService : ITransactionService
 
     public async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
+
+        if (command.PaymentMethod == PaymentMethod.Transfer)
+        {
+            return await CreateTransferAsync(command);
+        }
+
         var accountId = await ResolveAccountIdAsync(command);
 
         var account = await _accountRepository.GetByIdAsync(accountId);
@@ -30,7 +36,7 @@ public class TransactionService : ITransactionService
             command.UserId,
             accountId,
             new Money(command.Amount),
-            command.Type,
+            command.Type.Value,
             command.PaymentMethod,
             command.Date,
             command.Description,
@@ -49,6 +55,59 @@ public class TransactionService : ITransactionService
         return transaction.Id;
     }
 
+    public async Task<Guid> CreateTransferAsync(CreateTransactionCommand command)
+    {
+        if (command.FromAccountId == command.ToAccountId)
+            throw new DomainException("Origin and destination accounts must be different.");
+
+        var fromAccount = await _accountRepository.GetByIdAsync(command.FromAccountId.Value);
+        var toAccount = await _accountRepository.GetByIdAsync(command.ToAccountId.Value);
+
+        if (fromAccount is null || fromAccount.UserId != command.UserId)
+            throw new DomainException("Origin account not found.");
+
+        if (toAccount is null || toAccount.UserId != command.UserId)
+            throw new DomainException("Destination account not found.");
+
+        var transferId = Guid.NewGuid();
+
+        var outTx = Transaction.Create(
+            command.UserId,
+            command.FromAccountId.Value,
+            new Money(command.Amount),
+            TransactionType.Expense,
+            PaymentMethod.Account,
+            command.Date,
+            command.Description,
+            categoryId: null,
+            creditCardId: null,
+            transferId);
+
+        var inTx = Transaction.Create(
+            command.UserId,
+            command.ToAccountId.Value,
+            new Money(command.Amount),
+            TransactionType.Income,
+            PaymentMethod.Account,
+            command.Date,
+            command.Description,
+            categoryId: null,
+            creditCardId: null,
+            transferId);
+
+        outTx.Complete();
+        inTx.Complete();
+        TransactionApplier.Apply(fromAccount, outTx);
+        TransactionApplier.Apply(toAccount, inTx);
+
+        await _transactionRepository.AddAsync(outTx);
+        await _transactionRepository.AddAsync(inTx);
+        await _accountRepository.UpdateAsync(fromAccount);
+        await _accountRepository.UpdateAsync(toAccount);
+
+        return transferId;
+    }
+
     private async Task<Guid> ResolveAccountIdAsync(CreateTransactionCommand command)
     {
         if (command.AccountId is { } accountId)
@@ -63,42 +122,6 @@ public class TransactionService : ITransactionService
         }
 
         throw new DomainException("Account or credit card must be provided.");
-    }
-
-    public async Task CompleteAsync(CompleteTransactionCommand command)
-    {
-        var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
-
-        if (transaction is null || transaction.UserId != command.UserId)
-            throw new DomainException("Transaction not found.");
-
-        if (transaction.Status != TransactionStatus.Pending)
-            throw new DomainException("Only pending transactions can be completed.");
-
-        var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
-
-        if (account is null)
-            throw new DomainException("Account not found.");
-
-        transaction.Complete();
-        TransactionApplier.Apply(account, transaction);
-
-        await _transactionRepository.UpdateAsync(transaction);
-        await _accountRepository.UpdateAsync(account);
-    }
-
-    public async Task CancelAsync(CancelTransactionCommand command)
-    {
-        var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
-
-        if (transaction is null || transaction.UserId != command.UserId)
-            throw new DomainException("Transaction not found.");
-
-        if (transaction.Status == TransactionStatus.Completed)
-            throw new DomainException("Completed transactions cannot be cancelled.");
-
-        transaction.Cancel();
-        await _transactionRepository.UpdateAsync(transaction);
     }
 
     public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)

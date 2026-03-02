@@ -20,16 +20,18 @@ public class TransactionsController : ControllerBase
         var userId = UserContext.GetUserId(User);
 
         var command = new CreateTransactionCommand(
-            userId,
-            request.AccountId,
-            request.CategoryId,
-            request.CreditCardId,
-            request.Type,
-            request.PaymentMethod,
-            request.Amount,
-            request.Date,
-            request.Description,
-            request.AutoComplete
+            UserId: userId,
+            AccountId: request.AccountId,
+            CategoryId: request.CategoryId,
+            CreditCardId: request.CreditCardId,
+            FromAccountId: request.FromAccountId,
+            ToAccountId: request.ToAccountId,
+            Type: request.Type,
+            PaymentMethod: request.PaymentMethod,
+            Amount: request.Amount,
+            Date: request.Date,
+            Description: request.Description,
+            AutoComplete: request.AutoComplete
         );
 
         var transactionId = await _transactionService.CreateAsync(command);

@@ -6,6 +6,7 @@ public class Transaction
 
     public Guid? CategoryId { get; private set; }
     public Guid? CreditCardId { get; private set; }
+    public Guid? TransferId { get; private set; }
 
     public TransactionType Type { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
@@ -24,7 +25,8 @@ public class Transaction
         TransactionDate date,
         TransactionDescription description,
         Guid? categoryId,
-        Guid? creditCardId)
+        Guid? creditCardId,
+        Guid? transferId)
     {
         if (userId == Guid.Empty)
             throw new DomainException("Transaction must belong to a user.");
@@ -43,6 +45,7 @@ public class Transaction
         AccountId = accountId;
         CategoryId = categoryId;
         CreditCardId = creditCardId;
+        TransferId = transferId;
         Amount = amount;
         Type = type;
         PaymentMethod = paymentMethod;
@@ -62,7 +65,8 @@ public class Transaction
         DateTime date,
         string description,
         Guid? categoryId = null,
-        Guid? creditCardId = null)
+        Guid? creditCardId = null,
+        Guid? transferId = null)
     {
         return new Transaction(
             userId,
@@ -73,7 +77,8 @@ public class Transaction
             new TransactionDate(date),
             new TransactionDescription(description),
             categoryId,
-            creditCardId
+            creditCardId,
+            transferId
         );
     }
 
