@@ -7,6 +7,7 @@ public record GetAllTransactionByUserResponse(
     string? CategoryType,
     Guid? CreditCardId,
     string? CreditCardName,
+    Guid? TransferId,
     string Type,
     string Status,
     string PaymentMethod,

@@ -8,7 +8,7 @@ public record CreateTransactionCommand(
     TransactionType? Type,
     PaymentMethod PaymentMethod,
     decimal Amount,
-    DateTime Date,
+    string Date, // Formato Brasil dd/MM/yyyy (ex: 02/03/2026)
     string Description,
     bool AutoComplete // ← importante
 );

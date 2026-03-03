@@ -1,5 +1,11 @@
+using System.Globalization;
+
 public class TransactionService : ITransactionService
 {
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+    private static readonly string[] DateFormatsBr = { "dd/MM/yyyy", "dd/MM/yyyy HH:mm", "dd/MM/yyyy HH:mm:ss" };
+    private static readonly string[] DateFormatsIso = { "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss", "yyyy-MM-ddTHH:mm:ss.fff", "yyyy-MM-ddTHH:mm:ss.ffffff" };
+
     private readonly ITransactionRepository _transactionRepository;
     private readonly ITransactionQueryRepository _transactionQueryRepository;
     private readonly IAccountRepository _accountRepository;
@@ -32,13 +38,15 @@ public class TransactionService : ITransactionService
         if (account is null || account.UserId != command.UserId)
             throw new DomainException("Account not found.");
 
+        var date = ParseDateBr(command.Date);
+
         var transaction = Transaction.Create(
             command.UserId,
             accountId,
             new Money(command.Amount),
             command.Type.Value,
             command.PaymentMethod,
-            command.Date,
+            date,
             command.Description,
             command.CategoryId,
             command.CreditCardId
@@ -69,6 +77,7 @@ public class TransactionService : ITransactionService
         if (toAccount is null || toAccount.UserId != command.UserId)
             throw new DomainException("Destination account not found.");
 
+        var date = ParseDateBr(command.Date);
         var transferId = Guid.NewGuid();
 
         var outTx = Transaction.Create(
@@ -77,7 +86,7 @@ public class TransactionService : ITransactionService
             new Money(command.Amount),
             TransactionType.Expense,
             PaymentMethod.Account,
-            command.Date,
+            date,
             command.Description,
             categoryId: null,
             creditCardId: null,
@@ -89,7 +98,7 @@ public class TransactionService : ITransactionService
             new Money(command.Amount),
             TransactionType.Income,
             PaymentMethod.Account,
-            command.Date,
+            date,
             command.Description,
             categoryId: null,
             creditCardId: null,
@@ -106,6 +115,25 @@ public class TransactionService : ITransactionService
         await _accountRepository.UpdateAsync(toAccount);
 
         return transferId;
+    }
+
+    /// <summary>
+    /// Parse da data aceitando formato Brasil (dd/MM/yyyy) ou ISO (ex: 2026-03-02T12:48:00.000 = 02/03/2026 12:48).
+    /// </summary>
+    private static DateTime ParseDateBr(string dateString)
+    {
+        if (string.IsNullOrWhiteSpace(dateString))
+            throw new DomainException("Data é obrigatória.");
+
+        var trimmed = dateString.Trim();
+
+        if (DateTime.TryParseExact(trimmed, DateFormatsBr, PtBr, DateTimeStyles.None, out var dateBr))
+            return dateBr;
+
+        if (DateTime.TryParseExact(trimmed, DateFormatsIso, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateIso))
+            return dateIso;
+
+        throw new DomainException("Data inválida. Use dd/MM/yyyy (ex: 02/03/2026) ou ISO (ex: 2026-03-02T12:48:00).");
     }
 
     private async Task<Guid> ResolveAccountIdAsync(CreateTransactionCommand command)
@@ -171,11 +199,20 @@ public class TransactionService : ITransactionService
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAsync(GetAllTransactionByUserQuery query)
     {
-        return await _transactionQueryRepository.GetByUserAsync(query.UserId);
+        var transactions = await _transactionQueryRepository.GetByUserAsync(query.UserId);
+        return MapPaymentMethodWhenTransfer(transactions);
     }
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(GetAllTransactionByUserAndMonthQuery query)
     {
-        return await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);
+        var transactions = await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);
+        return MapPaymentMethodWhenTransfer(transactions);
+    }
+
+    private static IEnumerable<GetAllTransactionByUserResponse> MapPaymentMethodWhenTransfer(IEnumerable<GetAllTransactionByUserResponse> transactions)
+    {
+        return transactions.Select(t => t.TransferId is not null
+            ? t with { PaymentMethod = "Transfer" }
+            : t);
     }
 }
