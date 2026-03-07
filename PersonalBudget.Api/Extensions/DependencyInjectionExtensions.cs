@@ -1,3 +1,6 @@
+using PersonalBudget.Application.Interfaces;
+using PersonalBudget.Application.Services.TransactionCreation;
+
 namespace PersonalBudget.Api.Extensions;
 
 public static class DependencyInjectionExtensions
@@ -17,6 +20,11 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<ICreditCardService, CreditCardService>();
         services.AddScoped<ITransactionService, TransactionService>();
+
+        // Transaction creation strategies
+        services.AddScoped<ITransactionCreationStrategy, AccountTransactionCreationStrategy>();
+        services.AddScoped<ITransactionCreationStrategy, CreditCardTransactionCreationStrategy>();
+        services.AddScoped<ITransactionCreationStrategy, TransferTransactionCreationStrategy>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 

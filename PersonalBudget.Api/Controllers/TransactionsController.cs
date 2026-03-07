@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PersonalBudget.Application.Interfaces;
 
 [ApiController]
 [Authorize]
@@ -7,10 +8,12 @@ using Microsoft.AspNetCore.Mvc;
 public class TransactionsController : ControllerBase
 {
     private readonly ITransactionService _transactionService;
+    private readonly ITransactionCreationStrategy _transactionCreationStrategy;
 
-    public TransactionsController(ITransactionService transactionService)
+    public TransactionsController(ITransactionService transactionService, ITransactionCreationStrategy transactionCreationStrategy)
     {
         _transactionService = transactionService;
+        _transactionCreationStrategy = transactionCreationStrategy;
     }
 
     [HttpPost]
@@ -34,7 +37,7 @@ public class TransactionsController : ControllerBase
             AutoComplete: request.AutoComplete
         );
 
-        var transactionId = await _transactionService.CreateAsync(command);
+        var transactionId = await _transactionCreationStrategy.CreateAsync(command);
 
         return CreatedAtAction(nameof(GetAll), new { accountId = request.AccountId }, new
         {
