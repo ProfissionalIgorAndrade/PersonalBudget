@@ -11,23 +11,34 @@ public class TransactionService : ITransactionService
         ITransactionRepository transactionRepository,
         ITransactionQueryRepository transactionQueryRepository,
         IAccountRepository accountRepository,
-        ICreditCardRepository creditCardRepository,
-        IEnumerable<ITransactionCreationStrategy> creationStrategies) // <- change to IEnumerable
+        IEnumerable<ITransactionCreationStrategy> creationStrategies)
     {
         _transactionRepository = transactionRepository;
         _transactionQueryRepository = transactionQueryRepository;
         _accountRepository = accountRepository;
-
-        // here each 's' is a strategy, not a KeyValuePair
         _creationStrategies = creationStrategies.ToDictionary(s => s.PaymentMethod);
     }
 
-    public async Task<Guid> CreateAsync(CreateTransactionCommand command)
+    public Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
         if (!_creationStrategies.TryGetValue(command.PaymentMethod, out var strategy))
             throw new DomainException($"Unsupported payment method: {command.PaymentMethod}");
 
-        return await strategy.CreateAsync(command);
+        // Aqui é onde o Strategy é aplicado:
+        // PaymentMethod -> estratégia -> CreateAsync da estratégia.
+        return strategy.CreateAsync(command);
+    }
+
+    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(GetAllTransactionByUserAndMonthQuery query)
+    {
+        var transactions = await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);
+        return MapPaymentMethodWhenTransfer(transactions);
+    }
+
+    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAsync(GetAllTransactionByUserQuery query)
+    {
+        var transactions = await _transactionQueryRepository.GetByUserAsync(query.UserId);
+        return MapPaymentMethodWhenTransfer(transactions);
     }
 
     public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)
@@ -63,18 +74,6 @@ public class TransactionService : ITransactionService
         }
 
         await _transactionRepository.UpdateAsync(transaction);
-    }
-
-    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAsync(GetAllTransactionByUserQuery query)
-    {
-        var transactions = await _transactionQueryRepository.GetByUserAsync(query.UserId);
-        return MapPaymentMethodWhenTransfer(transactions);
-    }
-
-    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(GetAllTransactionByUserAndMonthQuery query)
-    {
-        var transactions = await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);
-        return MapPaymentMethodWhenTransfer(transactions);
     }
 
     private static IEnumerable<GetAllTransactionByUserResponse> MapPaymentMethodWhenTransfer(IEnumerable<GetAllTransactionByUserResponse> transactions)

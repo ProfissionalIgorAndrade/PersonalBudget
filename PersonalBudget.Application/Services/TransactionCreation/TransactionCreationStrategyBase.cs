@@ -30,6 +30,7 @@ public abstract class TransactionCreationStrategyBase : ITransactionCreationStra
     }
 
     public abstract PaymentMethod PaymentMethod { get; }
+    
     public abstract Task<Guid> CreateAsync(CreateTransactionCommand command);
 
     /// <summary>

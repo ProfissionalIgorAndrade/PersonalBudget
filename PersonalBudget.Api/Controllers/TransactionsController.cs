@@ -8,12 +8,10 @@ using PersonalBudget.Application.Interfaces;
 public class TransactionsController : ControllerBase
 {
     private readonly ITransactionService _transactionService;
-    private readonly ITransactionCreationStrategy _transactionCreationStrategy;
 
-    public TransactionsController(ITransactionService transactionService, ITransactionCreationStrategy transactionCreationStrategy)
+    public TransactionsController(ITransactionService transactionService)
     {
         _transactionService = transactionService;
-        _transactionCreationStrategy = transactionCreationStrategy;
     }
 
     [HttpPost]
@@ -37,7 +35,7 @@ public class TransactionsController : ControllerBase
             AutoComplete: request.AutoComplete
         );
 
-        var transactionId = await _transactionCreationStrategy.CreateAsync(command);
+        var transactionId = await _transactionService.CreateAsync(command);
 
         return CreatedAtAction(nameof(GetAll), new { accountId = request.AccountId }, new
         {

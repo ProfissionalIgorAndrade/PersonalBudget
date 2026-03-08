@@ -14,6 +14,9 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
 
     public override async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
+        if (command.PaymentMethod != PaymentMethod.Transfer)
+            throw new DomainException($"Transfer strategy only accepts PaymentMethod.Transfer. Received: {command.PaymentMethod}. Check that the correct strategy is selected by TransactionService.");
+
         if (command.FromAccountId is null || command.ToAccountId is null)
             throw new DomainException("FromAccountId and ToAccountId are required for transfers.");
 
