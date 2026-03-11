@@ -31,14 +31,12 @@ public class TransactionService : ITransactionService
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(GetAllTransactionByUserAndMonthQuery query)
     {
-        var transactions = await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);
-        return MapPaymentMethodWhenTransfer(transactions);
+        return await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);
     }
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAsync(GetAllTransactionByUserQuery query)
     {
-        var transactions = await _transactionQueryRepository.GetByUserAsync(query.UserId);
-        return MapPaymentMethodWhenTransfer(transactions);
+        return await _transactionQueryRepository.GetByUserAsync(query.UserId);
     }
 
     public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)
@@ -74,12 +72,5 @@ public class TransactionService : ITransactionService
         }
 
         await _transactionRepository.UpdateAsync(transaction);
-    }
-
-    private static IEnumerable<GetAllTransactionByUserResponse> MapPaymentMethodWhenTransfer(IEnumerable<GetAllTransactionByUserResponse> transactions)
-    {
-        return transactions.Select(t => t.TransferId is not null
-            ? t with { PaymentMethod = "Transfer" }
-            : t);
     }
 }
