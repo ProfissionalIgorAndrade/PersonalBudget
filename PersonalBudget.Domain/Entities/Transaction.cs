@@ -3,15 +3,13 @@ public class Transaction
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
     public Guid AccountId { get; private set; }
-
     public Guid? CategoryId { get; private set; }
     public Guid? CreditCardId { get; private set; }
+    public Guid? StatementId { get; private set; }
     public Guid? TransferId { get; private set; }
-
     public TransactionType Type { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
     public TransactionStatus Status { get; private set; }
-
     public Money Amount { get; private set; }
     public TransactionDate Date { get; private set; }
     public TransactionDescription Description { get; private set; }
@@ -26,6 +24,7 @@ public class Transaction
         TransactionDescription description,
         Guid? categoryId,
         Guid? creditCardId,
+        Guid? statementId,
         Guid? transferId)
     {
         if (userId == Guid.Empty)
@@ -45,6 +44,7 @@ public class Transaction
         AccountId = accountId;
         CategoryId = categoryId;
         CreditCardId = creditCardId;
+        StatementId = statementId;
         TransferId = transferId;
         Amount = amount;
         Type = type;
@@ -66,6 +66,7 @@ public class Transaction
         string description,
         Guid? categoryId = null,
         Guid? creditCardId = null,
+        Guid? statementId = null,
         Guid? transferId = null)
     {
         return new Transaction(
@@ -78,6 +79,7 @@ public class Transaction
             new TransactionDescription(description),
             categoryId,
             creditCardId,
+            statementId,
             transferId
         );
     }

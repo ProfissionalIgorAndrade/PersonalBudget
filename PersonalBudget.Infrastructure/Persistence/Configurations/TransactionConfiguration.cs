@@ -19,6 +19,8 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 
         builder.Property(t => t.CreditCardId);
 
+        builder.Property(t => t.StatementId);
+
         builder.Property(t => t.TransferId);
 
         builder.Property(t => t.Type)

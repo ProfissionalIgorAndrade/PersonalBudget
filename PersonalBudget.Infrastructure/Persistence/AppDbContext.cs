@@ -6,6 +6,7 @@ public class AppDbContext : DbContext
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<CreditCard> CreditCards => Set<CreditCard>();
+    public DbSet<CreditCardStatement> CreditCardStatements => Set<CreditCardStatement>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options)

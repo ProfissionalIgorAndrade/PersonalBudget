@@ -4,4 +4,5 @@ public interface ICategoryRepository
     Task UpdateAsync(Category category);
     Task<Category?> GetByIdAsync(Guid id);
     Task<IEnumerable<Category>> GetByUserAsync(Guid userId);
+    Task SaveChangesAsync();
 }

@@ -33,6 +33,12 @@ public class CreditCardConfiguration : IEntityTypeConfiguration<CreditCard>
             .IsRequired();
 
         builder.HasIndex(c => c.UserId);
+        
         builder.HasIndex(c => c.AccountId);
+
+        builder.HasMany(c => c.Statements)
+            .WithOne()
+            .HasForeignKey(x => x.CreditCardId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -2,4 +2,5 @@ public interface ITransactionQueryRepository
 {
     Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByUserAsync(Guid userId);
     Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(Guid userId, int month, int year);
+    Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetAllTransactionByCreditCardStatementAndMonthYearQuery(Guid userId, Guid creditCardId, int month, int year);
 }

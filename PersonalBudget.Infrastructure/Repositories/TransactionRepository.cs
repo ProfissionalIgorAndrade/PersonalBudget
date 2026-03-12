@@ -12,12 +12,17 @@ public class TransactionRepository : ITransactionRepository
     public async Task AddAsync(Transaction transaction)
     {
         _context.Transactions.Add(transaction);
-        await _context.SaveChangesAsync();
+        await SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Transaction transaction)
     {
         _context.Transactions.Update(transaction);
+        await SaveChangesAsync();
+    }
+    
+    public async Task SaveChangesAsync()
+    {
         await _context.SaveChangesAsync();
     }
 

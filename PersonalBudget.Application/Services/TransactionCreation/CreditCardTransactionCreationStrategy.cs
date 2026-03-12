@@ -2,12 +2,15 @@ namespace PersonalBudget.Application.Services.TransactionCreation;
 
 public class CreditCardTransactionCreationStrategy : TransactionCreationStrategyBase
 {
+    private readonly ICreditCardStatementRepository _creditCardStatementRepository;
     public CreditCardTransactionCreationStrategy(
         ITransactionRepository transactionRepository,
         IAccountRepository accountRepository,
-        ICreditCardRepository creditCardRepository)
+        ICreditCardRepository creditCardRepository,
+        ICreditCardStatementRepository creditCardStatementRepository)
         : base(transactionRepository, accountRepository, creditCardRepository)
     {
+        _creditCardStatementRepository = creditCardStatementRepository;
     }
 
     public override PaymentMethod PaymentMethod => PaymentMethod.CreditCard;
@@ -20,26 +23,30 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         if (command.CreditCardId is null)
             throw new DomainException("CreditCardId is required for credit card payments.");
 
-        // Resolve account via AccountId (se veio) ou via cartão
-        Guid accountId;
-        if (command.AccountId is { } accId)
+        var date = ParseDate(command.Date);
+
+        var creditCard = await _creditCardRepository.GetByIdAsync(command.CreditCardId.Value);
+
+        if (creditCard is null || creditCard.UserId != command.UserId)
+            throw new DomainException("Credit card not found.");
+
+        var statement = await _creditCardStatementRepository.GetOpenStatementForDateAsync(command.CreditCardId.Value, date);
+
+        if (statement is null)
         {
-            accountId = accId;
+            statement = CreditCardStatement.CreateForDate(creditCard.Id, date, creditCard.ClosingDay, creditCard.DueDay);
+            statement.AddTransaction(new Money(command.Amount));
+            await _creditCardStatementRepository.AddAsync(statement);
         }
         else
         {
-            var creditCard = await _creditCardRepository.GetByIdAsync(command.CreditCardId.Value);
-            if (creditCard is null || creditCard.UserId != command.UserId)
-                throw new DomainException("Credit card not found.");
-            accountId = creditCard.AccountId;
+            statement.AddTransaction(new Money(command.Amount));
+            await _creditCardStatementRepository.UpdateAsync(statement);
         }
-
-        var account = await GetAccountOrThrowAsync(accountId, command.UserId);
-        var date = ParseDate(command.Date);
 
         var transaction = Transaction.Create(
             command.UserId,
-            accountId,
+            creditCard.AccountId,
             new Money(command.Amount),
             command.Type.Value,
             PaymentMethod.CreditCard,
@@ -47,6 +54,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             command.Description,
             command.CategoryId,
             command.CreditCardId,
+            statement.Id,
             transferId: null
         );
 

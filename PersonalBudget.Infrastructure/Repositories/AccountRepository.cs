@@ -12,7 +12,7 @@ public class AccountRepository : IAccountRepository
     public async Task AddAsync(Account account)
     {
         _context.Accounts.Add(account);
-        await _context.SaveChangesAsync();
+        await SaveChangesAsync();
     }
 
     public async Task<Account?> GetByIdAsync(Guid accountId)
@@ -28,9 +28,14 @@ public class AccountRepository : IAccountRepository
             .ToListAsync();
     }
 
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+
     public async Task UpdateAsync(Account account)
     {
         _context.Accounts.Update(account);
-        await _context.SaveChangesAsync();
+        await SaveChangesAsync();
     }
 }

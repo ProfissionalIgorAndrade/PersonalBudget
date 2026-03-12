@@ -12,12 +12,17 @@ public class CreditCardRepository : ICreditCardRepository
     public async Task AddAsync(CreditCard creditCard)
     {
         _context.CreditCards.Add(creditCard);
-        await _context.SaveChangesAsync();
+        await SaveChangesAsync();
     }
 
     public async Task UpdateAsync(CreditCard creditCard)
     {
         _context.CreditCards.Update(creditCard);
+        await SaveChangesAsync();
+    }
+
+    public async Task SaveChangesAsync()
+    {
         await _context.SaveChangesAsync();
     }
 

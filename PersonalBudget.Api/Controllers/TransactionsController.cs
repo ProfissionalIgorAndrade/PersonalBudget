@@ -65,6 +65,18 @@ public class TransactionsController : ControllerBase
         return Ok(transactions);
     }
 
+    [HttpGet("creditCardId/{creditCardId}/month/{month}/year/{year}")]
+    public async Task<IActionResult> GetAllByMonthAndYear(Guid creditCardId, int month, int year)
+    {
+        var userId = UserContext.GetUserId(User);
+
+        var query = new GetAllTransactionByCreditCardStatementAndMonthYearQuery(userId, creditCardId, month, year);
+        var transactions = await _transactionService.GetTransactionByCreditCardStatementAndMonthQuery(query);
+
+        return Ok(transactions);
+    }
+
+
     /// <summary>
     /// Atualiza o status da transação. Aceita: Pending (1), Completed (2), Cancelled (4).
     /// Transações de cartão de crédito não podem ser alteradas por este endpoint.

@@ -10,6 +10,49 @@ public class TransactionQueryRepository : ITransactionQueryRepository
         _context = context;
     }
 
+    public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetAllTransactionByCreditCardStatementAndMonthYearQuery(Guid userId, Guid creditCardId, int month, int year)
+    {
+        return await
+            (from t in _context.Transactions
+             join s in _context.CreditCardStatements
+                 on t.CreditCardId equals s.CreditCardId
+             join a in _context.Accounts
+                 on t.AccountId equals a.Id
+             from c in _context.Categories
+                 .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
+                 .DefaultIfEmpty()
+             from cc in _context.CreditCards
+                 .Where(cc => cc.Id == t.CreditCardId)
+                 .DefaultIfEmpty()
+             where t.UserId == userId
+                 && t.CreditCardId == creditCardId
+                 && t.Date.Value.Month == month
+                 && t.Date.Value.Year == year
+                 && s.Status == BillStatus.Open
+                 && t.Date.Value >= s.PeriodStart
+                 && t.Date.Value <= s.PeriodEnd
+             orderby t.Date.Value descending
+             select new GetAllTransactionByUserResponse(
+                 t.Id,
+                 t.AccountId,
+                 a.Agency.Value,
+                 t.CategoryId,
+                 c != null ? c.Name : null,
+                 c != null ? c.Type.ToString() : null,
+                 t.CreditCardId,
+                 cc != null ? cc.Name : null,
+                 t.TransferId,
+                 t.Type.ToString(),
+                 t.Status.ToString(),
+                 t.PaymentMethod.ToString(),
+                 t.Amount.Amount,
+                 t.Date.Value,
+                 t.Description.Value
+             ))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(Guid userId, int month, int year)
     {
         return await

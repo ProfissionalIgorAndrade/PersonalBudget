@@ -5,4 +5,5 @@ public interface ITransactionRepository
     Task<Transaction?> GetByIdAsync(Guid transactionId);
     Task<IEnumerable<Transaction>> GetByAccountAsync(Guid accountId);
     Task<IEnumerable<Transaction>> GetByUserAsync(Guid userId);
+    Task SaveChangesAsync();
 }

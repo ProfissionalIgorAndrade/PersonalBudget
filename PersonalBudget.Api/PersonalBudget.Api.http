@@ -231,6 +231,10 @@ Authorization: Bearer {{authToken}}
 GET {{HostAddress}}/api/transactions/month/{{month}}/year/{{year}}
 Authorization: Bearer {{authToken}}
 
+### Get Transaction by Month and Year and CreditCardId
+GET {{HostAddress}}/api/transactions/creditCardId/{{creditCardId}}/month/{{month}}/year/{{year}}
+Authorization: Bearer {{authToken}}
+
 ### Complete Transaction (ex: pay credit card)
 POST {{HostAddress}}/api/transactions/{{transactionId}}/complete
 Authorization: Bearer {{authToken}}
@@ -238,5 +242,6 @@ Authorization: Bearer {{authToken}}
 ### Cancel Transaction
 POST {{HostAddress}}/api/transactions/{{transactionId}}/cancel
 Authorization: Bearer {{authToken}}
+
 
 

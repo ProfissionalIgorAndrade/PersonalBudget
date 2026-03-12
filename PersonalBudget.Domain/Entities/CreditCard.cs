@@ -8,6 +8,8 @@ public class CreditCard
     public int ClosingDay { get; private set; }
     public int DueDay { get; private set; }
     public bool IsActive { get; private set; }
+    private readonly List<CreditCardStatement> _statements = new();
+    public IReadOnlyCollection<CreditCardStatement> Statements => _statements.AsReadOnly();
 
     private CreditCard(
         Guid userId,
@@ -54,4 +56,75 @@ public class CreditCard
 
     public void Deactivate()
         => IsActive = false;
+
+    public CreditCardStatement GetOrCreateOpenStatement(DateTime transactionDate)
+    {
+        var statement = _statements
+            .FirstOrDefault(x =>
+                x.PeriodStart <= transactionDate &&
+                x.PeriodEnd >= transactionDate);
+
+        if (statement != null)
+            return statement;
+
+        statement = CreateStatement(transactionDate);
+
+        _statements.Add(statement);
+
+        return statement;
+    }
+
+    private CreditCardStatement CreateStatement(DateTime date)
+    {
+        var year = date.Year;
+        var month = date.Month;
+
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var closingDay = Math.Clamp(ClosingDay, 1, daysInMonth);
+
+        var periodEnd = new DateTime(year, month, closingDay);
+        var periodStart = periodEnd.AddMonths(-1).AddDays(1);
+
+        var closingDate = periodEnd;
+
+        var dueDate = closingDate.AddDays(DueDay);
+
+        return new CreditCardStatement(
+            Id,
+            periodStart,
+            periodEnd,
+            closingDate,
+            dueDate);
+    }
+
+    public CreditCardStatement AddExpense(DateTime date, Money amount)
+    {
+        var statement = GetOrCreateOpenStatement(date);
+
+        statement.AddTransaction(amount);
+
+        return statement;
+    }
+
+    public void CloseStatement(Guid statementId)
+    {
+        var statement = _statements.FirstOrDefault(x => x.Id == statementId);
+
+        if (statement == null)
+            throw new DomainException("Statement not found.");
+
+        statement.Close();
+    }
+
+    public decimal PayStatement(Guid statementId)
+    {
+        var statement = _statements.FirstOrDefault(x => x.Id == statementId);
+
+        if (statement == null)
+            throw new DomainException("Statement not found.");
+
+        statement.MarkAsPaid();
+
+        return statement.TotalAmount.Amount;
+    }
 }
