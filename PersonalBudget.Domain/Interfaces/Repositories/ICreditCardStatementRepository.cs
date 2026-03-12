@@ -8,6 +8,8 @@ public interface ICreditCardStatementRepository
 
     Task<CreditCardStatement?> GetOpenStatementForDateAsync(Guid creditCardId, DateTime date);
 
+    Task<CreditCardStatement?> GetByCreditCardAndClosingMonthYearAsync(Guid creditCardId, int month, int year);
+
     Task<List<CreditCardStatement>> GetByCreditCardAsync(Guid creditCardId);
 
     Task SaveChangesAsync();

@@ -43,6 +43,15 @@ public class CreditCardStatementRepository : ICreditCardStatementRepository
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
+    public async Task<CreditCardStatement?> GetByCreditCardAndClosingMonthYearAsync(Guid creditCardId, int month, int year)
+    {
+        return await _context.CreditCardStatements
+            .FirstOrDefaultAsync(x =>
+                x.CreditCardId == creditCardId &&
+                x.ClosingMonth == month &&
+                x.ClosingYear == year);
+    }
+
     public async Task<List<CreditCardStatement>> GetByCreditCardAsync(Guid creditCardId)
     {
         return await _context.CreditCardStatements
