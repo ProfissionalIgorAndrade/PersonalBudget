@@ -29,6 +29,14 @@ public class TransactionService : ITransactionService
         return strategy.CreateAsync(command);
     }
 
+    public async Task<Transaction> GetByIdAsync(Guid transactionId)
+    {
+        var transaction = await _transactionRepository.GetByIdAsync(transactionId);
+        if (transaction is null)
+            throw new DomainException("Transaction not found.");
+        return transaction;
+    }
+
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(GetAllTransactionByUserAndMonthQuery query)
     {
         return await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);

@@ -54,6 +54,15 @@ public class TransactionsController : ControllerBase
         return Ok(transactions);
     }
 
+    
+    [HttpGet("id/{transactionId}")]
+    public async Task<IActionResult> GetById(Guid transactionId)
+    {
+        var transaction = await _transactionService.GetByIdAsync(transactionId);
+
+        return Ok(transaction);
+    }
+
     [HttpGet("month/{month}/year/{year}")]
     public async Task<IActionResult> GetAllByMonth(int month, int year)
     {
@@ -75,7 +84,6 @@ public class TransactionsController : ControllerBase
 
         return Ok(transactions);
     }
-
 
     /// <summary>
     /// Atualiza o status da transação. Aceita: Pending (1), Completed (2), Cancelled (4).
