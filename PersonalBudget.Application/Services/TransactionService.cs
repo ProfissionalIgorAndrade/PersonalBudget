@@ -5,17 +5,23 @@ public class TransactionService : ITransactionService
     private readonly ITransactionRepository _transactionRepository;
     private readonly ITransactionQueryRepository _transactionQueryRepository;
     private readonly IAccountRepository _accountRepository;
+    private readonly ICreditCardStatementRepository _creditCardStatementRepository;
+    private readonly ICreditCardRepository _creditCardRepository;
     private readonly IReadOnlyDictionary<PaymentMethod, ITransactionCreationStrategy> _creationStrategies;
 
     public TransactionService(
         ITransactionRepository transactionRepository,
         ITransactionQueryRepository transactionQueryRepository,
         IAccountRepository accountRepository,
+        ICreditCardStatementRepository creditCardStatementRepository,
+        ICreditCardRepository creditCardRepository,
         IEnumerable<ITransactionCreationStrategy> creationStrategies)
     {
         _transactionRepository = transactionRepository;
         _transactionQueryRepository = transactionQueryRepository;
         _accountRepository = accountRepository;
+        _creditCardStatementRepository = creditCardStatementRepository;
+        _creditCardRepository = creditCardRepository;
         _creationStrategies = creationStrategies.ToDictionary(s => s.PaymentMethod);
     }
 
@@ -85,5 +91,59 @@ public class TransactionService : ITransactionService
         }
 
         await _transactionRepository.UpdateAsync(transaction);
+    }
+
+    public async Task UpdateStatusToCreditCardStatementAsync(Guid userId, UpdateTransactionStatusToCreditCardStatementCommand command)
+    {
+        var statement = await _creditCardStatementRepository.GetByCreditCardAndClosingMonthYearAsync(
+            command.CreditCardId, command.Month, command.Year);
+
+        if (statement is null)
+            throw new DomainException("Credit card statement not found for the given period.");
+
+        //if (statement.Status != BillStatus.Closed)
+        //    throw new DomainException("Statement must be closed before it can be paid.");
+
+        var creditCard = await _creditCardRepository.GetByIdAsync(command.CreditCardId);
+        if (creditCard is null || creditCard.UserId != userId)
+            throw new DomainException("Credit card not found.");
+
+        var account = await _accountRepository.GetByIdAsync(creditCard.AccountId);
+        if (account is null)
+            throw new DomainException("Account associated with the credit card not found.");
+
+        if (account.Balance.Amount < statement.TotalAmount.Amount)
+            throw new DomainException("Insufficient balance in the account to pay the credit card statement.");
+
+        // Se a fatura já estiver paga, tratamos a operação como idempotente:
+        // não debitamos novamente a conta, apenas garantimos que todas as
+        // transações vinculadas à fatura estejam concluídas.
+        if (statement.Status == BillStatus.Paid)
+        {
+            var alreadyPaidTransactions = await _transactionRepository.GetByStatementIdAsync(statement.Id);
+            foreach (var transaction in alreadyPaidTransactions.Where(x => x.Status == TransactionStatus.Pending))
+            {
+                transaction.Complete();
+                await _transactionRepository.UpdateAsync(transaction);
+            }
+
+            return;
+        }
+
+        account.Debit(statement.TotalAmount);
+        await _accountRepository.UpdateAsync(account);
+
+        statement.MarkAsPaid();
+        await _creditCardStatementRepository.UpdateAsync(statement);
+
+        var transactions = await _transactionRepository.GetByStatementIdAsync(statement.Id);
+        foreach (var transaction in transactions)
+        {
+            if (transaction.Status == TransactionStatus.Pending)
+            {
+                transaction.Complete();
+                await _transactionRepository.UpdateAsync(transaction);
+            }
+        }
     }
 }

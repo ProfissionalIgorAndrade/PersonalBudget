@@ -103,8 +103,11 @@ public class CreditCardStatement
 
     public void MarkAsPaid()
     {
-        if (Status != BillStatus.Closed)
-            throw new DomainException("Statement must be closed before payment.");
+        if (Status == BillStatus.Paid)
+            throw new DomainException("Statement is already paid.");
+
+        if (Status == BillStatus.Open)
+            Close();
 
         Status = BillStatus.Paid;
     }

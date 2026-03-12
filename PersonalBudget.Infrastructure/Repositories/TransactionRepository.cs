@@ -47,4 +47,12 @@ public class TransactionRepository : ITransactionRepository
             .OrderByDescending(t => t.Date.Value)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Transaction>> GetByStatementIdAsync(Guid statementId)
+    {
+        return await _context.Transactions
+            .Where(t => t.StatementId == statementId)
+            .OrderBy(t => t.Date.Value)
+            .ToListAsync();
+    }
 }

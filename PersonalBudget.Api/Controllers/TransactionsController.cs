@@ -54,7 +54,7 @@ public class TransactionsController : ControllerBase
         return Ok(transactions);
     }
 
-    
+
     [HttpGet("id/{transactionId}")]
     public async Task<IActionResult> GetById(Guid transactionId)
     {
@@ -85,10 +85,6 @@ public class TransactionsController : ControllerBase
         return Ok(transactions);
     }
 
-    /// <summary>
-    /// Atualiza o status da transação. Aceita: Pending (1), Completed (2), Cancelled (4).
-    /// Transações de cartão de crédito não podem ser alteradas por este endpoint.
-    /// </summary>
     [HttpPatch("{transactionId}/status")]
     public async Task<IActionResult> UpdateStatus(Guid transactionId, [FromBody] UpdateTransactionStatusRequest request)
     {
@@ -97,6 +93,15 @@ public class TransactionsController : ControllerBase
         var command = new UpdateTransactionStatusCommand(userId, transactionId, request.Status);
         await _transactionService.UpdateStatusAsync(command);
 
+        return NoContent();
+    }
+
+    [HttpPatch("paymentMethod/creditCard/statement")]
+    public async Task<IActionResult> UpdateStatusToCreditCardStatement([FromBody] UpdateTransactionStatusToCreditCardStatementRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var command = new UpdateTransactionStatusToCreditCardStatementCommand(userId, request.CreditCardId, request.Month, request.Year, request.Status);
+        await _transactionService.UpdateStatusToCreditCardStatementAsync(userId, command);
         return NoContent();
     }
 }
