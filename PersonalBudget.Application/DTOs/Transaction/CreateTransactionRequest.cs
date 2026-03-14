@@ -7,7 +7,10 @@ public record CreateTransactionRequest(
     TransactionType Type,
     PaymentMethod PaymentMethod,
     decimal Amount,
-    string Date, // Formato Brasil: dd/MM/yyyy (ex: 02/03/2026 = 2 de março de 2026)
+    string Date,
     string Description,
-    bool AutoComplete
+    bool AutoComplete,
+    int? InstallmentCount,
+    decimal? TotalAmount,
+    string? Title
 );
