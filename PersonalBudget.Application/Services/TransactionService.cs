@@ -28,7 +28,7 @@ public class TransactionService : ITransactionService
     public Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
         if (!_creationStrategies.TryGetValue(command.PaymentMethod, out var strategy))
-            throw new DomainException($"Unsupported payment method: {command.PaymentMethod}");
+            throw new DomainException($"Método de pagamento não suportado: {command.PaymentMethod}");
 
         // Aqui é onde o Strategy é aplicado:
         // PaymentMethod -> estratégia -> CreateAsync da estratégia.
@@ -39,7 +39,7 @@ public class TransactionService : ITransactionService
     {
         var transaction = await _transactionRepository.GetByIdAsync(transactionId);
         if (transaction is null)
-            throw new DomainException("Transaction not found.");
+            throw new DomainException("Transação não encontrada.");
         return transaction;
     }
 
@@ -63,7 +63,7 @@ public class TransactionService : ITransactionService
         var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
 
         if (transaction is null || transaction.UserId != command.UserId)
-            throw new DomainException("Transaction not found.");
+            throw new DomainException("Transação não encontrada.");
 
         var previousStatus = transaction.Status;
 
@@ -71,7 +71,7 @@ public class TransactionService : ITransactionService
         {
             var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
             if (account is null)
-                throw new DomainException("Account not found.");
+                throw new DomainException("Conta não encontrada.");
             TransactionApplier.Revert(account, transaction);
             transaction.SetStatus(command.Status);
             await _accountRepository.UpdateAsync(account);
@@ -84,7 +84,7 @@ public class TransactionService : ITransactionService
             {
                 var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
                 if (account is null)
-                    throw new DomainException("Account not found.");
+                    throw new DomainException("Conta não encontrada.");
                 TransactionApplier.Apply(account, transaction);
                 await _accountRepository.UpdateAsync(account);
             }
@@ -99,21 +99,21 @@ public class TransactionService : ITransactionService
             command.CreditCardId, command.Month, command.Year);
 
         if (statement is null)
-            throw new DomainException("Credit card statement not found for the given period.");
+            throw new DomainException("Fatura do cartão de crédito não encontrada para o período informado.");
 
         //if (statement.Status != BillStatus.Closed)
-        //    throw new DomainException("Statement must be closed before it can be paid.");
+        //    throw new DomainException("A fatura deve estar fechada antes de ser paga.");
 
         var creditCard = await _creditCardRepository.GetByIdAsync(command.CreditCardId);
         if (creditCard is null || creditCard.UserId != userId)
-            throw new DomainException("Credit card not found.");
+            throw new DomainException("Cartão de crédito não encontrado.");
 
         var account = await _accountRepository.GetByIdAsync(creditCard.AccountId);
         if (account is null)
-            throw new DomainException("Account associated with the credit card not found.");
+            throw new DomainException("Conta associada ao cartão de crédito não encontrada.");
 
         if (account.Balance.Amount < statement.TotalAmount.Amount)
-            throw new DomainException("Insufficient balance in the account to pay the credit card statement.");
+            throw new DomainException("Saldo insuficiente na conta para pagar a fatura do cartão de crédito.");
 
         // Se a fatura já estiver paga, tratamos a operação como idempotente:
         // não debitamos novamente a conta, apenas garantimos que todas as

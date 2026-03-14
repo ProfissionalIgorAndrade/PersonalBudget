@@ -5,7 +5,7 @@ public sealed class TransactionDate
     public TransactionDate(DateTime value)
     {
         if (value == default)
-            throw new DomainException("Transaction date is invalid.");
+            throw new DomainException("Data da transação é inválida.");
 
         Value = value.Date;
     }

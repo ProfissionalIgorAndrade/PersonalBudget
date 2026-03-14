@@ -17,7 +17,7 @@ public class Account
         Money initialBalance)
     {
         if (userId == Guid.Empty)
-            throw new DomainException("Account must belong to a user.");
+            throw new DomainException("A conta deve pertencer a um usuário.");
 
         Id = Guid.NewGuid();
         UserId = userId;
@@ -46,7 +46,7 @@ public class Account
         BankAccountNumber number)
     {
         if (!IsActive)
-            throw new DomainException("Inactive account cannot be updated.");
+            throw new DomainException("Conta inativa não pode ser atualizada.");
 
         Bank = bank;
         Agency = agency;
@@ -56,7 +56,7 @@ public class Account
     public void Deactivate()
     {
         if (!IsActive)
-            throw new DomainException("Account is already inactive.");
+            throw new DomainException("A conta já está inativa.");
 
         IsActive = false;
     }

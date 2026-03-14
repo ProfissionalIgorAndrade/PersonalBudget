@@ -20,7 +20,7 @@ public class CreditCard
         int dueDay)
     {
         if (limit <= 0)
-            throw new DomainException("Credit card limit must be greater than zero.");
+            throw new DomainException("O limite do cartão de crédito deve ser maior que zero.");
 
         Id = Guid.NewGuid();
         UserId = userId;
@@ -46,7 +46,7 @@ public class CreditCard
     public void Update(string name, decimal limit, int closingDay, int dueDay)
     {
         if (!IsActive)
-            throw new DomainException("Inactive credit card cannot be updated.");
+            throw new DomainException("Cartão de crédito inativo não pode ser atualizado.");
 
         Name = name;
         Limit = limit;
@@ -111,7 +111,7 @@ public class CreditCard
         var statement = _statements.FirstOrDefault(x => x.Id == statementId);
 
         if (statement == null)
-            throw new DomainException("Statement not found.");
+            throw new DomainException("Fatura não encontrada.");
 
         statement.Close();
     }
@@ -121,7 +121,7 @@ public class CreditCard
         var statement = _statements.FirstOrDefault(x => x.Id == statementId);
 
         if (statement == null)
-            throw new DomainException("Statement not found.");
+            throw new DomainException("Fatura não encontrada.");
 
         statement.MarkAsPaid();
 

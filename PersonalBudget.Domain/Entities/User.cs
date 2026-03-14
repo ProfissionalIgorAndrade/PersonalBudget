@@ -10,11 +10,11 @@ public class User
     public User(string name, Email email, PasswordHash passwordHash)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new DomainException("User name is required.");
+            throw new DomainException("Nome do usuário é obrigatório.");
 
         Name = name;
-        Email = email ?? throw new DomainException("Email is required.");
-        PasswordHash = passwordHash ?? throw new DomainException("Password hash is required.");
+        Email = email ?? throw new DomainException("E-mail é obrigatório.");
+        PasswordHash = passwordHash ?? throw new DomainException("Hash da senha é obrigatório.");
 
         Id = Guid.NewGuid();
         CreatedAt = DateTime.UtcNow;
@@ -31,10 +31,10 @@ public class User
     public void ChangePassword(PasswordHash newPasswordHash)
     {
         if (!IsActive)
-            throw new DomainException("Inactive user cannot change password.");
+            throw new DomainException("Usuário inativo não pode alterar a senha.");
 
         PasswordHash = newPasswordHash
-            ?? throw new DomainException("Password hash is required.");
+            ?? throw new DomainException("Hash da senha é obrigatório.");
     }
 
     public bool CanAuthenticate(PasswordHash providedPasswordHash)

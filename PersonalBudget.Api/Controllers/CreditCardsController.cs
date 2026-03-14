@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PersonalBudget.Api.Contracts;
 
 [ApiController]
 [Authorize]
@@ -30,7 +31,7 @@ public class CreditCardsController : ControllerBase
 
         var creditCardId = await _service.CreateAsync(command);
 
-        return CreatedAtAction(nameof(GetAll), new { id = creditCardId }, null);
+        return CreatedAtAction(nameof(GetAll), new { id = creditCardId }, ApiResponse<object>.Ok(new { Id = creditCardId }, "Cartão criado."));
     }
 
     [HttpGet]
@@ -38,7 +39,7 @@ public class CreditCardsController : ControllerBase
     {
         var userId = UserContext.GetUserId(User);
         var cards = await _service.GetAllAsync(userId);
-        return Ok(cards);
+        return Ok(ApiResponse<object>.Ok(cards));
     }
 
     [HttpPut("{creditCardId}")]
@@ -58,7 +59,7 @@ public class CreditCardsController : ControllerBase
         );
 
         await _service.UpdateAsync(command);
-        return NoContent();
+        return Ok(ApiResponse<object?>.Ok(null, "Cartão atualizado."));
     }
 
     [HttpDelete("{creditCardId}")]
@@ -68,7 +69,6 @@ public class CreditCardsController : ControllerBase
 
         var command = new DeleteCreditCardCommand(userId, creditCardId);
         await _service.DeleteAsync(command);
-
-        return NoContent();
+        return Ok(ApiResponse<object?>.Ok(null, "Cartão excluído."));
     }
 }

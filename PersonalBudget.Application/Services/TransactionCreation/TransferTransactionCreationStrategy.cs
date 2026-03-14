@@ -15,13 +15,13 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
     public override async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
         if (command.PaymentMethod != PaymentMethod.Transfer)
-            throw new DomainException($"Transfer strategy only accepts PaymentMethod.Transfer. Received: {command.PaymentMethod}. Check that the correct strategy is selected by TransactionService.");
+            throw new DomainException($"A estratégia de transferência aceita apenas PaymentMethod.Transfer. Recebido: {command.PaymentMethod}. Verifique se a estratégia correta está selecionada no TransactionService.");
 
         if (command.FromAccountId is null || command.ToAccountId is null)
-            throw new DomainException("FromAccountId and ToAccountId are required for transfers.");
+            throw new DomainException("FromAccountId e ToAccountId são obrigatórios para transferências.");
 
         if (command.FromAccountId == command.ToAccountId)
-            throw new DomainException("Origin and destination accounts must be different.");
+            throw new DomainException("Conta de origem e destino devem ser diferentes.");
 
         var fromAccount = await GetAccountOrThrowAsync(command.FromAccountId.Value, command.UserId);
         var toAccount = await GetAccountOrThrowAsync(command.ToAccountId.Value, command.UserId);

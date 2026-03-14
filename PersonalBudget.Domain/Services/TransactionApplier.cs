@@ -3,7 +3,7 @@ public static class TransactionApplier
     public static void Apply(Account account, Transaction transaction)
     {
         if (transaction.Status != TransactionStatus.Completed)
-            throw new DomainException("Only completed transactions can be applied.");
+            throw new DomainException("Apenas transações concluídas podem ser aplicadas.");
 
         if (transaction.Type == TransactionType.Income)
         {
@@ -17,7 +17,7 @@ public static class TransactionApplier
             return;
         }
 
-        throw new DomainException("Unsupported transaction type.");
+        throw new DomainException("Tipo de transação não suportado.");
     }
 
     /// <summary>
@@ -26,7 +26,7 @@ public static class TransactionApplier
     public static void Revert(Account account, Transaction transaction)
     {
         if (transaction.Status != TransactionStatus.Completed)
-            throw new DomainException("Only completed transactions can be reverted.");
+            throw new DomainException("Apenas transações concluídas podem ser revertidas.");
 
         if (transaction.Type == TransactionType.Income)
         {
@@ -40,6 +40,6 @@ public static class TransactionApplier
             return;
         }
 
-        throw new DomainException("Unsupported transaction type.");
+        throw new DomainException("Tipo de transação não suportado.");
     }
 }

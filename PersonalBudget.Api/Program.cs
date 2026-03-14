@@ -1,4 +1,5 @@
 using PersonalBudget.Api.Extensions;
+using PersonalBudget.Api.Middleware;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using PersonalBudget.Infrastructure.Persistence.Seed;
@@ -70,6 +71,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.MapControllers();
 

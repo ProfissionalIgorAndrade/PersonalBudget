@@ -56,7 +56,7 @@ public abstract class TransactionCreationStrategyBase : ITransactionCreationStra
     {
         var account = await _accountRepository.GetByIdAsync(accountId);
         if (account is null || account.UserId != userId)
-            throw new DomainException("Account not found.");
+            throw new DomainException("Conta não encontrada.");
 
         return account;
     }

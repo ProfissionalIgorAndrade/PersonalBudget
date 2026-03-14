@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonalBudget.Application.Interfaces;
+using PersonalBudget.Api.Contracts;
 
 [ApiController]
 [Authorize]
@@ -40,10 +41,8 @@ public class TransactionsController : ControllerBase
 
         var transactionId = await _transactionService.CreateAsync(command);
 
-        return CreatedAtAction(nameof(GetAll), new { accountId = request.AccountId }, new
-        {
-            TransactionId = transactionId
-        });
+        return CreatedAtAction(nameof(GetAll), new { accountId = request.AccountId },
+            ApiResponse<object>.Ok(new { TransactionId = transactionId }, "Transação criada."));
     }
 
     [HttpGet]
@@ -54,7 +53,7 @@ public class TransactionsController : ControllerBase
         var query = new GetAllTransactionByUserQuery(userId);
         var transactions = await _transactionService.GetByUserAsync(query);
 
-        return Ok(transactions);
+        return Ok(ApiResponse<object>.Ok(transactions));
     }
 
 
@@ -63,7 +62,7 @@ public class TransactionsController : ControllerBase
     {
         var transaction = await _transactionService.GetByIdAsync(transactionId);
 
-        return Ok(transaction);
+        return Ok(ApiResponse<object>.Ok(transaction));
     }
 
     [HttpGet("month/{month}/year/{year}")]
@@ -74,7 +73,7 @@ public class TransactionsController : ControllerBase
         var query = new GetAllTransactionByUserAndMonthQuery(userId, month, year);
         var transactions = await _transactionService.GetByUserAndMonthAsync(query);
 
-        return Ok(transactions);
+        return Ok(ApiResponse<object>.Ok(transactions));
     }
 
     [HttpGet("creditCardId/{creditCardId}/month/{month}/year/{year}")]
@@ -85,7 +84,7 @@ public class TransactionsController : ControllerBase
         var query = new GetAllTransactionByCreditCardStatementAndMonthYearQuery(userId, creditCardId, month, year);
         var transactions = await _transactionService.GetTransactionByCreditCardStatementAndMonthQuery(query);
 
-        return Ok(transactions);
+        return Ok(ApiResponse<object>.Ok(transactions));
     }
 
     [HttpPatch("{transactionId}/status")]
@@ -96,7 +95,7 @@ public class TransactionsController : ControllerBase
         var command = new UpdateTransactionStatusCommand(userId, transactionId, request.Status);
         await _transactionService.UpdateStatusAsync(command);
 
-        return NoContent();
+        return Ok(ApiResponse<object?>.Ok(null, "Status atualizado."));
     }
 
     [HttpPatch("paymentMethod/creditCard/statement")]
@@ -105,6 +104,6 @@ public class TransactionsController : ControllerBase
         var userId = UserContext.GetUserId(User);
         var command = new UpdateTransactionStatusToCreditCardStatementCommand(userId, request.CreditCardId, request.Month, request.Year, request.Status);
         await _transactionService.UpdateStatusToCreditCardStatementAsync(userId, command);
-        return NoContent();
+        return Ok(ApiResponse<object?>.Ok(null, "Status da fatura atualizado."));
     }
 }

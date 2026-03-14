@@ -5,7 +5,7 @@ public sealed class PasswordHash
     public PasswordHash(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("Password hash is required.");
+            throw new DomainException("Hash da senha é obrigatório.");
 
         Value = value;
     }

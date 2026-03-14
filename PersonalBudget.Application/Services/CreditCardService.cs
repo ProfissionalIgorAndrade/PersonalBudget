@@ -17,7 +17,7 @@ public class CreditCardService : ICreditCardService
         var account = await _accountRepository.GetByIdAsync(command.AccountId);
 
         if (account is null || account.UserId != command.UserId)
-            throw new DomainException("Account not found.");
+            throw new DomainException("Conta não encontrada.");
 
         var creditCard = CreditCard.Create(
             command.UserId,
@@ -42,7 +42,7 @@ public class CreditCardService : ICreditCardService
         var creditCard = await _repository.GetByIdAsync(command.CreditCardId);
 
         if (creditCard is null || creditCard.UserId != command.UserId)
-            throw new DomainException("Credit card not found.");
+            throw new DomainException("Cartão de crédito não encontrado.");
 
         creditCard.Update(
             command.Name,
@@ -59,7 +59,7 @@ public class CreditCardService : ICreditCardService
         var creditCard = await _repository.GetByIdAsync(command.CreditCardId);
 
         if (creditCard is null || creditCard.UserId != command.UserId)
-            throw new DomainException("Credit card not found.");
+            throw new DomainException("Cartão de crédito não encontrado.");
 
         creditCard.Deactivate();
         await _repository.UpdateAsync(creditCard);

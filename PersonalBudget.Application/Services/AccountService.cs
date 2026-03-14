@@ -31,7 +31,7 @@ public class AccountService : IAccountService
         var account = await _repository.GetByIdAsync(command.AccountId);
 
         if (account is null || account.UserId != command.UserId)
-            throw new DomainException("Account not found.");
+            throw new DomainException("Conta não encontrada.");
 
         account.UpdateBankInfo(
             command.Bank,
@@ -47,7 +47,7 @@ public class AccountService : IAccountService
         var account = await _repository.GetByIdAsync(command.AccountId);
 
         if (account is null || account.UserId != command.UserId)
-            throw new DomainException("Account not found.");
+            throw new DomainException("Conta não encontrada.");
 
         account.Deactivate();
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PersonalBudget.Api.Contracts;
 
 namespace PersonalBudget.Api.Controllers;
 
@@ -24,7 +25,7 @@ public class AuthenticationController : ControllerBase
 
         var token = _jwtTokenGenerator.Generate(userId);
 
-        return Ok(LoginUserResponse.Ok(userId, token));
+        return Ok(ApiResponse<object>.Ok(LoginUserResponse.Ok(userId, token), "Usuário criado e autenticado."));
     }
 
     [HttpPost("login")]
@@ -36,6 +37,6 @@ public class AuthenticationController : ControllerBase
 
         var token = _jwtTokenGenerator.Generate(userId);
 
-        return Ok(LoginUserResponse.Ok(userId, token));
+        return Ok(ApiResponse<object>.Ok(LoginUserResponse.Ok(userId, token)));
     }
 }

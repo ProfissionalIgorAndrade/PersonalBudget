@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PersonalBudget.Api.Contracts;
 
 [ApiController]
 [Authorize]
@@ -18,14 +19,14 @@ public class CategoriesController : ControllerBase
     {
         var userId = UserContext.GetUserId(User);
         var id = await _service.CreateAsync(new(userId, request.Name, request.Type));
-        return CreatedAtAction(nameof(GetAll), new { id }, null);
+        return CreatedAtAction(nameof(GetAll), new { id }, ApiResponse<object>.Ok(new { Id = id }, "Categoria criada."));
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         var userId = UserContext.GetUserId(User);
-        return Ok(await _service.GetAllAsync(userId));
+        return Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(userId)));
     }
 
     [HttpPut("{id}")]
@@ -33,7 +34,7 @@ public class CategoriesController : ControllerBase
     {
         var userId = UserContext.GetUserId(User);
         await _service.UpdateAsync(new(userId, id, request.Name, request.Type));
-        return NoContent();
+        return Ok(ApiResponse<object?>.Ok(null, "Categoria atualizada."));
     }
 
     [HttpDelete("{id}")]
@@ -41,6 +42,6 @@ public class CategoriesController : ControllerBase
     {
         var userId = UserContext.GetUserId(User);
         await _service.DeleteAsync(new(userId, id));
-        return NoContent();
+        return Ok(ApiResponse<object?>.Ok(null, "Categoria excluída."));
     }
 }

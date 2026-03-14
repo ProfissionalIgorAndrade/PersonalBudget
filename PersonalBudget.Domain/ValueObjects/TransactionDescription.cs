@@ -5,10 +5,10 @@ public sealed class TransactionDescription
     public TransactionDescription(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("Transaction description is required.");
+            throw new DomainException("Descrição da transação é obrigatória.");
 
         if (value.Length > 200)
-            throw new DomainException("Transaction description is too long.");
+            throw new DomainException("Descrição da transação é muito longa.");
 
         Value = value.Trim();
     }

@@ -6,7 +6,7 @@ public sealed class Money
     public Money(decimal amount)
     {
         if (amount < 0)
-            throw new DomainException("Money amount cannot be negative.");
+            throw new DomainException("O valor não pode ser negativo.");
 
         Amount = amount;
     }
@@ -23,7 +23,7 @@ public sealed class Money
     public Money Subtract(Money other)
     {
         if (other.Amount > Amount)
-            throw new DomainException("Cannot subtract more money than available.");
+            throw new DomainException("Não é possível subtrair mais do que o valor disponível.");
 
         return new Money(Amount - other.Amount);
     }

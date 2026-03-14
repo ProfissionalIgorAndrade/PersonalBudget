@@ -22,7 +22,7 @@ public class CategoryService : ICategoryService
         var category = await _repository.GetByIdAsync(command.CategoryId);
 
         if (category is null || category.UserId != command.UserId)
-            throw new DomainException("Category not found.");
+            throw new DomainException("Categoria não encontrada.");
 
         category.Rename(command.Name, command.Type);
         await _repository.UpdateAsync(category);
@@ -33,7 +33,7 @@ public class CategoryService : ICategoryService
         var category = await _repository.GetByIdAsync(command.CategoryId);
 
         if (category is null || category.UserId != command.UserId)
-            throw new DomainException("Category not found.");
+            throw new DomainException("Categoria não encontrada.");
 
         category.Deactivate();
         await _repository.UpdateAsync(category);

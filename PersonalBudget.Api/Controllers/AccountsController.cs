@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PersonalBudget.Api.Contracts;
 
 [ApiController]
 [Authorize]
@@ -27,7 +28,7 @@ public class AccountsController : ControllerBase
         );
 
         var id = await _service.CreateAsync(command);
-        return CreatedAtAction(nameof(GetAll), new { id }, null);
+        return CreatedAtAction(nameof(GetAll), new { id }, ApiResponse<object>.Ok(new { Id = id }, "Conta criada."));
     }
 
     [HttpGet]
@@ -35,7 +36,7 @@ public class AccountsController : ControllerBase
     {
         var userId = UserContext.GetUserId(User);
         var accounts = await _service.GetByUserAsync(userId);
-        return Ok(accounts);
+        return Ok(ApiResponse<object>.Ok(accounts));
     }
     
     [HttpPut("{accountId}")]
@@ -54,7 +55,7 @@ public class AccountsController : ControllerBase
         );
 
         await _service.UpdateAsync(command);
-        return NoContent();
+        return Ok(ApiResponse<object?>.Ok(null, "Conta atualizada."));
     }
 
     [HttpDelete("{accountId}")]
@@ -64,7 +65,6 @@ public class AccountsController : ControllerBase
 
         var command = new DeleteAccountCommand(userId, accountId);
         await _service.DeleteAsync(command);
-
-        return NoContent();
+        return Ok(ApiResponse<object?>.Ok(null, "Conta excluída."));
     }
 }

@@ -88,7 +88,7 @@ public class CreditCardStatement
     public void AddTransaction(Money amount)
     {
         if (Status != BillStatus.Open)
-            throw new DomainException("Cannot add transaction to closed statement.");
+            throw new DomainException("Não é possível adicionar transação a uma fatura fechada.");
 
         TotalAmount = TotalAmount.Add(amount);
     }
@@ -96,7 +96,7 @@ public class CreditCardStatement
     public void Close()
     {
         if (Status != BillStatus.Open)
-            throw new DomainException("Statement already closed.");
+            throw new DomainException("A fatura já está fechada.");
 
         Status = BillStatus.Closed;
     }
@@ -104,7 +104,7 @@ public class CreditCardStatement
     public void MarkAsPaid()
     {
         if (Status == BillStatus.Paid)
-            throw new DomainException("Statement is already paid.");
+            throw new DomainException("A fatura já foi paga.");
 
         if (Status == BillStatus.Open)
             Close();

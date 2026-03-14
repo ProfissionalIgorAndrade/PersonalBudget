@@ -11,7 +11,7 @@ public class Category
     public Category(Guid userId, string name, bool isSystem, CategoryType type)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new DomainException("Category name is required.");
+            throw new DomainException("Nome da categoria é obrigatório.");
 
         Id = Guid.NewGuid();
         UserId = userId;
@@ -31,10 +31,10 @@ public class Category
     public void Rename(string name, CategoryType type)
     {
         if (!IsActive)
-            throw new DomainException("Inactive category cannot be updated.");
+            throw new DomainException("Categoria inativa não pode ser atualizada.");
 
         if (string.IsNullOrWhiteSpace(name))
-            throw new DomainException("Category name is required.");
+            throw new DomainException("Nome da categoria é obrigatório.");
 
         Name = name.Trim();
         Type = type;
@@ -43,7 +43,7 @@ public class Category
     public void Deactivate()
     {
         if (!IsActive)
-            throw new DomainException("Category already inactive.");
+            throw new DomainException("A categoria já está inativa.");
 
         IsActive = false;
     }

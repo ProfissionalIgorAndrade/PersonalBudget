@@ -16,10 +16,10 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
     public override async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
         if (command.Type is null)
-            throw new DomainException("Transaction type is required.");
+            throw new DomainException("Tipo da transação é obrigatório.");
 
         var accountId = command.AccountId
-            ?? throw new DomainException("AccountId is required for Account payment method.");
+            ?? throw new DomainException("AccountId é obrigatório para o método de pagamento Conta.");
 
         var account = await GetAccountOrThrowAsync(accountId, command.UserId);
         var date = ParseDate(command.Date);

@@ -5,7 +5,7 @@ public sealed class BankAccountNumber
     public BankAccountNumber(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("Account number is required.");
+            throw new DomainException("Número da conta é obrigatório.");
 
         Value = value.Trim();
     }

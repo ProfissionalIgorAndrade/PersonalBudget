@@ -5,7 +5,7 @@ public sealed class BankAgency
     public BankAgency(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("Agency number is required.");
+            throw new DomainException("Número da agência é obrigatório.");
 
         Value = value.Trim();
     }

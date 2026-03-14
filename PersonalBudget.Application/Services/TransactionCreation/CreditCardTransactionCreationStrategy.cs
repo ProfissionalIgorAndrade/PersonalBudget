@@ -19,20 +19,20 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
     public override async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
         if (command.Type is null)
-            throw new DomainException("Transaction type is required.");
+            throw new DomainException("Tipo da transação é obrigatório.");
 
         if (command.CreditCardId is null)
-            throw new DomainException("CreditCardId is required for credit card payments.");
+            throw new DomainException("CreditCardId é obrigatório para pagamentos com cartão de crédito.");
 
         var date = ParseDate(command.Date);
 
         var creditCard = await _creditCardRepository.GetByIdAsync(command.CreditCardId.Value);
         if (creditCard is null || creditCard.UserId != command.UserId)
-            throw new DomainException("Credit card not found.");
+            throw new DomainException("Cartão de crédito não encontrado.");
 
         var isInstallment = command.InstallmentCount is > 1;
         if (isInstallment && (!command.TotalAmount.HasValue || command.TotalAmount.Value <= 0))
-            throw new DomainException("Parcelado requires TotalAmount when InstallmentCount is greater than 1.");
+            throw new DomainException("Parcelado exige TotalAmount quando InstallmentCount é maior que 1.");
 
         if (isInstallment)
         {

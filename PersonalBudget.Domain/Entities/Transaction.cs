@@ -28,16 +28,16 @@ public class Transaction
         Guid? transferId)
     {
         if (userId == Guid.Empty)
-            throw new DomainException("Transaction must belong to a user.");
+            throw new DomainException("A transação deve pertencer a um usuário.");
 
         if (accountId == Guid.Empty)
-            throw new DomainException("Transaction must belong to an account.");
+            throw new DomainException("A transação deve pertencer a uma conta.");
 
         if (paymentMethod == PaymentMethod.CreditCard && creditCardId is null)
-            throw new DomainException("Credit card transaction must reference a credit card.");
+            throw new DomainException("Transação de cartão de crédito deve referenciar um cartão.");
 
         if (paymentMethod != PaymentMethod.CreditCard && creditCardId is not null)
-            throw new DomainException("Only credit card transactions can reference a credit card.");
+            throw new DomainException("Apenas transações de cartão de crédito podem referenciar um cartão.");
 
         Id = Guid.NewGuid();
         UserId = userId;
@@ -87,7 +87,7 @@ public class Transaction
     public void Complete()
     {
         if (Status != TransactionStatus.Pending)
-            throw new DomainException("Only pending transactions can be completed.");
+            throw new DomainException("Apenas transações pendentes podem ser concluídas.");
 
         Status = TransactionStatus.Completed;
     }
@@ -95,7 +95,7 @@ public class Transaction
     public void Cancel()
     {
         if (Status == TransactionStatus.Completed)
-            throw new DomainException("Completed transactions cannot be cancelled.");
+            throw new DomainException("Transações concluídas não podem ser canceladas.");
 
         Status = TransactionStatus.Cancelled;
     }
@@ -107,7 +107,7 @@ public class Transaction
     public void SetStatus(TransactionStatus newStatus)
     {
         if (PaymentMethod == PaymentMethod.CreditCard || CreditCardId is not null)
-            throw new DomainException("Credit card transactions cannot have their status changed by this operation.");
+            throw new DomainException("Transações de cartão de crédito não podem ter o status alterado por esta operação.");
 
         if (Status == newStatus)
             return;
@@ -116,21 +116,21 @@ public class Transaction
         {
             case TransactionStatus.Pending:
                 if (Status != TransactionStatus.Cancelled && Status != TransactionStatus.Completed)
-                    throw new DomainException("Only cancelled or completed transactions can be set back to pending.");
+                    throw new DomainException("Apenas transações canceladas ou concluídas podem voltar para pendente.");
                 Status = TransactionStatus.Pending;
                 break;
             case TransactionStatus.Completed:
                 if (Status != TransactionStatus.Pending)
-                    throw new DomainException("Only pending transactions can be completed.");
+                    throw new DomainException("Apenas transações pendentes podem ser concluídas.");
                 Status = TransactionStatus.Completed;
                 break;
             case TransactionStatus.Cancelled:
                 if (Status == TransactionStatus.Completed)
-                    throw new DomainException("Completed transactions cannot be cancelled.");
+                    throw new DomainException("Transações concluídas não podem ser canceladas.");
                 Status = TransactionStatus.Cancelled;
                 break;
             default:
-                throw new DomainException($"Status {newStatus} is not allowed for this operation.");
+                throw new DomainException($"O status {newStatus} não é permitido para esta operação.");
         }
     }
 }

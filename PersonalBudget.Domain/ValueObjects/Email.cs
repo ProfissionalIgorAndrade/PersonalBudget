@@ -5,10 +5,10 @@ public sealed class Email
     public Email(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("Email is required.");
+            throw new DomainException("E-mail é obrigatório.");
 
         if (!value.Contains("@"))
-            throw new DomainException("Invalid email format.");
+            throw new DomainException("Formato de e-mail inválido.");
 
         Value = value.ToLowerInvariant();
     }
