@@ -42,6 +42,8 @@ public class ExceptionHandlingMiddleware
         var (statusCode, message) = ex switch
         {
             DomainException domainEx => (HttpStatusCode.BadRequest, domainEx.Message),
+            ApplicationException appEx when appEx.Message.Contains("não pertence ao usuário") => (HttpStatusCode.Forbidden, appEx.Message),
+            ApplicationException appEx => (HttpStatusCode.BadRequest, appEx.Message),
             ArgumentException argEx => (HttpStatusCode.BadRequest, argEx.Message),
             _ => (HttpStatusCode.InternalServerError, _env.IsDevelopment() ? ex.Message : "Ocorreu um erro interno.")
         };

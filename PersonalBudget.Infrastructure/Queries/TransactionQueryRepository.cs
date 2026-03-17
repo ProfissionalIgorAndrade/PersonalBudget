@@ -1,5 +1,5 @@
-
 using Microsoft.EntityFrameworkCore;
+using PersonalBudget.Application.DTOs.CreditCard;
 
 public class TransactionQueryRepository : ITransactionQueryRepository
 {
@@ -48,6 +48,26 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  t.Amount.Amount,
                  t.Date.Value,
                  t.Description.Value
+             ))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<StatementTransactionItemDto>> GetTransactionDetailsByStatementIdAsync(Guid statementId)
+    {
+        return await
+            (from t in _context.Transactions
+             from c in _context.Categories
+                 .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
+                 .DefaultIfEmpty()
+             where t.StatementId == statementId
+             orderby t.Date.Value descending
+             select new StatementTransactionItemDto(
+                 t.Id,
+                 t.Date.Value,
+                 t.Description.Value,
+                 t.Amount.Amount,
+                 c != null ? c.Name : null
              ))
             .AsNoTracking()
             .ToListAsync();

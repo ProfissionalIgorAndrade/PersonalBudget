@@ -32,6 +32,13 @@ public class CreditCardRepository : ICreditCardRepository
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
+    public async Task<CreditCard?> GetByIdWithStatementsAsync(Guid id)
+    {
+        return await _context.CreditCards
+            .Include(c => c.Statements)
+            .FirstOrDefaultAsync(c => c.Id == id);
+    }
+
     public async Task<IEnumerable<CreditCard>> GetByUserAsync(Guid userId)
     {
         return await _context.CreditCards
