@@ -35,7 +35,9 @@ public class TransactionsController : ControllerBase
             AutoComplete: request.AutoComplete,
             InstallmentCount: request.InstallmentCount,
             TotalAmount: request.TotalAmount,
-            Title: request.Title
+            Title: request.Title,
+            DueDay: request.DueDay,
+            RepeatCount: request.RepeatCount
         );
 
         var transactionId = await _transactionService.CreateAsync(command);

@@ -12,5 +12,7 @@ public record CreateTransactionRequest(
     bool AutoComplete,
     int? InstallmentCount,
     decimal? TotalAmount,
-    string? Title
+    string? Title,
+    int? DueDay = null,
+    int? RepeatCount = null
 );

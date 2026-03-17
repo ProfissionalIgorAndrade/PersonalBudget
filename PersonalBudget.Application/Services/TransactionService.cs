@@ -19,14 +19,74 @@ public class TransactionService : ITransactionService
         _creationStrategies = creationStrategies.ToDictionary(s => s.PaymentMethod);
     }
 
-    public Task<Guid> CreateAsync(CreateTransactionCommand command)
+    public async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
         if (!_creationStrategies.TryGetValue(command.PaymentMethod, out var strategy))
             throw new DomainException($"Método de pagamento não suportado: {command.PaymentMethod}");
 
-        // Aqui é onde o Strategy é aplicado:
-        // PaymentMethod -> estratégia -> CreateAsync da estratégia.
-        return strategy.CreateAsync(command);
+        var repeatCount = command.RepeatCount ?? 1;
+        if (repeatCount > 1)
+        {
+            if (command.PaymentMethod != PaymentMethod.Account)
+                throw new DomainException(String.Format("{0} recorrente só é permitida com método de pagamento Conta. PaymentMethod: {1}", command.Type, command.PaymentMethod));
+            var dueDay = command.DueDay ?? ParseDayFromDate(command.Date);
+            if (dueDay is < 1 or > 31)
+                throw new DomainException("Para recorrência, Data de vencimento deve ser entre 1 e 31.");
+            return await CreateRecurringAsync(command with { DueDay = dueDay }, strategy, repeatCount);
+        }
+
+        return await strategy.CreateAsync(command);
+    }
+
+    private async Task<Guid> CreateRecurringAsync(CreateTransactionCommand command, ITransactionCreationStrategy strategy, int repeatCount)
+    {
+        var firstDate = ParseFirstDate(command.Date, command.DueDay!.Value);
+        Guid? firstId = null;
+
+        for (var i = 0; i < repeatCount; i++)
+        {
+            var dueDate = firstDate.AddMonths(i);
+            var day = Math.Min(command.DueDay!.Value, System.DateTime.DaysInMonth(dueDate.Year, dueDate.Month));
+            var date = new System.DateTime(dueDate.Year, dueDate.Month, day);
+            var dateString = date.ToString("dd/MM/yyyy");
+
+            var singleCommand = command with
+            {
+                Date = dateString,
+                AutoComplete = false,
+                RepeatCount = null,
+                DueDay = null
+            };
+
+            var id = await strategy.CreateAsync(singleCommand);
+            if (firstId is null)
+                firstId = id;
+        }
+
+        return firstId!.Value;
+    }
+
+    private static int ParseDayFromDate(string dateString)
+    {
+        if (string.IsNullOrWhiteSpace(dateString))
+            throw new DomainException("Data é obrigatória para despesa/receita fixa.");
+        var formats = new[] { "dd/MM/yyyy", "dd/MM/yyyy HH:mm", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss" };
+        if (!System.DateTime.TryParseExact(dateString.Trim(), formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed))
+            throw new DomainException("Data inválida. Use dd/MM/yyyy (ex: 08/04/2026) ou ISO.");
+        return parsed.Day;
+    }
+
+    private static System.DateTime ParseFirstDate(string dateString, int dueDay)
+    {
+        if (string.IsNullOrWhiteSpace(dateString))
+            throw new DomainException("Data é obrigatória para despesa/receita fixa.");
+
+        var formats = new[] { "dd/MM/yyyy", "dd/MM/yyyy HH:mm", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss" };
+        if (!System.DateTime.TryParseExact(dateString.Trim(), formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed))
+            throw new DomainException("Data inválida. Use dd/MM/yyyy (ex: 08/04/2026) ou ISO.");
+
+        var day = Math.Min(dueDay, System.DateTime.DaysInMonth(parsed.Year, parsed.Month));
+        return new System.DateTime(parsed.Year, parsed.Month, day);
     }
 
     public async Task<Transaction> GetByIdAsync(Guid transactionId)
@@ -86,5 +146,5 @@ public class TransactionService : ITransactionService
 
         await _transactionRepository.UpdateAsync(transaction);
     }
-    
+
 }

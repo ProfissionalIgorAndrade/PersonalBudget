@@ -5,7 +5,7 @@ public record CreateTransactionCommand(
     Guid? CreditCardId,
     Guid? FromAccountId,
     Guid? ToAccountId,
-    TransactionType? Type,
+    TransactionType Type,
     PaymentMethod PaymentMethod,
     decimal Amount,
     string Date,
@@ -13,5 +13,7 @@ public record CreateTransactionCommand(
     bool AutoComplete,
     int? InstallmentCount,
     decimal? TotalAmount,
-    string? Title
+    string? Title,
+    int? DueDay = null,
+    int? RepeatCount = null
 );
