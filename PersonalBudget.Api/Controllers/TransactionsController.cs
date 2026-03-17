@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PersonalBudget.Application.Interfaces;
 using PersonalBudget.Api.Contracts;
 
 [ApiController]
@@ -76,17 +75,6 @@ public class TransactionsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(transactions));
     }
 
-    [HttpGet("creditCardId/{creditCardId}/month/{month}/year/{year}")]
-    public async Task<IActionResult> GetAllByMonthAndYear(Guid creditCardId, int month, int year)
-    {
-        var userId = UserContext.GetUserId(User);
-
-        var query = new GetAllTransactionByCreditCardStatementAndMonthYearQuery(userId, creditCardId, month, year);
-        var transactions = await _transactionService.GetTransactionByCreditCardStatementAndMonthQuery(query);
-
-        return Ok(ApiResponse<object>.Ok(transactions));
-    }
-
     [HttpPatch("{transactionId}/status")]
     public async Task<IActionResult> UpdateStatus(Guid transactionId, [FromBody] UpdateTransactionStatusRequest request)
     {
@@ -96,14 +84,5 @@ public class TransactionsController : ControllerBase
         await _transactionService.UpdateStatusAsync(command);
 
         return Ok(ApiResponse<object?>.Ok(null, "Status atualizado."));
-    }
-
-    [HttpPatch("paymentMethod/creditCard/statement")]
-    public async Task<IActionResult> UpdateStatusToCreditCardStatement([FromBody] UpdateTransactionStatusToCreditCardStatementRequest request)
-    {
-        var userId = UserContext.GetUserId(User);
-        var command = new UpdateTransactionStatusToCreditCardStatementCommand(userId, request.CreditCardId, request.Month, request.Year, request.Status);
-        await _transactionService.UpdateStatusToCreditCardStatementAsync(userId, command);
-        return Ok(ApiResponse<object?>.Ok(null, "Status da fatura atualizado."));
     }
 }

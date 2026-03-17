@@ -7,17 +7,20 @@ public class CreditCardStatementService : ICreditCardStatementService
     private readonly ICreditCardStatementRepository _statementRepository;
     private readonly IAccountRepository _accountRepository;
     private readonly ITransactionQueryRepository _transactionQueryRepository;
+    private readonly ITransactionRepository _transactionRepository;
 
     public CreditCardStatementService(
         ICreditCardRepository creditCardRepository,
         ICreditCardStatementRepository statementRepository,
         IAccountRepository accountRepository,
-        ITransactionQueryRepository transactionQueryRepository)
+        ITransactionQueryRepository transactionQueryRepository,
+        ITransactionRepository transactionRepository)
     {
         _creditCardRepository = creditCardRepository;
         _statementRepository = statementRepository;
         _accountRepository = accountRepository;
         _transactionQueryRepository = transactionQueryRepository;
+        _transactionRepository = transactionRepository;
     }
 
     public async Task<List<CreditCardStatementDto>> GetByCreditCardAsync(Guid creditCardId)
@@ -64,10 +67,6 @@ public class CreditCardStatementService : ICreditCardStatementService
         );
     }
 
-    /// <summary>
-    /// Calcula a data de vencimento: se dia de vencimento >= dia de fechamento, vence no mesmo mês;
-    /// caso contrário, vence no mês seguinte (ex.: fechamento 30/mar, vencimento dia 8 → 8/abr).
-    /// </summary>
     private static DateTime ComputeDueDate(DateTime closingDate, int closingDay, int dueDay)
     {
         var year = closingDate.Year;
@@ -127,7 +126,17 @@ public class CreditCardStatementService : ICreditCardStatementService
 
         account.Debit(new Money(amount));
 
-        await _accountRepository.SaveChangesAsync();
+        var transactions = await _transactionRepository.GetByStatementIdAsync(statement.Id);
+        foreach (var transaction in transactions)
+        {
+            if (transaction.Status == TransactionStatus.Pending)
+            {
+                transaction.Complete();
+            }
+        }
+        
+        await _transactionRepository.SaveChangesAsync();
         await _statementRepository.SaveChangesAsync();
+        await _accountRepository.SaveChangesAsync();
     }
 }
