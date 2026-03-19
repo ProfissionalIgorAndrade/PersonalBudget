@@ -32,6 +32,23 @@ public class TransactionRepository : ITransactionRepository
             .FirstOrDefaultAsync(t => t.Id == transactionId);
     }
 
+    public async Task<IEnumerable<Transaction>> GetByIdsAsync(IEnumerable<Guid> transactionIds)
+    {
+        var idList = transactionIds.ToList();
+        if (idList.Count == 0)
+            return Array.Empty<Transaction>();
+
+        return await _context.Transactions
+            .Where(t => idList.Contains(t.Id))
+            .ToListAsync();
+    }
+
+    public async Task DeleteManyAsync(IEnumerable<Transaction> transactions)
+    {
+        _context.Transactions.RemoveRange(transactions);
+        await SaveChangesAsync();
+    }
+
     public async Task<IEnumerable<Transaction>> GetByAccountAsync(Guid accountId)
     {
         return await _context.Transactions

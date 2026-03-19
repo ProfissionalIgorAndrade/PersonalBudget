@@ -18,9 +18,6 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
 
     public override async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
-        if (command.Type is null)
-            throw new DomainException("Tipo da transação é obrigatório.");
-
         if (command.CreditCardId is null)
             throw new DomainException("CreditCardId é obrigatório para pagamentos com cartão de crédito.");
 
@@ -53,7 +50,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             command.UserId,
             creditCard.AccountId,
             new Money(command.Amount),
-            command.Type.Value,
+            command.Type,
             PaymentMethod.CreditCard,
             date,
             command.Description,
@@ -94,7 +91,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 command.UserId,
                 creditCard.AccountId,
                 new Money(installmentAmount),
-                command.Type!.Value,
+                command.Type,
                 PaymentMethod.CreditCard,
                 installmentDate,
                 description,

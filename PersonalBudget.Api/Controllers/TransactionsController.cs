@@ -87,4 +87,31 @@ public class TransactionsController : ControllerBase
 
         return Ok(ApiResponse<object?>.Ok(null, "Status atualizado."));
     }
+
+    [HttpDelete("batch")]
+    public async Task<IActionResult> DeleteMany([FromBody] DeleteTransactionsRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+
+        if (request.TransactionIds is null || request.TransactionIds.Count == 0)
+            return BadRequest(ApiResponse<object?>.Fail("Informe ao menos um id de transação."));
+
+        var command = new DeleteTransactionsCommand(userId, request.TransactionIds);
+        var result = await _transactionService.DeleteManyAsync(command);
+
+        var message = result.DeletedCount switch
+        {
+            0 when result.SkippedCount > 0 => "Nenhuma transação foi excluída. Apenas transações com status diferente de Concluído podem ser excluídas.",
+            0 => "Nenhuma transação encontrada para excluir.",
+            _ when result.SkippedCount > 0 => $"{result.DeletedCount} transação(ões) excluída(s). {result.SkippedCount} ignorada(s) (concluídas ou não encontradas).",
+            _ => $"{result.DeletedCount} transação(ões) excluída(s)."
+        };
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            result.DeletedCount,
+            result.SkippedCount,
+            result.SkippedIds
+        }, message));
+    }
 }

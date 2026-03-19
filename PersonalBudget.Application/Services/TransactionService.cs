@@ -147,4 +147,46 @@ public class TransactionService : ITransactionService
         await _transactionRepository.UpdateAsync(transaction);
     }
 
+    public async Task<DeleteTransactionsResult> DeleteManyAsync(DeleteTransactionsCommand command)
+    {
+        if (command.TransactionIds.Count == 0)
+            return new DeleteTransactionsResult(0, 0, Array.Empty<Guid>());
+
+        var transactions = await _transactionRepository.GetByIdsAsync(command.TransactionIds);
+        var toDelete = new List<Transaction>();
+        var skippedIds = new List<Guid>();
+
+        foreach (var transaction in transactions)
+        {
+            if (transaction.UserId != command.UserId)
+            {
+                skippedIds.Add(transaction.Id);
+                continue;
+            }
+
+            if (transaction.Status == TransactionStatus.Completed)
+            {
+                skippedIds.Add(transaction.Id);
+                continue;
+            }
+
+            toDelete.Add(transaction);
+        }
+
+        var requestedIds = command.TransactionIds.ToHashSet();
+        foreach (var id in requestedIds)
+        {
+            if (!transactions.Any(t => t.Id == id))
+                skippedIds.Add(id);
+        }
+
+        if (toDelete.Count > 0)
+            await _transactionRepository.DeleteManyAsync(toDelete);
+
+        return new DeleteTransactionsResult(
+            toDelete.Count,
+            skippedIds.Count,
+            skippedIds);
+    }
+
 }
