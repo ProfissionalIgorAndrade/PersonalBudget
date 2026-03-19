@@ -67,7 +67,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Date.Value,
                 t.Description.Value,
                 t.Amount.Amount,
-                c != null ? c.Name : null
+                c != null ? c.Name : null,
+                t.Status.ToString()
             );
 
         return await query.AsNoTracking().ToListAsync();
@@ -88,7 +89,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Date.Value,
                 t.Description.Value,
                 t.Amount.Amount,
-                c != null ? c.Name : null
+                c != null ? c.Name : null,
+                t.Status.ToString()
             );
 
         var totalCount = await query.AsNoTracking().CountAsync();
