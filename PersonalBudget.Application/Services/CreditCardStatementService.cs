@@ -3,6 +3,8 @@ using PersonalBudget.Application.Interfaces;
 
 public class CreditCardStatementService : ICreditCardStatementService
 {
+    public const int StatementTransactionsPageSize = 15;
+
     private readonly ICreditCardRepository _creditCardRepository;
     private readonly ICreditCardStatementRepository _statementRepository;
     private readonly IAccountRepository _accountRepository;
@@ -64,6 +66,42 @@ public class CreditCardStatementService : ICreditCardStatementService
             statement.Status.ToString(),
             statement.TotalAmount.Amount,
             transactions
+        );
+    }
+
+    public async Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsPagedAsync(
+        Guid userId, Guid creditCardId, int month, int year, int page, int pageSize)
+    {
+        if (page < 1)
+            throw new DomainException("Page must be at least 1.");
+
+        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
+        if (card is null || card.UserId != userId)
+            return null;
+
+        var statement = await _statementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCardId, month, year);
+        if (statement is null)
+            return null;
+
+        var (transactions, totalCount) = await _transactionQueryRepository.GetTransactionDetailsByStatementIdPagedAsync(
+            statement.Id, page, pageSize);
+        var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
+
+        return new PaginatedStatementWithTransactionsResponse(
+            statement.Id,
+            card.Id,
+            card.Name,
+            card.Limit,
+            statement.PeriodStart,
+            statement.PeriodEnd,
+            statement.ClosingDate,
+            dueDate,
+            statement.Status.ToString(),
+            statement.TotalAmount.Amount,
+            transactions,
+            page,
+            pageSize,
+            totalCount
         );
     }
 

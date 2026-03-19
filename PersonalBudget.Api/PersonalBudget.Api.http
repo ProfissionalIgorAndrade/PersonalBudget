@@ -227,8 +227,9 @@ Content-Type: application/json
 GET {{HostAddress}}/api/transactions
 Authorization: Bearer {{authToken}}
 
-### Get Transaction by Month and Year
-GET {{HostAddress}}/api/transactions/month/{{month}}/year/{{year}}
+### Get Transaction by Month and Year (paginated, 15 per page)
+@page = 1
+GET {{HostAddress}}/api/transactions/month/{{month}}/year/{{year}}?page={{page}}
 Authorization: Bearer {{authToken}}
 
 ### Get Transaction by Month and Year and CreditCardId

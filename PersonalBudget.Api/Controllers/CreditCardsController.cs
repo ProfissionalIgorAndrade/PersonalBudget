@@ -47,13 +47,37 @@ public class CreditCardsController : ControllerBase
     }
 
     [HttpGet("{creditCardId}/statement")]
-    public async Task<IActionResult> GetStatement(Guid creditCardId, [FromQuery] int month, [FromQuery] int year)
+    public async Task<IActionResult> GetStatement(
+        Guid creditCardId,
+        [FromQuery] int month,
+        [FromQuery] int year,
+        [FromQuery] int? page = null)
     {
         var userId = UserContext.GetUserId(User);
-        var statement = await _statementService.GetStatementWithTransactionsAsync(userId, creditCardId, month, year);
-        if (statement is null)
+
+        if (page is null)
+        {
+            var statement = await _statementService.GetStatementWithTransactionsAsync(userId, creditCardId, month, year);
+            if (statement is null)
+                return NotFound(ApiResponse<object?>.Fail("Cartão não encontrado ou fatura inexistente para o mês/ano informado."));
+            return Ok(ApiResponse<object>.Ok(statement));
+        }
+
+        if (page < 1)
+            return BadRequest(ApiResponse<object?>.Fail("Page must be at least 1."));
+
+        var pagedStatement = await _statementService.GetStatementWithTransactionsPagedAsync(
+            userId,
+            creditCardId,
+            month,
+            year,
+            page.Value,
+            15);
+
+        if (pagedStatement is null)
             return NotFound(ApiResponse<object?>.Fail("Cartão não encontrado ou fatura inexistente para o mês/ano informado."));
-        return Ok(ApiResponse<object>.Ok(statement));
+
+        return Ok(ApiResponse<object>.Ok(pagedStatement));
     }
 
     [HttpPost("{creditCardId}/statements/{statementId}/close")]

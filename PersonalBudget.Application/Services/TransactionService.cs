@@ -2,6 +2,8 @@ using PersonalBudget.Application.Interfaces;
 
 public class TransactionService : ITransactionService
 {
+    public const int TransactionsByMonthPageSize = 15;
+
     private readonly ITransactionRepository _transactionRepository;
     private readonly ITransactionQueryRepository _transactionQueryRepository;
     private readonly IAccountRepository _accountRepository;
@@ -97,6 +99,21 @@ public class TransactionService : ITransactionService
         return transaction;
     }
 
+    public async Task<PaginatedTransactionsResult> GetByUserAndMonthPagedAsync(GetAllTransactionByUserAndMonthQuery query)
+    {
+        if (query.Page < 1)
+            throw new DomainException("Page must be at least 1.");
+
+        var (items, totalCount) = await _transactionQueryRepository.GetByUserAndMonthPagedAsync(
+            query.UserId,
+            query.Month,
+            query.Year,
+            query.Page,
+            TransactionsByMonthPageSize);
+
+        return new PaginatedTransactionsResult(items, query.Page, TransactionsByMonthPageSize, totalCount);
+    }
+
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(GetAllTransactionByUserAndMonthQuery query)
     {
         return await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);
@@ -110,6 +127,22 @@ public class TransactionService : ITransactionService
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByAccountAndMonthAsync(GetTransactionsByAccountAndMonthYearQuery query)
     {
         return await _transactionQueryRepository.GetByAccountAndMonthAsync(query.UserId, query.AccountId, query.Month, query.Year);
+    }
+
+    public async Task<PaginatedTransactionsResult> GetByAccountAndMonthPagedAsync(GetTransactionsByAccountAndMonthYearQuery query, int page)
+    {
+        if (page < 1)
+            throw new DomainException("Page must be at least 1.");
+
+        var (items, totalCount) = await _transactionQueryRepository.GetByAccountAndMonthPagedAsync(
+            query.UserId,
+            query.AccountId,
+            query.Month,
+            query.Year,
+            page,
+            TransactionsByMonthPageSize);
+
+        return new PaginatedTransactionsResult(items, page, TransactionsByMonthPageSize, totalCount);
     }
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetTransactionByCreditCardStatementAndMonthQuery(GetAllTransactionByCreditCardStatementAndMonthYearQuery query)

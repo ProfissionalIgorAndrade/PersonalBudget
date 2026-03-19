@@ -43,12 +43,26 @@ public class AccountsController : ControllerBase
 
     /// <summary>Transações da conta no mês/ano; exclui <see cref="PaymentMethod.CreditCard"/>.</summary>
     [HttpGet("{accountId}/transactions")]
-    public async Task<IActionResult> GetTransactionsByAccountAndMonth(Guid accountId, [FromQuery] int month, [FromQuery] int year)
+    public async Task<IActionResult> GetTransactionsByAccountAndMonth(
+        Guid accountId,
+        [FromQuery] int month,
+        [FromQuery] int year,
+        [FromQuery] int? page = null)
     {
         var userId = UserContext.GetUserId(User);
         var query = new GetTransactionsByAccountAndMonthYearQuery(userId, accountId, month, year);
-        var transactions = await _transactionService.GetByAccountAndMonthAsync(query);
-        return Ok(ApiResponse<object>.Ok(transactions));
+
+        if (page is null)
+        {
+            var transactions = await _transactionService.GetByAccountAndMonthAsync(query);
+            return Ok(ApiResponse<object>.Ok(transactions));
+        }
+
+        if (page < 1)
+            return BadRequest(ApiResponse<object?>.Fail("Page must be at least 1."));
+
+        var result = await _transactionService.GetByAccountAndMonthPagedAsync(query, page.Value);
+        return Ok(ApiResponse<object>.Ok(result));
     }
     
     [HttpPut("{accountId}")]

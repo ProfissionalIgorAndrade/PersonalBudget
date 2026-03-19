@@ -67,14 +67,24 @@ public class TransactionsController : ControllerBase
     }
 
     [HttpGet("month/{month}/year/{year}")]
-    public async Task<IActionResult> GetAllByMonth(int month, int year)
+    public async Task<IActionResult> GetAllByMonth(int month, int year, [FromQuery] int? page = null)
     {
         var userId = UserContext.GetUserId(User);
 
-        var query = new GetAllTransactionByUserAndMonthQuery(userId, month, year);
-        var transactions = await _transactionService.GetByUserAndMonthAsync(query);
+        if (page is null)
+        {
+            var unpagedQuery = new GetAllTransactionByUserAndMonthQuery(userId, month, year, 1);
+            var transactions = await _transactionService.GetByUserAndMonthAsync(unpagedQuery);
+            return Ok(ApiResponse<object>.Ok(transactions));
+        }
 
-        return Ok(ApiResponse<object>.Ok(transactions));
+        if (page < 1)
+            return BadRequest(ApiResponse<object?>.Fail("Page must be at least 1."));
+
+        var pagedQuery = new GetAllTransactionByUserAndMonthQuery(userId, month, year, page.Value);
+        var result = await _transactionService.GetByUserAndMonthPagedAsync(pagedQuery);
+
+        return Ok(ApiResponse<object>.Ok(result));
     }
 
     [HttpPatch("{transactionId}/status")]
