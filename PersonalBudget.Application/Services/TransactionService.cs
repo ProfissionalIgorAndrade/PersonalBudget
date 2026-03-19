@@ -107,6 +107,11 @@ public class TransactionService : ITransactionService
         return await _transactionQueryRepository.GetByUserAsync(query.UserId);
     }
 
+    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByAccountAndMonthAsync(GetTransactionsByAccountAndMonthYearQuery query)
+    {
+        return await _transactionQueryRepository.GetByAccountAndMonthAsync(query.UserId, query.AccountId, query.Month, query.Year);
+    }
+
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetTransactionByCreditCardStatementAndMonthQuery(GetAllTransactionByCreditCardStatementAndMonthYearQuery query)
     {
         return await _transactionQueryRepository.GetAllTransactionByCreditCardStatementAndMonthYearQuery(query.userId, query.creditCardId, query.month, query.year);

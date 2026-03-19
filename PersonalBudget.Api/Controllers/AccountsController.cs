@@ -8,10 +8,12 @@ using PersonalBudget.Api.Contracts;
 public class AccountsController : ControllerBase
 {
     private readonly IAccountService _service;
+    private readonly ITransactionService _transactionService;
 
-    public AccountsController(IAccountService service)
+    public AccountsController(IAccountService service, ITransactionService transactionService)
     {
         _service = service;
+        _transactionService = transactionService;
     }
 
     [HttpPost]
@@ -37,6 +39,16 @@ public class AccountsController : ControllerBase
         var userId = UserContext.GetUserId(User);
         var accounts = await _service.GetByUserAsync(userId);
         return Ok(ApiResponse<object>.Ok(accounts));
+    }
+
+    /// <summary>Transações da conta no mês/ano; exclui <see cref="PaymentMethod.CreditCard"/>.</summary>
+    [HttpGet("{accountId}/transactions")]
+    public async Task<IActionResult> GetTransactionsByAccountAndMonth(Guid accountId, [FromQuery] int month, [FromQuery] int year)
+    {
+        var userId = UserContext.GetUserId(User);
+        var query = new GetTransactionsByAccountAndMonthYearQuery(userId, accountId, month, year);
+        var transactions = await _transactionService.GetByAccountAndMonthAsync(query);
+        return Ok(ApiResponse<object>.Ok(transactions));
     }
     
     [HttpPut("{accountId}")]

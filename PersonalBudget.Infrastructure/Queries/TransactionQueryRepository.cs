@@ -108,6 +108,45 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByAccountAndMonthAsync(Guid userId, Guid accountId, int month, int year)
+    {
+        return await
+            (from t in _context.Transactions
+             join a in _context.Accounts
+                 on t.AccountId equals a.Id
+             from c in _context.Categories
+                 .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
+                 .DefaultIfEmpty()
+             from cc in _context.CreditCards
+                 .Where(cc => t.CreditCardId != null && cc.Id == t.CreditCardId)
+                 .DefaultIfEmpty()
+             where t.UserId == userId
+                && t.AccountId == accountId
+                && t.Date.Value.Month == month
+                && t.Date.Value.Year == year
+                && t.PaymentMethod != PaymentMethod.CreditCard
+             orderby t.Date.Value descending
+             select new GetAllTransactionByUserResponse(
+                 t.Id,
+                    t.AccountId,
+                    a.Agency.Value,
+                    t.CategoryId,
+                    c != null ? c.Name : null,
+                    c != null ? c.Type.ToString() : null,
+                    t.CreditCardId,
+                    cc != null ? cc.Name : null,
+                    t.TransferId,
+                    t.Type.ToString(),
+                    t.Status.ToString(),
+                    t.PaymentMethod.ToString(),
+                    t.Amount.Amount,
+                    t.Date.Value,
+                    t.Description.Value
+             ))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByUserAsync(Guid userId)
     {
         return await
