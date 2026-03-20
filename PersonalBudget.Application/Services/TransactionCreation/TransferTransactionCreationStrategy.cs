@@ -39,7 +39,9 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
             command.Description,
             categoryId: null,
             creditCardId: null,
-            transferId: transferId);
+            transferId: transferId,
+            frequency: TransactionFrequency.Variable,
+            expirationDate: null);
 
         var inTx = Transaction.Create(
             command.UserId,
@@ -51,7 +53,9 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
             command.Description,
             categoryId: null,
             creditCardId: null,
-            transferId: transferId);
+            transferId: transferId,
+            frequency: TransactionFrequency.Variable,
+            expirationDate: null);
 
         outTx.Complete();
         inTx.Complete();

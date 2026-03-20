@@ -23,6 +23,8 @@ public class TransactionService : ITransactionService
 
     public async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
+        ValidateTransactionFrequency(command);
+
         if (!_creationStrategies.TryGetValue(command.PaymentMethod, out var strategy))
             throw new DomainException($"Método de pagamento não suportado: {command.PaymentMethod}");
 
@@ -38,6 +40,42 @@ public class TransactionService : ITransactionService
         }
 
         return await strategy.CreateAsync(command);
+    }
+
+    private static void ValidateTransactionFrequency(CreateTransactionCommand command)
+    {
+        var installments = command.InstallmentCount ?? 1;
+        var repeat = command.RepeatCount ?? 1;
+
+        if (installments > 1)
+        {
+            if (command.Frequency != TransactionFrequency.Installments)
+                throw new DomainException("Parcelas exigem TransactionFrequency.Installments.");
+            if (command.PaymentMethod != PaymentMethod.CreditCard)
+                throw new DomainException("Parcelamento só é permitido com cartão de crédito.");
+        }
+        else if (command.Frequency == TransactionFrequency.Installments)
+        {
+            throw new DomainException("TransactionFrequency.Installments exige InstallmentCount maior que 1.");
+        }
+
+        if (repeat > 1)
+        {
+            if (command.Frequency != TransactionFrequency.Fixed)
+                throw new DomainException("Recorrência exige TransactionFrequency.Fixed.");
+        }
+
+        if (command.PaymentMethod == PaymentMethod.Transfer && command.Frequency != TransactionFrequency.Variable)
+            throw new DomainException("Transferências devem usar TransactionFrequency.Variable.");
+
+        if (command.PaymentMethod == PaymentMethod.CreditCard && installments <= 1 && command.Frequency != TransactionFrequency.Variable)
+            throw new DomainException("Compra à vista no cartão deve usar TransactionFrequency.Variable.");
+
+        if (!string.IsNullOrWhiteSpace(command.ExpirationDate))
+        {
+            if (command.Frequency != TransactionFrequency.Fixed)
+                throw new DomainException("ExpirationDate só é permitido com TransactionFrequency.Fixed.");
+        }
     }
 
     private async Task<Guid> CreateRecurringAsync(CreateTransactionCommand command, ITransactionCreationStrategy strategy, int repeatCount)

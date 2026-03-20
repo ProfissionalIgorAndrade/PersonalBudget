@@ -36,6 +36,14 @@ public abstract class TransactionCreationStrategyBase : ITransactionCreationStra
     /// <summary>
     /// Parse de data aceitando Brasil (dd/MM/yyyy) e formatos ISO.
     /// </summary>
+    protected DateTime? ParseOptionalExpirationDate(string? expirationDateString)
+    {
+        if (string.IsNullOrWhiteSpace(expirationDateString))
+            return null;
+
+        return ParseDate(expirationDateString).Date;
+    }
+
     protected DateTime ParseDate(string dateString)
     {
         if (string.IsNullOrWhiteSpace(dateString))

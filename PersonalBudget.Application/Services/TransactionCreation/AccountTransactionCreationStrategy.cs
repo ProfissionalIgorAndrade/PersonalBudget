@@ -21,6 +21,8 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
         var account = await GetAccountOrThrowAsync(accountId, command.UserId);
         var date = ParseDate(command.Date);
 
+        var expiration = ParseOptionalExpirationDate(command.ExpirationDate);
+
         var transaction = Transaction.Create(
             command.UserId,
             accountId,
@@ -31,7 +33,9 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
             command.Description,
             command.CategoryId,
             creditCardId: null,
-            transferId: null
+            transferId: null,
+            frequency: command.Frequency,
+            expirationDate: expiration
         );
 
         if (command.AutoComplete)

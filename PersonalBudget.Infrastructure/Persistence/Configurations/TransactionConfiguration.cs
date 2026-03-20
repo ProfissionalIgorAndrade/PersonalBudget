@@ -35,6 +35,14 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired()
             .HasConversion<int>();
 
+        builder.Property(t => t.Frequency)
+            .IsRequired()
+            .HasColumnName("frequency")
+            .HasConversion<int>();
+
+        builder.Property(t => t.ExpirationDate)
+            .HasColumnName("expiration_date");
+
         // 🔹 Money (Value Object)
         builder.OwnsOne(t => t.Amount, money =>
         {

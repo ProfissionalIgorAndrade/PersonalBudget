@@ -5,6 +5,7 @@ public record CreateTransactionRequest(
     Guid? FromAccountId,
     Guid? ToAccountId,
     TransactionType Type,
+    TransactionFrequency Frequency,
     PaymentMethod PaymentMethod,
     decimal Amount,
     string Date,
@@ -13,6 +14,7 @@ public record CreateTransactionRequest(
     int? InstallmentCount,
     decimal? TotalAmount,
     string? Title,
+    string? ExpirationDate = null,
     int? DueDay = null,
     int? RepeatCount = null
 );

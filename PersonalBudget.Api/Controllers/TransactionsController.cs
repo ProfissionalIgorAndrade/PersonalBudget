@@ -28,6 +28,7 @@ public class TransactionsController : ControllerBase
             FromAccountId: request.FromAccountId,
             ToAccountId: request.ToAccountId,
             Type: request.Type,
+            Frequency: request.Frequency,
             PaymentMethod: request.PaymentMethod,
             Amount: request.Amount,
             Date: request.Date,
@@ -36,6 +37,7 @@ public class TransactionsController : ControllerBase
             InstallmentCount: request.InstallmentCount,
             TotalAmount: request.TotalAmount,
             Title: request.Title,
+            ExpirationDate: request.ExpirationDate,
             DueDay: request.DueDay,
             RepeatCount: request.RepeatCount
         );

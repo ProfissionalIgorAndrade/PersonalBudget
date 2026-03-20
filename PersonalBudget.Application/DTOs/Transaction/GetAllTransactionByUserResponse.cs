@@ -11,6 +11,8 @@ public record GetAllTransactionByUserResponse(
     string Type,
     string Status,
     string PaymentMethod,
+    string Frequency,
+    DateTime? ExpirationDate,
     decimal Amount,
     DateTime Date,
     string Description);

@@ -45,6 +45,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  t.Type.ToString(),
                  t.Status.ToString(),
                  t.PaymentMethod.ToString(),
+                 t.Frequency.ToString(),
+                 t.ExpirationDate,
                  t.Amount.Amount,
                  t.Date.Value,
                  t.Description.Value
@@ -130,6 +132,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Type.ToString(),
                 t.Status.ToString(),
                 t.PaymentMethod.ToString(),
+                t.Frequency.ToString(),
+                t.ExpirationDate,
                 t.Amount.Amount,
                 t.Date.Value,
                 t.Description.Value
@@ -166,6 +170,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Type.ToString(),
                 t.Status.ToString(),
                 t.PaymentMethod.ToString(),
+                t.Frequency.ToString(),
+                t.ExpirationDate,
                 t.Amount.Amount,
                 t.Date.Value,
                 t.Description.Value
@@ -212,6 +218,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Type.ToString(),
                 t.Status.ToString(),
                 t.PaymentMethod.ToString(),
+                t.Frequency.ToString(),
+                t.ExpirationDate,
                 t.Amount.Amount,
                 t.Date.Value,
                 t.Description.Value
@@ -252,6 +260,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Type.ToString(),
                 t.Status.ToString(),
                 t.PaymentMethod.ToString(),
+                t.Frequency.ToString(),
+                t.ExpirationDate,
                 t.Amount.Amount,
                 t.Date.Value,
                 t.Description.Value
@@ -294,6 +304,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                     t.Type.ToString(),
                     t.Status.ToString(),
                     t.PaymentMethod.ToString(),
+                    t.Frequency.ToString(),
+                    t.ExpirationDate,
                     t.Amount.Amount,
                     t.Date.Value,
                     t.Description.Value

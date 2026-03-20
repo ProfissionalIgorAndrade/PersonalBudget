@@ -57,7 +57,9 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             command.CategoryId,
             command.CreditCardId,
             statement.Id,
-            transferId: null
+            transferId: null,
+            frequency: command.Frequency,
+            expirationDate: null
         );
 
         await _transactionRepository.AddAsync(transaction);
@@ -98,7 +100,9 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 command.CategoryId,
                 command.CreditCardId,
                 statement.Id,
-                transferId: null
+                transferId: null,
+                frequency: TransactionFrequency.Installments,
+                expirationDate: null
             );
 
             await _transactionRepository.AddAsync(transaction);
