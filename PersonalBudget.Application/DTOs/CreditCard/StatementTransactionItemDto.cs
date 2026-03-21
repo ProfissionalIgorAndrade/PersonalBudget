@@ -5,6 +5,8 @@ public record StatementTransactionItemDto(
     DateTime Date,
     string Description,
     decimal Amount,
+    Guid? CategoryId,
     string? CategoryName,
+    string TransactionType,
     string Status
 );

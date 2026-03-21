@@ -85,12 +85,31 @@ public class CreditCardStatement
         return Open(creditCardId, periodStart, periodEnd, closingDate, dueDate);
     }
 
-    public void AddTransaction(Money amount)
+    /// <summary>
+    /// Atualiza o total da fatura conforme o tipo: despesa aumenta o que se deve;
+    /// receita (reembolso, estorno) reduz o saldo da fatura.
+    /// </summary>
+    public void AddTransaction(Money amount, TransactionType transactionType)
     {
         if (Status != BillStatus.Open)
             throw new DomainException("Não é possível adicionar transação a uma fatura fechada.");
 
-        TotalAmount = TotalAmount.Add(amount);
+        if (transactionType == TransactionType.Expense)
+        {
+            TotalAmount = TotalAmount.Add(amount);
+            return;
+        }
+
+        if (transactionType == TransactionType.Income)
+        {
+            var newTotal = TotalAmount.Amount - amount.Amount;
+            if (newTotal < 0)
+                newTotal = 0;
+            TotalAmount = new Money(newTotal);
+            return;
+        }
+
+        throw new DomainException($"Tipo de transação não suportado na fatura: {transactionType}.");
     }
 
     public void Close()

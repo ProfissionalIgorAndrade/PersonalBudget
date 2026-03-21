@@ -101,7 +101,7 @@ public class CreditCard
     {
         var statement = GetOrCreateOpenStatement(date);
 
-        statement.AddTransaction(amount);
+        statement.AddTransaction(amount, TransactionType.Expense);
 
         return statement;
     }

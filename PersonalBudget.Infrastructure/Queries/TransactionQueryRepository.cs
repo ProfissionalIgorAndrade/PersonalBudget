@@ -59,9 +59,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     {
         var query =
             from t in _context.Transactions
-            from c in _context.Categories
-                .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
-                .DefaultIfEmpty()
+            join c in _context.Categories on t.CategoryId equals c.Id into categoryJoin
+            from c in categoryJoin.DefaultIfEmpty()
             where t.StatementId == statementId
             orderby t.Date.Value descending
             select new StatementTransactionItemDto(
@@ -69,7 +68,9 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Date.Value,
                 t.Description.Value,
                 t.Amount.Amount,
+                t.CategoryId,
                 c != null ? c.Name : null,
+                t.Type.ToString(),
                 t.Status.ToString()
             );
 
@@ -81,9 +82,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     {
         var query =
             from t in _context.Transactions
-            from c in _context.Categories
-                .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
-                .DefaultIfEmpty()
+            join c in _context.Categories on t.CategoryId equals c.Id into categoryJoin
+            from c in categoryJoin.DefaultIfEmpty()
             where t.StatementId == statementId
             orderby t.Date.Value descending
             select new StatementTransactionItemDto(
@@ -91,7 +91,9 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Date.Value,
                 t.Description.Value,
                 t.Amount.Amount,
+                t.CategoryId,
                 c != null ? c.Name : null,
+                t.Type.ToString(),
                 t.Status.ToString()
             );
 
@@ -103,6 +105,16 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             .ToListAsync();
 
         return (items, totalCount);
+    }
+
+    public async Task<decimal> GetStatementNetTotalAsync(Guid statementId)
+    {
+        var net = await _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.StatementId == statementId)
+            .Select(t => t.Type == TransactionType.Expense ? t.Amount.Amount : -t.Amount.Amount)
+            .SumAsync();
+        return net < 0 ? 0 : net;
     }
 
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(Guid userId, int month, int year)

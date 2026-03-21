@@ -44,7 +44,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         CreditCard creditCard,
         DateTime date)
     {
-        var statement = await GetOrCreateStatementAsync(creditCard, date, new Money(command.Amount));
+        var statement = await GetOrCreateStatementAsync(creditCard, date, new Money(command.Amount), command.Type);
 
         var transaction = Transaction.Create(
             command.UserId,
@@ -85,7 +85,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 ? totalAmount - (amountPerInstallment * (count - 1))
                 : amountPerInstallment;
 
-            var statement = await GetOrCreateStatementAsync(creditCard, installmentDate, new Money(installmentAmount));
+            var statement = await GetOrCreateStatementAsync(creditCard, installmentDate, new Money(installmentAmount), command.Type);
 
             var description = $"{displayName} ({i + 1}/{count})";
 
@@ -116,19 +116,20 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
     private async Task<CreditCardStatement> GetOrCreateStatementAsync(
         CreditCard creditCard,
         DateTime date,
-        Money amount)
+        Money amount,
+        TransactionType transactionType)
     {
         var statement = await _creditCardStatementRepository.GetOpenStatementForDateAsync(creditCard.Id, date);
 
         if (statement is null)
         {
             statement = CreditCardStatement.CreateForDate(creditCard.Id, date, creditCard.ClosingDay, creditCard.DueDay);
-            statement.AddTransaction(amount);
+            statement.AddTransaction(amount, transactionType);
             await _creditCardStatementRepository.AddAsync(statement);
         }
         else
         {
-            statement.AddTransaction(amount);
+            statement.AddTransaction(amount, transactionType);
             await _creditCardStatementRepository.UpdateAsync(statement);
         }
 

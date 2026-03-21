@@ -13,4 +13,6 @@ public interface ITransactionQueryRepository
     Task<IReadOnlyList<StatementTransactionItemDto>> GetTransactionDetailsByStatementIdAsync(Guid statementId);
     Task<(IReadOnlyList<StatementTransactionItemDto> Items, int TotalCount)> GetTransactionDetailsByStatementIdPagedAsync(
         Guid statementId, int page, int pageSize);
+    /// <summary>Total líquido da fatura: soma de despesas menos receitas (reembolsos/estornos).</summary>
+    Task<decimal> GetStatementNetTotalAsync(Guid statementId);
 }
