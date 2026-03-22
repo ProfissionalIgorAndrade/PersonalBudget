@@ -39,10 +39,10 @@ public class CreditCardRepository : ICreditCardRepository
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    public async Task<IEnumerable<CreditCard>> GetByUserAsync(Guid userId)
+    public async Task<IEnumerable<CreditCard>> GetByHouseholdAsync(Guid householdId)
     {
         return await _context.CreditCards
-            .Where(c => c.UserId == userId && c.IsActive)
+            .Where(c => c.HouseholdId == householdId && c.IsActive)
             .ToListAsync();
     }
 }

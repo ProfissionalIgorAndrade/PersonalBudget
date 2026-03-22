@@ -22,6 +22,13 @@ public class UserRepository : IUserRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email.Value == email.Value);
     }
+
+    public async Task<User?> GetByIdAsync(Guid id)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
     
     public async Task SaveChangesAsync()
     {

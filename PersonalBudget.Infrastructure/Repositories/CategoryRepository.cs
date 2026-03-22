@@ -22,10 +22,10 @@ public class CategoryRepository : ICategoryRepository
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    public async Task<IEnumerable<Category>> GetByUserAsync(Guid userId)
+    public async Task<IEnumerable<Category>> GetByHouseholdAsync(Guid householdId)
     {
         return await _context.Categories
-            .Where(c => c.UserId == userId && c.IsActive)
+            .Where(c => c.HouseholdId == householdId && c.IsActive)
             .ToListAsync();
     }
 

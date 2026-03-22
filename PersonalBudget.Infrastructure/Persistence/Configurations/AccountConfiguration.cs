@@ -9,11 +9,14 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.HasKey(a => a.Id);
 
-        // 🔹 Ownership
         builder.Property(a => a.UserId)
             .IsRequired();
 
+        builder.Property(a => a.HouseholdId)
+            .IsRequired();
+
         builder.HasIndex(a => a.UserId);
+        builder.HasIndex(a => a.HouseholdId);
 
         // 🔹 Bank enum
         builder.Property(a => a.Bank)

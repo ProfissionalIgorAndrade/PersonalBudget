@@ -21,10 +21,10 @@ public class AccountRepository : IAccountRepository
             .FirstOrDefaultAsync(a => a.Id == accountId);
     }
 
-    public async Task<IEnumerable<Account>> GetByUserIdAsync(Guid userId)
+    public async Task<IEnumerable<Account>> GetByHouseholdIdAsync(Guid householdId)
     {
         return await _context.Accounts
-            .Where(a => a.UserId == userId && a.IsActive)
+            .Where(a => a.HouseholdId == householdId && a.IsActive)
             .ToListAsync();
     }
 
