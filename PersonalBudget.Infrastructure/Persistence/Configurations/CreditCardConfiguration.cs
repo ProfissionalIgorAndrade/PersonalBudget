@@ -13,6 +13,9 @@ public class CreditCardConfiguration : IEntityTypeConfiguration<CreditCard>
         builder.Property(c => c.UserId)
             .IsRequired();
 
+        builder.Property(c => c.HouseholdId)
+            .IsRequired();
+
         builder.Property(c => c.AccountId)
             .IsRequired();
 
@@ -33,6 +36,7 @@ public class CreditCardConfiguration : IEntityTypeConfiguration<CreditCard>
             .IsRequired();
 
         builder.HasIndex(c => c.UserId);
+        builder.HasIndex(c => c.HouseholdId);
         
         builder.HasIndex(c => c.AccountId);
 

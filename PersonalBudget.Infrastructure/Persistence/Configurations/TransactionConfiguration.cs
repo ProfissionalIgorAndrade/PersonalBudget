@@ -12,6 +12,12 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.UserId)
             .IsRequired();
 
+        builder.Property(t => t.HouseholdId)
+            .IsRequired();
+
+        builder.Property(t => t.AttributionProfileId)
+            .IsRequired();
+
         builder.Property(t => t.AccountId)
             .IsRequired();
 
@@ -69,6 +75,8 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         });
 
         builder.HasIndex(t => t.UserId);
+        builder.HasIndex(t => t.HouseholdId);
+        builder.HasIndex(t => t.AttributionProfileId);
         builder.HasIndex(t => t.AccountId);
         builder.HasIndex(t => t.CreditCardId);
         builder.HasIndex(t => t.TransferId);

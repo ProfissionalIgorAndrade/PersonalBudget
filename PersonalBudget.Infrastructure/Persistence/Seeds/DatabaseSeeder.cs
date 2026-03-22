@@ -1,37 +1,53 @@
-using Bogus;
-
 namespace PersonalBudget.Infrastructure.Persistence.Seed;
 
 public static class DatabaseSeeder
 {
-    /// <summary>
-    /// Faker com locale pt_BR para nomes, datas e números realistas.
-    /// Bogus: https://github.com/bchavez/Bogus
-    /// </summary>
-    private static readonly Faker Faker = new Faker("pt_BR");
-
     public static async Task<Guid> SeedAsync(AppDbContext context)
     {
         if (context.Users.Any())
             return Guid.Empty;
 
-        var userName = Faker.Person.FullName;
-        var userEmail = "email@email.com";
-
-        var user = new User(
-            name: userName,
-            email: new Email(userEmail),
+        var igorName = "Igor";
+        var igorEmail = "email@email.com";
+        var igor = new User(
+            name: igorName,
+            email: new Email(igorEmail),
             passwordHash: new PasswordHasher().Hash("Email123@")
         );
 
-        context.Users.Add(user);
+        var andrezaName = "Andreza";
+        var andrezaEmail = "andreza@email.com";
+        var andreza = new User(
+            name: andrezaName,
+            email: new Email(andrezaEmail),
+            passwordHash: new PasswordHasher().Hash("Email123@")
+        );
 
-        /*
-         ACCOUNTS
-        */
+        context.Users.Add(igor);
+        context.Users.Add(andreza);
+
+        var household = Household.Create("Família Demo");
+        context.Households.Add(household);
+
+        var membershipIgor = HouseholdMembership.CreateOwner(household.Id, igor.Id);
+        var membershipAndreza = HouseholdMembership.CreateMember(household.Id, andreza.Id);
+        context.HouseholdMemberships.Add(membershipIgor);
+        context.HouseholdMemberships.Add(membershipAndreza);
+
+        var profileIgor = HouseholdMemberProfile.CreateLinkedUser(household.Id, igor.Id, igorName, 0);
+        var profileAndreza = HouseholdMemberProfile.CreateLinkedUser(household.Id, andreza.Id, andrezaName, 1);
+        var profileFamilia = HouseholdMemberProfile.CreateJoint("Família", household.Id, 2);
+        context.HouseholdMemberProfiles.Add(profileIgor);
+        context.HouseholdMemberProfiles.Add(profileAndreza);
+        context.HouseholdMemberProfiles.Add(profileFamilia);
+
+        await context.SaveChangesAsync();
+
+        var hId = household.Id;
 
         var account1 = Account.Create(
-            userId: user.Id,
+            userId: igor.Id,
+            householdId: hId,
             bank: Bank.Nubank,
             agency: new BankAgency("0001"),
             number: new BankAccountNumber("123456-7"),
@@ -39,41 +55,60 @@ public static class DatabaseSeeder
         );
 
         var account2 = Account.Create(
-            userId: user.Id,
+            userId: igor.Id,
+            householdId: hId,
             bank: Bank.Itau,
             agency: new BankAgency("1301"),
             number: new BankAccountNumber("889922-3"),
             initialBalance: new Money(5000)
         );
 
+        var accountConjunta = Account.Create(
+            userId: andreza.Id,
+            householdId: hId,
+            bank: Bank.Inter,
+            agency: new BankAgency("0001"),
+            number: new BankAccountNumber("98765-0"),
+            initialBalance: new Money(12000)
+        );
+
         context.Accounts.Add(account1);
         context.Accounts.Add(account2);
+        context.Accounts.Add(accountConjunta);
 
-        /*
-         CATEGORIES
-        */
-
-        var moradia = Category.Create(user.Id, "Moradia", CategoryType.Expense);
-        var alimentacao = Category.Create(user.Id, "Alimentação", CategoryType.Expense);
-        var lazer = Category.Create(user.Id, "Diversão", CategoryType.Expense);
-
-        var salario = Category.Create(user.Id, "Salário", CategoryType.Income);
-        var investimento = Category.Create(user.Id, "Investimentos", CategoryType.Income);
+        var moradia = Category.Create(hId, "Moradia", CategoryType.Expense);
+        var alimentacao = Category.Create(hId, "Alimentação", CategoryType.Expense);
+        var lazer = Category.Create(hId, "Diversão", CategoryType.Expense);
+        var transporte = Category.Create(hId, "Transporte", CategoryType.Expense);
+        var saude = Category.Create(hId, "Saúde", CategoryType.Expense);
+        var educacao = Category.Create(hId, "Educação", CategoryType.Expense);
+        var presentes = Category.Create(hId, "Presentes", CategoryType.Expense);
+        var servicos = Category.Create(hId, "Serviços & Assinaturas", CategoryType.Expense);
+        var salario = Category.Create(hId, "Salário", CategoryType.Income);
+        var investimento = Category.Create(hId, "Investimentos", CategoryType.Income);
+        var freelance = Category.Create(hId, "Freelance / Bicos", CategoryType.Income);
+        var bonus = Category.Create(hId, "Bônus & 13º", CategoryType.Income);
+        var cashback = Category.Create(hId, "Cashback & Reembolsos", CategoryType.Income);
 
         context.Categories.AddRange(
             moradia,
             alimentacao,
             lazer,
+            transporte,
+            saude,
+            educacao,
+            presentes,
+            servicos,
             salario,
-            investimento
+            investimento,
+            freelance,
+            bonus,
+            cashback
         );
 
-        /*
-         CREDIT CARDS
-        */
-
         var nubankCard = CreditCard.Create(
-            userId: user.Id,
+            userId: igor.Id,
+            householdId: hId,
             accountId: account1.Id,
             name: "Nubank Ultravioleta",
             limit: 8000,
@@ -82,7 +117,8 @@ public static class DatabaseSeeder
         );
 
         var itauCard = CreditCard.Create(
-            userId: user.Id,
+            userId: igor.Id,
+            householdId: hId,
             accountId: account2.Id,
             name: "Itaú Visa Platinum",
             limit: 5000,
@@ -93,479 +129,460 @@ public static class DatabaseSeeder
         context.CreditCards.Add(nubankCard);
         context.CreditCards.Add(itauCard);
 
-        /*
-         TRANSACTIONS
-        */
+        // Não salvar cartões antes de AddExpense: as faturas vão para o campo privado _statements e,
+        // se o cartão já estiver persistido (Unchanged), o provider InMemory pode gerar DbUpdateConcurrencyException
+        // ao tentar atualizar faturas que o modelo não rastreou corretamente. Tudo segue num único SaveChanges ao final.
 
         var now = DateTime.UtcNow;
         var lastMonth = now.AddMonths(-1);
         var nextMonth = now.AddMonths(1);
         var twoMonthsAhead = now.AddMonths(2);
 
-        // Incomes (salários, investimentos) em meses diferentes
-        var salaryLastMonth = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(7800),
-            type: TransactionType.Income,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Salário - Empresa X (mês passado)",
-            date: new DateTime(lastMonth.Year, lastMonth.Month, 5),
-            categoryId: salario.Id,
-            creditCardId: null
-        );
+        Guid PIG = profileIgor.Id;
+        Guid PAN = profileAndreza.Id;
+        Guid PFAM = profileFamilia.Id;
 
-        var salaryCurrentMonth = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(8000),
-            type: TransactionType.Income,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Salário - Empresa X (mês atual)",
-            date: new DateTime(now.Year, now.Month, 5),
-            categoryId: salario.Id,
-            creditCardId: null
-        );
+        var transactions = new List<Transaction>();
+        var rng = new Random(20250318);
 
-        var salaryNextMonth = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(8200),
-            type: TransactionType.Income,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Salário - Empresa X (próximo mês)",
-            date: new DateTime(nextMonth.Year, nextMonth.Month, 5),
-            categoryId: salario.Id,
-            creditCardId: null
-        );
+        void AddTx(Transaction t) => transactions.Add(t);
 
-        var investmentIncome = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: new Money(350),
-            type: TransactionType.Income,
-            paymentMethod: PaymentMethod.Account,
-            description: "Rendimento investimentos",
-            date: new DateTime(now.Year, now.Month, 20),
-            categoryId: investimento.Id,
-            creditCardId: null
-        );
+        Account AccountForCard(CreditCard card)
+            => card.AccountId == account1.Id ? account1 : card.AccountId == account2.Id ? account2 : accountConjunta;
 
-        // Despesas recorrentes em conta (aluguel, contas fixas)
-        var aluguelLastMonth = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(2500),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Aluguel (mês passado)",
-            date: new DateTime(lastMonth.Year, lastMonth.Month, 8),
-            categoryId: moradia.Id,
-            creditCardId: null
-        );
+        void AddCcExpense(
+            Guid userId,
+            Guid profileId,
+            CreditCard card,
+            Money amount,
+            DateTime date,
+            string description,
+            Guid categoryId,
+            TransactionFrequency frequency = TransactionFrequency.Variable)
+        {
+            var statement = card.AddExpense(date, amount);
+            AddTx(Transaction.Create(
+                userId,
+                hId,
+                profileId,
+                AccountForCard(card).Id,
+                amount,
+                TransactionType.Expense,
+                PaymentMethod.CreditCard,
+                date,
+                description,
+                categoryId,
+                card.Id,
+                statement.Id,
+                frequency: frequency));
+        }
 
-        var aluguelCurrentMonth = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(2500),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Aluguel (mês atual)",
-            date: new DateTime(now.Year, now.Month, 8),
-            categoryId: moradia.Id,
-            creditCardId: null
-        );
+        void AddTransferPair(Guid userId, Guid profileId, Account from, Account to, decimal amount, DateTime date, string description)
+        {
+            var transferId = Guid.NewGuid();
+            AddTx(Transaction.Create(
+                userId,
+                hId,
+                profileId,
+                from.Id,
+                new Money(amount),
+                TransactionType.Expense,
+                PaymentMethod.Transfer,
+                date,
+                $"Transferência: {description} (saída)",
+                categoryId: null,
+                transferId: transferId,
+                frequency: TransactionFrequency.Variable));
+            AddTx(Transaction.Create(
+                userId,
+                hId,
+                profileId,
+                to.Id,
+                new Money(amount),
+                TransactionType.Income,
+                PaymentMethod.Transfer,
+                date,
+                $"Transferência: {description} (entrada)",
+                categoryId: null,
+                transferId: transferId,
+                frequency: TransactionFrequency.Variable));
+        }
 
-        var aluguelNextMonth = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(2500),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Aluguel (próximo mês)",
-            date: new DateTime(nextMonth.Year, nextMonth.Month, 8),
-            categoryId: moradia.Id,
-            creditCardId: null
-        );
+        static DateTime RandomDayInRange(Random random, DateTime start, DateTime end)
+        {
+            var days = Math.Max(0, (end.Date - start.Date).Days);
+            return start.AddDays(random.Next(days + 1));
+        }
 
-        var aluguelTwoMonthsAhead = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(2500),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Aluguel (daqui a 2 meses)",
-            date: new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 8),
-            categoryId: moradia.Id,
-            creditCardId: null
-        );
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(7800), TransactionType.Income, PaymentMethod.Account,
+            new DateTime(lastMonth.Year, lastMonth.Month, 5), "Salário - Empresa X (mês passado)", salario.Id, frequency: TransactionFrequency.Fixed));
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(8000), TransactionType.Income, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 5), "Salário - Empresa X (mês atual)", salario.Id, frequency: TransactionFrequency.Fixed));
+        AddTx(Transaction.Create(igor.Id, hId, PAN, account1.Id, new Money(8200), TransactionType.Income, PaymentMethod.Account,
+            new DateTime(nextMonth.Year, nextMonth.Month, 5), "Salário - Empresa X (próximo mês)", salario.Id, frequency: TransactionFrequency.Fixed));
 
-        // Outras despesas em conta
-        var internet = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(150),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Internet banda larga",
-            date: new DateTime(now.Year, now.Month, 12),
-            categoryId: moradia.Id,
-            creditCardId: null
-        );
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, new Money(350), TransactionType.Income, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 20), "Rendimento investimentos", investimento.Id));
 
-        var luz = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: new Money(220),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Conta de luz",
-            date: new DateTime(now.Year, now.Month, 15),
-            categoryId: moradia.Id,
-            creditCardId: null
-        );
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, new Money(2500), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(lastMonth.Year, lastMonth.Month, 8), "Aluguel (mês passado)", moradia.Id, frequency: TransactionFrequency.Fixed));
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, new Money(2500), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 8), "Aluguel (mês atual)", moradia.Id, frequency: TransactionFrequency.Fixed));
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, new Money(2500), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(nextMonth.Year, nextMonth.Month, 8), "Aluguel (próximo mês)", moradia.Id, frequency: TransactionFrequency.Fixed));
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, new Money(2500), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 8), "Aluguel (daqui a 2 meses)", moradia.Id, frequency: TransactionFrequency.Fixed));
 
-        var agua = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: new Money(130),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Conta de água",
-            date: new DateTime(now.Year, now.Month, 10),
-            categoryId: moradia.Id,
-            creditCardId: null
-        );
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(150), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 12), "Internet banda larga", moradia.Id, frequency: TransactionFrequency.Fixed));
+        AddTx(Transaction.Create(igor.Id, hId, PAN, account2.Id, new Money(220), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 15), "Conta de luz", moradia.Id, frequency: TransactionFrequency.Fixed));
+        AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(130), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 10), "Conta de água", moradia.Id, frequency: TransactionFrequency.Fixed));
 
-        // Compras no cartão Nubank em diferentes meses
         var tvAmount = new Money(3200);
         var tvDate = new DateTime(now.Year, now.Month, 3);
         var tvStatement = nubankCard.AddExpense(tvDate, tvAmount);
-        var tv = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: tvAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "TV OLED LG - Amazon",
-            date: tvDate,
-            categoryId: lazer.Id,
-            creditCardId: nubankCard.Id,
-            statementId: tvStatement.Id
-        );
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, tvAmount, TransactionType.Expense, PaymentMethod.CreditCard,
+            tvDate, "TV OLED LG - Amazon", lazer.Id, nubankCard.Id, tvStatement.Id));
 
-        var supermercado1Amount = new Money(430);
-        var supermercado1Date = new DateTime(now.Year, now.Month, 7);
-        var supermercado1Statement = nubankCard.AddExpense(supermercado1Date, supermercado1Amount);
-        var supermercado1 = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: supermercado1Amount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Supermercado Extra",
-            date: supermercado1Date,
-            categoryId: alimentacao.Id,
-            creditCardId: nubankCard.Id,
-            statementId: supermercado1Statement.Id
-        );
+        var s1Amt = new Money(430);
+        var s1Date = new DateTime(now.Year, now.Month, 7);
+        var s1St = nubankCard.AddExpense(s1Date, s1Amt);
+        AddTx(Transaction.Create(igor.Id, hId, PAN, account1.Id, s1Amt, TransactionType.Expense, PaymentMethod.CreditCard,
+            s1Date, "Supermercado Extra", alimentacao.Id, nubankCard.Id, s1St.Id));
 
-        var supermercado2Amount = new Money(520);
-        var supermercado2Date = new DateTime(lastMonth.Year, lastMonth.Month, 18);
-        var supermercado2Statement = nubankCard.AddExpense(supermercado2Date, supermercado2Amount);
-        var supermercado2 = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: supermercado2Amount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Supermercado Extra (mês passado)",
-            date: supermercado2Date,
-            categoryId: alimentacao.Id,
-            creditCardId: nubankCard.Id,
-            statementId: supermercado2Statement.Id
-        );
+        var s2Amt = new Money(520);
+        var s2Date = new DateTime(lastMonth.Year, lastMonth.Month, 18);
+        var s2St = nubankCard.AddExpense(s2Date, s2Amt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, s2Amt, TransactionType.Expense, PaymentMethod.CreditCard,
+            s2Date, "Supermercado Extra (mês passado)", alimentacao.Id, nubankCard.Id, s2St.Id));
 
-        var farmaciaAmount = new Money(210);
-        var farmaciaDate = new DateTime(now.Year, now.Month, 11);
-        var farmaciaStatement = nubankCard.AddExpense(farmaciaDate, farmaciaAmount);
-        var farmacia = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: farmaciaAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Farmácia Drogasil",
-            date: farmaciaDate,
-            categoryId: alimentacao.Id,
-            creditCardId: nubankCard.Id,
-            statementId: farmaciaStatement.Id
-        );
+        var farmAmt = new Money(210);
+        var farmDate = new DateTime(now.Year, now.Month, 11);
+        var farmSt = nubankCard.AddExpense(farmDate, farmAmt);
+        AddTx(Transaction.Create(andreza.Id, hId, PAN, account1.Id, farmAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            farmDate, "Farmácia Drogasil", alimentacao.Id, nubankCard.Id, farmSt.Id));
 
-        var cinemaAmount = new Money(80);
+        var cinemaAmt = new Money(80);
         var cinemaDate = new DateTime(now.Year, now.Month, 16);
-        var cinemaStatement = nubankCard.AddExpense(cinemaDate, cinemaAmount);
-        var cinema = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: cinemaAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Cinema - Shopping",
-            date: cinemaDate,
-            categoryId: lazer.Id,
-            creditCardId: nubankCard.Id,
-            statementId: cinemaStatement.Id
-        );
+        var cinemaSt = nubankCard.AddExpense(cinemaDate, cinemaAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, cinemaAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            cinemaDate, "Cinema - Shopping", lazer.Id, nubankCard.Id, cinemaSt.Id));
 
-        var viagemFuturaAmount = new Money(1800);
-        var viagemFuturaDate = new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 2);
-        var viagemFuturaStatement = nubankCard.AddExpense(viagemFuturaDate, viagemFuturaAmount);
-        var viagemFutura = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: viagemFuturaAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Passagens aéreas (daqui a 2 meses)",
-            date: viagemFuturaDate,
-            categoryId: lazer.Id,
-            creditCardId: nubankCard.Id,
-            statementId: viagemFuturaStatement.Id
-        );
+        var viaAmt = new Money(1800);
+        var viaDate = new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 2);
+        var viaSt = nubankCard.AddExpense(viaDate, viaAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, viaAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            viaDate, "Passagens aéreas (daqui a 2 meses)", lazer.Id, nubankCard.Id, viaSt.Id));
 
-        // Compras no cartão Itaú em diferentes meses
-        var restauranteAmount = new Money(220);
-        var restauranteDate = new DateTime(now.Year, now.Month, 9);
-        var restauranteStatement = itauCard.AddExpense(restauranteDate, restauranteAmount);
-        var restaurante = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: restauranteAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Restaurante Japonês",
-            date: restauranteDate,
-            categoryId: lazer.Id,
-            creditCardId: itauCard.Id,
-            statementId: restauranteStatement.Id
-        );
+        var restAmt = new Money(220);
+        var restDate = new DateTime(now.Year, now.Month, 9);
+        var restSt = itauCard.AddExpense(restDate, restAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PAN, account2.Id, restAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            restDate, "Restaurante Japonês", lazer.Id, itauCard.Id, restSt.Id));
 
-        var uberAmount = new Money(65);
+        var uberAmt = new Money(65);
         var uberDate = new DateTime(now.Year, now.Month, 6);
-        var uberStatement = itauCard.AddExpense(uberDate, uberAmount);
-        var uber = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: uberAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Uber trabalho",
-            date: uberDate,
-            categoryId: lazer.Id,
-            creditCardId: itauCard.Id,
-            statementId: uberStatement.Id
-        );
+        var uberSt = itauCard.AddExpense(uberDate, uberAmt);
+        AddTx(Transaction.Create(andreza.Id, hId, PIG, account2.Id, uberAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            uberDate, "Uber trabalho", lazer.Id, itauCard.Id, uberSt.Id));
 
-        var ifoodAmount = new Money(95);
+        var ifoodAmt = new Money(95);
         var ifoodDate = new DateTime(now.Year, now.Month, 14);
-        var ifoodStatement = itauCard.AddExpense(ifoodDate, ifoodAmount);
-        var ifood = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: ifoodAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "iFood - jantar",
-            date: ifoodDate,
-            categoryId: alimentacao.Id,
-            creditCardId: itauCard.Id,
-            statementId: ifoodStatement.Id
-        );
+        var ifoodSt = itauCard.AddExpense(ifoodDate, ifoodAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, ifoodAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            ifoodDate, "iFood - jantar", alimentacao.Id, itauCard.Id, ifoodSt.Id));
 
-        var combustivelAmount = new Money(260);
-        var combustivelDate = new DateTime(lastMonth.Year, lastMonth.Month, 22);
-        var combustivelStatement = itauCard.AddExpense(combustivelDate, combustivelAmount);
-        var combustivel = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: combustivelAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Posto de gasolina",
-            date: combustivelDate,
-            categoryId: lazer.Id,
-            creditCardId: itauCard.Id,
-            statementId: combustivelStatement.Id
-        );
+        var combAmt = new Money(260);
+        var combDate = new DateTime(lastMonth.Year, lastMonth.Month, 22);
+        var combSt = itauCard.AddExpense(combDate, combAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, combAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            combDate, "Posto de gasolina", lazer.Id, itauCard.Id, combSt.Id));
 
-        var assinaturaStreamingAmount = new Money(55);
-        var assinaturaStreamingDate = new DateTime(now.Year, now.Month, 1);
-        var assinaturaStreamingStatement = itauCard.AddExpense(assinaturaStreamingDate, assinaturaStreamingAmount);
-        var assinaturaStreaming = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: assinaturaStreamingAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Assinatura streaming",
-            date: assinaturaStreamingDate,
-            categoryId: lazer.Id,
-            creditCardId: itauCard.Id,
-            statementId: assinaturaStreamingStatement.Id
-        );
+        var streamAmt = new Money(55);
+        var streamDate = new DateTime(now.Year, now.Month, 1);
+        var streamSt = itauCard.AddExpense(streamDate, streamAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account2.Id, streamAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            streamDate, "Assinatura streaming", lazer.Id, itauCard.Id, streamSt.Id));
 
-        var mercadoFuturoAmount = new Money(480);
-        var mercadoFuturoDate = new DateTime(nextMonth.Year, nextMonth.Month, 4);
-        var mercadoFuturoStatement = itauCard.AddExpense(mercadoFuturoDate, mercadoFuturoAmount);
-        var mercadoFuturo = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: mercadoFuturoAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Supermercado (próximo mês)",
-            date: mercadoFuturoDate,
-            categoryId: alimentacao.Id,
-            creditCardId: itauCard.Id,
-            statementId: mercadoFuturoStatement.Id
-        );
+        var mercFutAmt = new Money(480);
+        var mercFutDate = new DateTime(nextMonth.Year, nextMonth.Month, 4);
+        var mercFutSt = itauCard.AddExpense(mercFutDate, mercFutAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account2.Id, mercFutAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            mercFutDate, "Supermercado (próximo mês)", alimentacao.Id, itauCard.Id, mercFutSt.Id));
 
-        // Mais algumas despesas variadas para dar volume
-        var barzinho = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(120),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Barzinho com amigos",
-            date: new DateTime(now.Year, now.Month, 18),
-            categoryId: lazer.Id,
-            creditCardId: nubankCard.Id
-        );
+        var barAmt = new Money(120);
+        var barDate = new DateTime(now.Year, now.Month, 18);
+        var barSt = nubankCard.AddExpense(barDate, barAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, barAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            barDate, "Barzinho com amigos", lazer.Id, nubankCard.Id, barSt.Id));
 
-        var padaria = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(35),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            description: "Padaria",
-            date: new DateTime(now.Year, now.Month, 2),
-            categoryId: alimentacao.Id,
-            creditCardId: null
-        );
+        AddTx(Transaction.Create(igor.Id, hId, PAN, account1.Id, new Money(35), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 2), "Padaria", alimentacao.Id));
+        AddTx(Transaction.Create(andreza.Id, hId, PAN, account2.Id, new Money(120), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 3), "Mensalidade academia", lazer.Id, frequency: TransactionFrequency.Fixed));
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(1000), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 21), "Depósito poupança", investimento.Id));
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(500), TransactionType.Income, PaymentMethod.Account,
+            new DateTime(nextMonth.Year, nextMonth.Month, 21), "Resgate poupança", investimento.Id));
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, account2.Id, new Money(600), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(lastMonth.Year, lastMonth.Month, 25), "Viagem de fim de semana", lazer.Id));
 
-        var academia = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: new Money(120),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            frequency: TransactionFrequency.Fixed,
-            description: "Mensalidade academia",
-            date: new DateTime(now.Year, now.Month, 3),
-            categoryId: lazer.Id,
-            creditCardId: null
-        );
+        var taxiAmt = new Money(90);
+        var taxiDate = new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 1);
+        var taxiSt = itauCard.AddExpense(taxiDate, taxiAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, taxiAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+            taxiDate, "Táxi aeroporto", lazer.Id, itauCard.Id, taxiSt.Id));
 
-        var depositoPoupanca = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(1000),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            description: "Depósito poupança",
-            date: new DateTime(now.Year, now.Month, 21),
-            categoryId: investimento.Id,
-            creditCardId: null
-        );
+        AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(450), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 22), "Compras mês - conta conjunta", alimentacao.Id));
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, accountConjunta.Id, new Money(199), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 24), "Assinatura familiar (streaming + nuvem)", lazer.Id));
+        AddTx(Transaction.Create(andreza.Id, hId, PIG, accountConjunta.Id, new Money(89), TransactionType.Expense, PaymentMethod.Account,
+            new DateTime(now.Year, now.Month, 25), "Presente - aniversário sogro", lazer.Id));
 
-        var resgatePoupanca = Transaction.Create(
-            userId: user.Id,
-            accountId: account1.Id,
-            amount: new Money(500),
-            type: TransactionType.Income,
-            paymentMethod: PaymentMethod.Account,
-            description: "Resgate poupança",
-            date: new DateTime(nextMonth.Year, nextMonth.Month, 21),
-            categoryId: investimento.Id,
-            creditCardId: null
-        );
+        // --- Demo: muitos lançamentos pseudo-aleatórios (Igor, Andreza, Família) ---
+        // Cobre: Conta, Cartão, Dinheiro, Transferência; receitas e despesas; variável / fixa; parcelas no cartão.
+        var rangeStart = lastMonth.AddMonths(-3);
+        var rangeEnd = nextMonth.AddMonths(2);
 
-        var viagemCurta = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: new Money(600),
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.Account,
-            description: "Viagem de fim de semana",
-            date: new DateTime(lastMonth.Year, lastMonth.Month, 25),
-            categoryId: lazer.Id,
-            creditCardId: null
-        );
+        Guid[] expenseCatIds =
+        [
+            moradia.Id, alimentacao.Id, lazer.Id, transporte.Id, saude.Id, educacao.Id, presentes.Id, servicos.Id
+        ];
+        Guid[] incomeCatIds =
+        [
+            salario.Id, investimento.Id, freelance.Id, bonus.Id, cashback.Id
+        ];
 
-        var taxiAeroportoAmount = new Money(90);
-        var taxiAeroportoDate = new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 1);
-        var taxiAeroportoStatement = itauCard.AddExpense(taxiAeroportoDate, taxiAeroportoAmount);
-        var taxiAeroporto = Transaction.Create(
-            userId: user.Id,
-            accountId: account2.Id,
-            amount: taxiAeroportoAmount,
-            type: TransactionType.Expense,
-            paymentMethod: PaymentMethod.CreditCard,
-            description: "Táxi aeroporto",
-            date: taxiAeroportoDate,
-            categoryId: lazer.Id,
-            creditCardId: itauCard.Id,
-            statementId: taxiAeroportoStatement.Id
-        );
+        string[] incomeDescs =
+        [
+            "Salário CLT", "Freelance — projeto web", "Consultoria pontual", "Bônus trimestral", "13º salário (antecipação)",
+            "Rendimento CDB", "Dividendos FIIs", "Cashback Nubank", "Cashback cartão", "Reembolso VR", "Venda OLX",
+            "Aula particular online", "Gratificação natalina", "Participação nos lucros", "Resgate Tesouro"
+        ];
 
-        context.Transactions.AddRange(
-            salaryLastMonth,
-            salaryCurrentMonth,
-            salaryNextMonth,
-            investmentIncome,
-            aluguelLastMonth,
-            aluguelCurrentMonth,
-            aluguelNextMonth,
-            aluguelTwoMonthsAhead,
-            internet,
-            luz,
-            agua,
-            tv,
-            supermercado1,
-            supermercado2,
-            farmacia,
-            cinema,
-            viagemFutura,
-            restaurante,
-            uber,
-            ifood,
-            combustivel,
-            assinaturaStreaming,
-            mercadoFuturo,
-            barzinho,
-            padaria,
-            academia,
-            depositoPoupanca,
-            resgatePoupanca,
-            viagemCurta,
-            taxiAeroporto
-        );
+        string[] accountExpDescs =
+        [
+            "PIX mercado", "Pagamento conta luz", "Débito automático seguro", "Manutenção bicicleta", "Livros e revistas",
+            "Presente escola", "Doação", "Pet shop", "Cabeleireiro", "Manicure", "Uber (PIX)", "Conta de gás",
+            "Material de limpeza", "Reparo celular", "Oficina mecânica"
+        ];
+
+        string[] cashDescs =
+        [
+            "Feira livre (dinheiro)", "Padaria", "Sorvete na praça", "Ingresso show (cash)", "Gorjeta", "Taxa de estacionamento",
+            "Brechó", "Açaí", "Pastel de feira", "Churrasquinho"
+        ];
+
+        string[] ccDescs =
+        [
+            "Amazon", "Mercado Livre", "Magazine Luiza", "Netshoes", "Shopee", "AliExpress", "Steam", "PlayStation Plus",
+            "Spotify", "Uber", "99", "Rappi", "Zé Delivery", "Farmácia", "Ótica", "Livraria", "Decathlon"
+        ];
+
+        for (var i = 0; i < 160; i++)
+        {
+            var roll = rng.Next(100);
+            var date = RandomDayInRange(rng, rangeStart, rangeEnd);
+            var profileRoll = rng.Next(3);
+            var (profileId, registrarUserId) = profileRoll switch
+            {
+                0 => (PIG, igor.Id),
+                1 => (PAN, andreza.Id),
+                _ => (PFAM, rng.Next(2) == 0 ? igor.Id : andreza.Id)
+            };
+
+            if (roll < 52)
+            {
+                var catId = expenseCatIds[rng.Next(expenseCatIds.Length)];
+                var amt = Math.Round((decimal)rng.Next(12, 1200) + (decimal)rng.NextDouble(), 2);
+                var sub = rng.Next(100);
+
+                if (sub < 38)
+                {
+                    var acc = rng.Next(3) switch { 0 => account1, 1 => account2, _ => accountConjunta };
+                    var freq = rng.Next(15) == 0 ? TransactionFrequency.Fixed : TransactionFrequency.Variable;
+                    var desc = $"{accountExpDescs[rng.Next(accountExpDescs.Length)]} · #{i + 1}";
+                    AddTx(Transaction.Create(registrarUserId, hId, profileId, acc.Id, new Money(amt), TransactionType.Expense,
+                        PaymentMethod.Account, date, desc, catId, frequency: freq));
+                }
+                else if (sub < 78)
+                {
+                    var card = rng.Next(2) == 0 ? nubankCard : itauCard;
+                    var desc = $"{ccDescs[rng.Next(ccDescs.Length)]} · #{i + 1}";
+                    AddCcExpense(registrarUserId, profileId, card, new Money(amt), date, desc, catId);
+                }
+                else
+                {
+                    var acc = rng.Next(3) switch { 0 => account1, 1 => account2, _ => accountConjunta };
+                    var desc = $"{cashDescs[rng.Next(cashDescs.Length)]} · #{i + 1}";
+                    AddTx(Transaction.Create(registrarUserId, hId, profileId, acc.Id, new Money(amt), TransactionType.Expense,
+                        PaymentMethod.Cash, date, desc, catId));
+                }
+            }
+            else if (roll < 82)
+            {
+                var catId = incomeCatIds[rng.Next(incomeCatIds.Length)];
+                var amt = Math.Round((decimal)rng.Next(200, 9500) + (decimal)rng.NextDouble(), 2);
+                var acc = rng.Next(3) switch { 0 => account1, 1 => account2, _ => accountConjunta };
+                var desc = $"{incomeDescs[rng.Next(incomeDescs.Length)]} · #{i + 1}";
+                var freq = rng.Next(20) == 0 ? TransactionFrequency.Fixed : TransactionFrequency.Variable;
+                AddTx(Transaction.Create(registrarUserId, hId, profileId, acc.Id, new Money(amt), TransactionType.Income,
+                    PaymentMethod.Account, date, desc, catId, frequency: freq));
+            }
+            else
+            {
+                var accFrom = rng.Next(3) switch { 0 => account1, 1 => account2, _ => accountConjunta };
+                Account accTo;
+                do
+                {
+                    accTo = rng.Next(3) switch { 0 => account1, 1 => account2, _ => accountConjunta };
+                } while (accTo.Id == accFrom.Id);
+
+                var amt = Math.Round((decimal)rng.Next(80, 5000) + (decimal)rng.NextDouble(), 2);
+                var names = new[] { "Reserva emergência", "Poupança", "Investir", "Pagar cartão", "Ajuste saldo", "Casa conjunta" };
+                AddTransferPair(registrarUserId, profileId, accFrom, accTo, amt, date, $"{names[rng.Next(names.Length)]} · #{i + 1}");
+            }
+        }
+
+        // Parcelas no cartão (TransactionFrequency.Installments)
+        {
+            var totalGeladeira = 4299.90m;
+            var parcelas = 10;
+            var baseD = new DateTime(lastMonth.Year, lastMonth.Month, 12);
+            var valorParcela = Math.Round(totalGeladeira / parcelas, 2);
+            var ultima = totalGeladeira - valorParcela * (parcelas - 1);
+            for (var p = 0; p < parcelas; p++)
+            {
+                var d = baseD.AddMonths(p);
+                var v = p == parcelas - 1 ? ultima : valorParcela;
+                AddCcExpense(igor.Id, PFAM, nubankCard, new Money(v), d,
+                    $"Geladeira Brastemp ({p + 1}/{parcelas})", moradia.Id, TransactionFrequency.Installments);
+            }
+        }
+
+        {
+            var totalNotebook = 6999m;
+            var parcelas = 12;
+            var inicio = lastMonth.AddMonths(-1);
+            var baseD = new DateTime(inicio.Year, inicio.Month, 5);
+            var valorParcela = Math.Round(totalNotebook / parcelas, 2);
+            var ultima = totalNotebook - valorParcela * (parcelas - 1);
+            for (var p = 0; p < parcelas; p++)
+            {
+                var d = baseD.AddMonths(p);
+                var v = p == parcelas - 1 ? ultima : valorParcela;
+                AddCcExpense(andreza.Id, PAN, itauCard, new Money(v), d,
+                    $"Notebook trabalho ({p + 1}/{parcelas})", educacao.Id, TransactionFrequency.Installments);
+            }
+        }
+
+        {
+            var totalSofa = 2400m;
+            var parcelas = 6;
+            var baseD = new DateTime(now.Year, now.Month, 8);
+            var valorParcela = Math.Round(totalSofa / parcelas, 2);
+            var ultima = totalSofa - valorParcela * (parcelas - 1);
+            for (var p = 0; p < parcelas; p++)
+            {
+                var d = baseD.AddMonths(p);
+                var v = p == parcelas - 1 ? ultima : valorParcela;
+                AddCcExpense(andreza.Id, PAN, itauCard, new Money(v), d,
+                    $"Sofá sala ({p + 1}/{parcelas})", moradia.Id, TransactionFrequency.Installments);
+            }
+        }
+
+        {
+            var totalCurso = 1596m;
+            var parcelas = 4;
+            var baseD = new DateTime(lastMonth.Year, lastMonth.Month, 20);
+            var valorParcela = Math.Round(totalCurso / parcelas, 2);
+            var ultima = totalCurso - valorParcela * (parcelas - 1);
+            for (var p = 0; p < parcelas; p++)
+            {
+                var d = baseD.AddMonths(p);
+                var v = p == parcelas - 1 ? ultima : valorParcela;
+                AddCcExpense(igor.Id, PIG, nubankCard, new Money(v), d,
+                    $"Curso online certificação ({p + 1}/{parcelas})", educacao.Id, TransactionFrequency.Installments);
+            }
+        }
+
+        AddTransferPair(igor.Id, PIG, account1, accountConjunta, 1200, new DateTime(now.Year, now.Month, 4), "Aporte conta conjunta");
+        AddTransferPair(andreza.Id, PAN, accountConjunta, account2, 850, new DateTime(now.Year, now.Month, 4), "Pagar fatura Itaú");
+        AddTransferPair(igor.Id, PFAM, account2, account1, 3000, new DateTime(lastMonth.Year, lastMonth.Month, 19), "Consolidação saldo");
+
+        // --- Mês calendário atual: volume garantido para PAN / PFAM (resumo por pessoa no front filtra mês/ano) ---
+        // O gerador aleatório espalha datas em vários meses; aqui tudo cai no mesmo mês de `now` (ex.: março).
+        {
+            var y = now.Year;
+            var mo = now.Month;
+            DateTime D(int day)
+            {
+                var max = DateTime.DaysInMonth(y, mo);
+                return new DateTime(y, mo, Math.Clamp(day, 1, max));
+            }
+
+            // Andreza (PAN) — ganhos e gastos no mês
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(6200), TransactionType.Income, PaymentMethod.Account,
+                D(5), "Salário CLT — Andreza", salario.Id, frequency: TransactionFrequency.Fixed));
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(1200), TransactionType.Income, PaymentMethod.Account,
+                D(12), "Freelance — projeto UX", freelance.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(350), TransactionType.Income, PaymentMethod.Account,
+                D(20), "Bônus desempenho", bonus.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(120), TransactionType.Income, PaymentMethod.Account,
+                D(25), "Cashback e reembolsos", cashback.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(540), TransactionType.Expense, PaymentMethod.Account,
+                D(3), "Supermercado — Andreza", alimentacao.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, account2.Id, new Money(180), TransactionType.Expense, PaymentMethod.Account,
+                D(6), "Combustível", transporte.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(95), TransactionType.Expense, PaymentMethod.Cash,
+                D(8), "Farmácia (dinheiro)", saude.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, account1.Id, new Money(220), TransactionType.Expense, PaymentMethod.Account,
+                D(9), "Academia", lazer.Id, frequency: TransactionFrequency.Fixed));
+            AddCcExpense(andreza.Id, PAN, nubankCard, new Money(167.50m), D(11), "Livraria & papelaria", educacao.Id);
+            AddCcExpense(andreza.Id, PAN, itauCard, new Money(289), D(14), "Restaurante — jantar", lazer.Id);
+            AddCcExpense(andreza.Id, PAN, nubankCard, new Money(79.90m), D(16), "Streaming", servicos.Id);
+            AddTransferPair(andreza.Id, PAN, accountConjunta, account1, 450, D(18), "Organizar saldo entre contas");
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(160), TransactionType.Expense, PaymentMethod.Account,
+                D(21), "Presente — amiga secreta", presentes.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PAN, account2.Id, new Money(65), TransactionType.Expense, PaymentMethod.Cash,
+                D(23), "Padaria da esquina", alimentacao.Id));
+            AddCcExpense(andreza.Id, PAN, itauCard, new Money(410), D(26), "Compras online — casa", moradia.Id);
+
+            // Família (PFAM) — ganhos e gastos compartilhados no mês
+            AddTx(Transaction.Create(igor.Id, hId, PFAM, accountConjunta.Id, new Money(800), TransactionType.Income, PaymentMethod.Account,
+                D(2), "Venda garagem — renda extra", freelance.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PFAM, account1.Id, new Money(120), TransactionType.Income, PaymentMethod.Account,
+                D(7), "Cashback Nubank — família", cashback.Id));
+            AddTx(Transaction.Create(igor.Id, hId, PFAM, accountConjunta.Id, new Money(1350), TransactionType.Expense, PaymentMethod.Account,
+                D(4), "Supermercado — compra família", alimentacao.Id));
+            AddTx(Transaction.Create(andreza.Id, hId, PFAM, account1.Id, new Money(280), TransactionType.Expense, PaymentMethod.Account,
+                D(10), "Cinema — pipoca e ingressos", lazer.Id));
+            AddTx(Transaction.Create(igor.Id, hId, PFAM, accountConjunta.Id, new Money(190), TransactionType.Expense, PaymentMethod.Account,
+                D(13), "Conta de gás (rateio)", moradia.Id));
+            AddCcExpense(igor.Id, PFAM, nubankCard, new Money(620), D(15), "Manutenção / ferramentas", moradia.Id);
+            AddCcExpense(andreza.Id, PFAM, itauCard, new Money(175), D(17), "Pet shop — ração", alimentacao.Id);
+            AddTransferPair(igor.Id, PFAM, account1, accountConjunta, 2000, D(19), "Aporte reserva emergência");
+            AddTx(Transaction.Create(andreza.Id, hId, PFAM, account2.Id, new Money(95), TransactionType.Expense, PaymentMethod.Cash,
+                D(22), "Feira — hortifruti", alimentacao.Id));
+            AddCcExpense(igor.Id, PFAM, nubankCard, new Money(340), D(24), "Presente aniversário avó", presentes.Id);
+            AddTx(Transaction.Create(igor.Id, hId, PFAM, accountConjunta.Id, new Money(420), TransactionType.Expense, PaymentMethod.Account,
+                D(27), "Plano saúde — coparticipação", saude.Id));
+
+            // Igor (PIG) — alguns gastos no mesmo mês (o front mostrava só ganhos)
+            AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(180), TransactionType.Expense, PaymentMethod.Account,
+                D(6), "Almoço trabalho (PIX)", alimentacao.Id));
+            AddCcExpense(igor.Id, PIG, itauCard, new Money(92.50m), D(12), "Café & lanche", alimentacao.Id);
+            AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, new Money(45), TransactionType.Expense, PaymentMethod.Cash,
+                D(20), "Estacionamento", transporte.Id));
+        }
+
+        context.Transactions.AddRange(transactions);
 
         await context.SaveChangesAsync();
 
-        return user.Id;
+        return igor.Id;
     }
 }

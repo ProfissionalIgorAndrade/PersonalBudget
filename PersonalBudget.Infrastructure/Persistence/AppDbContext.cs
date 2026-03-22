@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 public class AppDbContext : DbContext
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<Household> Households => Set<Household>();
+    public DbSet<HouseholdMembership> HouseholdMemberships => Set<HouseholdMembership>();
+    public DbSet<HouseholdMemberProfile> HouseholdMemberProfiles => Set<HouseholdMemberProfile>();
+    public DbSet<HouseholdInvite> HouseholdInvites => Set<HouseholdInvite>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<CreditCard> CreditCards => Set<CreditCard>();

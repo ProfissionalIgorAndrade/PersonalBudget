@@ -2,6 +2,7 @@ public class CreditCard
 {
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
+    public Guid HouseholdId { get; private set; }
     public Guid AccountId { get; private set; }
     public string Name { get; private set; }
     public decimal Limit { get; private set; }
@@ -13,6 +14,7 @@ public class CreditCard
 
     private CreditCard(
         Guid userId,
+        Guid householdId,
         Guid accountId,
         string name,
         decimal limit,
@@ -21,9 +23,12 @@ public class CreditCard
     {
         if (limit <= 0)
             throw new DomainException("O limite do cartão de crédito deve ser maior que zero.");
+        if (householdId == Guid.Empty)
+            throw new DomainException("Cartão deve pertencer a um lar.");
 
         Id = Guid.NewGuid();
         UserId = userId;
+        HouseholdId = householdId;
         AccountId = accountId;
         Name = name;
         Limit = limit;
@@ -36,12 +41,13 @@ public class CreditCard
 
     public static CreditCard Create(
         Guid userId,
+        Guid householdId,
         Guid accountId,
         string name,
         decimal limit,
         int closingDay,
         int dueDay)
-        => new(userId, accountId, name, limit, closingDay, dueDay);
+        => new(userId, householdId, accountId, name, limit, closingDay, dueDay);
 
     public void Update(string name, decimal limit, int closingDay, int dueDay)
     {

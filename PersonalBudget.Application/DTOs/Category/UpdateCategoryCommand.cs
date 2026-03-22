@@ -1,1 +1,1 @@
-public record UpdateCategoryCommand(Guid UserId, Guid CategoryId, string Name, CategoryType Type);
+public record UpdateCategoryCommand(Guid HouseholdId, Guid CategoryId, string Name, CategoryType Type);

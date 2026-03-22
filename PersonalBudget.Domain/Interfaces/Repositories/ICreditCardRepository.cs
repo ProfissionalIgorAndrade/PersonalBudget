@@ -4,6 +4,6 @@ public interface ICreditCardRepository
     Task UpdateAsync(CreditCard creditCard);
     Task<CreditCard?> GetByIdAsync(Guid id);
     Task<CreditCard?> GetByIdWithStatementsAsync(Guid id);
-    Task<IEnumerable<CreditCard>> GetByUserAsync(Guid userId);
+    Task<IEnumerable<CreditCard>> GetByHouseholdAsync(Guid householdId);
     Task SaveChangesAsync();
 }

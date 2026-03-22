@@ -6,7 +6,7 @@ public interface ITransactionRepository
     Task<IEnumerable<Transaction>> GetByIdsAsync(IEnumerable<Guid> transactionIds);
     Task DeleteManyAsync(IEnumerable<Transaction> transactions);
     Task<IEnumerable<Transaction>> GetByAccountAsync(Guid accountId);
-    Task<IEnumerable<Transaction>> GetByUserAsync(Guid userId);
+    Task<IEnumerable<Transaction>> GetByHouseholdAsync(Guid householdId);
     Task<IEnumerable<Transaction>> GetByStatementIdAsync(Guid statementId);
     Task SaveChangesAsync();
 }

@@ -23,14 +23,16 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
         if (command.FromAccountId == command.ToAccountId)
             throw new DomainException("Conta de origem e destino devem ser diferentes.");
 
-        var fromAccount = await GetAccountOrThrowAsync(command.FromAccountId.Value, command.UserId);
-        var toAccount = await GetAccountOrThrowAsync(command.ToAccountId.Value, command.UserId);
+        var fromAccount = await GetAccountOrThrowAsync(command.FromAccountId.Value, command.HouseholdId);
+        var toAccount = await GetAccountOrThrowAsync(command.ToAccountId.Value, command.HouseholdId);
 
         var date = ParseDate(command.Date);
         var transferId = Guid.NewGuid();
 
         var outTx = Transaction.Create(
             command.UserId,
+            command.HouseholdId,
+            command.AttributionProfileId!.Value,
             command.FromAccountId.Value,
             new Money(command.Amount),
             TransactionType.Expense,
@@ -45,6 +47,8 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
 
         var inTx = Transaction.Create(
             command.UserId,
+            command.HouseholdId,
+            command.AttributionProfileId!.Value,
             command.ToAccountId.Value,
             new Money(command.Amount),
             TransactionType.Income,

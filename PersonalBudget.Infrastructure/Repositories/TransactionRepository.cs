@@ -57,10 +57,10 @@ public class TransactionRepository : ITransactionRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Transaction>> GetByUserAsync(Guid userId)
+    public async Task<IEnumerable<Transaction>> GetByHouseholdAsync(Guid householdId)
     {
         return await _context.Transactions
-            .Where(t => t.UserId == userId)
+            .Where(t => t.HouseholdId == householdId)
             .OrderByDescending(t => t.Date.Value)
             .ToListAsync();
     }

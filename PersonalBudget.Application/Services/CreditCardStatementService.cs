@@ -41,10 +41,10 @@ public class CreditCardStatementService : ICreditCardStatementService
         )).ToList();
     }
 
-    public async Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsAsync(Guid userId, Guid creditCardId, int month, int year)
+    public async Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsAsync(Guid householdId, Guid creditCardId, int month, int year)
     {
         var card = await _creditCardRepository.GetByIdAsync(creditCardId);
-        if (card is null || card.UserId != userId)
+        if (card is null || card.HouseholdId != householdId)
             return null;
 
         var statement = await _statementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCardId, month, year);
@@ -71,13 +71,13 @@ public class CreditCardStatementService : ICreditCardStatementService
     }
 
     public async Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsPagedAsync(
-        Guid userId, Guid creditCardId, int month, int year, int page, int pageSize)
+        Guid householdId, Guid creditCardId, int month, int year, int page, int pageSize)
     {
         if (page < 1)
             throw new DomainException("Page must be at least 1.");
 
         var card = await _creditCardRepository.GetByIdAsync(creditCardId);
-        if (card is null || card.UserId != userId)
+        if (card is null || card.HouseholdId != householdId)
             return null;
 
         var statement = await _statementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCardId, month, year);
@@ -135,8 +135,8 @@ public class CreditCardStatementService : ICreditCardStatementService
         if (card is null)
             throw new ApplicationException("Cartão não encontrado.");
 
-        if (card.UserId != command.UserId)
-            throw new ApplicationException("Cartão não pertence ao usuário.");
+        if (card.HouseholdId != command.HouseholdId)
+            throw new ApplicationException("Cartão não pertence ao lar.");
 
         card.CloseStatement(command.StatementId);
 
@@ -150,8 +150,8 @@ public class CreditCardStatementService : ICreditCardStatementService
         if (card is null)
             throw new ApplicationException("Cartão não encontrado.");
 
-        if (card.UserId != command.UserId)
-            throw new ApplicationException("Cartão não pertence ao usuário.");
+        if (card.HouseholdId != command.HouseholdId)
+            throw new ApplicationException("Cartão não pertence ao lar.");
 
         var statement = await _statementRepository.GetByIdAsync(command.StatementId);
 

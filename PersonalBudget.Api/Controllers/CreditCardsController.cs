@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PersonalBudget.Api;
 using PersonalBudget.Api.Contracts;
 using PersonalBudget.Application.DTOs.CreditCard;
 using PersonalBudget.Application.Interfaces;
@@ -11,11 +12,16 @@ public class CreditCardsController : ControllerBase
 {
     private readonly ICreditCardService _service;
     private readonly ICreditCardStatementService _statementService;
+    private readonly IActiveHouseholdResolver _householdResolver;
 
-    public CreditCardsController(ICreditCardService service, ICreditCardStatementService statementService)
+    public CreditCardsController(
+        ICreditCardService service,
+        ICreditCardStatementService statementService,
+        IActiveHouseholdResolver householdResolver)
     {
         _service = service;
         _statementService = statementService;
+        _householdResolver = householdResolver;
     }
 
     [HttpPost]
@@ -23,9 +29,11 @@ public class CreditCardsController : ControllerBase
         [FromBody] CreateCreditCardRequest request)
     {
         var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
         var command = new CreateCreditCardCommand(
             userId,
+            householdId,
             request.AccountId,
             request.Name,
             request.Limit,
@@ -42,7 +50,8 @@ public class CreditCardsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var userId = UserContext.GetUserId(User);
-        var cards = await _service.GetAllAsync(userId);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var cards = await _service.GetAllAsync(householdId);
         return Ok(ApiResponse<object>.Ok(cards));
     }
 
@@ -54,10 +63,11 @@ public class CreditCardsController : ControllerBase
         [FromQuery] int? page = null)
     {
         var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
         if (page is null)
         {
-            var statement = await _statementService.GetStatementWithTransactionsAsync(userId, creditCardId, month, year);
+            var statement = await _statementService.GetStatementWithTransactionsAsync(householdId, creditCardId, month, year);
             if (statement is null)
                 return NotFound(ApiResponse<object?>.Fail("Cartão não encontrado ou fatura inexistente para o mês/ano informado."));
             return Ok(ApiResponse<object>.Ok(statement));
@@ -67,7 +77,7 @@ public class CreditCardsController : ControllerBase
             return BadRequest(ApiResponse<object?>.Fail("Page must be at least 1."));
 
         var pagedStatement = await _statementService.GetStatementWithTransactionsPagedAsync(
-            userId,
+            householdId,
             creditCardId,
             month,
             year,
@@ -84,7 +94,8 @@ public class CreditCardsController : ControllerBase
     public async Task<IActionResult> CloseStatement(Guid creditCardId, Guid statementId)
     {
         var userId = UserContext.GetUserId(User);
-        var command = new CloseStatementCommand(userId, creditCardId, statementId);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var command = new CloseStatementCommand(householdId, creditCardId, statementId);
         await _statementService.CloseAsync(command);
         return Ok(ApiResponse<object?>.Ok(DateTime.Now, "Fatura marcada como fechada."));
     }
@@ -93,7 +104,8 @@ public class CreditCardsController : ControllerBase
     public async Task<IActionResult> PayStatement(Guid creditCardId, Guid statementId)
     {
         var userId = UserContext.GetUserId(User);
-        var command = new PayStatementCommand(userId, creditCardId, statementId);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var command = new PayStatementCommand(householdId, creditCardId, statementId);
         await _statementService.PayAsync(command);
         return Ok(ApiResponse<object?>.Ok(DateTime.Now, "Fatura paga com sucesso."));
     }
@@ -104,9 +116,11 @@ public class CreditCardsController : ControllerBase
         [FromBody] UpdateCreditCardRequest request)
     {
         var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
         var command = new UpdateCreditCardCommand(
             userId,
+            householdId,
             creditCardId,
             request.Name,
             request.Limit,
@@ -122,8 +136,9 @@ public class CreditCardsController : ControllerBase
     public async Task<IActionResult> Delete(Guid creditCardId)
     {
         var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
-        var command = new DeleteCreditCardCommand(userId, creditCardId);
+        var command = new DeleteCreditCardCommand(userId, householdId, creditCardId);
         await _service.DeleteAsync(command);
         return Ok(ApiResponse<object?>.Ok(null, "Cartão excluído."));
     }

@@ -6,9 +6,9 @@ public interface ICreditCardStatementService
 {
     Task<List<CreditCardStatementDto>> GetByCreditCardAsync(Guid creditCardId);
 
-    Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsAsync(Guid userId, Guid creditCardId, int month, int year);
+    Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsAsync(Guid householdId, Guid creditCardId, int month, int year);
     Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsPagedAsync(
-        Guid userId, Guid creditCardId, int month, int year, int page, int pageSize);
+        Guid householdId, Guid creditCardId, int month, int year, int page, int pageSize);
 
     Task CloseAsync(CloseStatementCommand command);
 

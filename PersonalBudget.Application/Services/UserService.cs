@@ -1,12 +1,19 @@
+using PersonalBudget.Application.Interfaces;
+
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IHouseholdProvisioningService _householdProvisioning;
 
-    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
+    public UserService(
+        IUserRepository userRepository,
+        IPasswordHasher passwordHasher,
+        IHouseholdProvisioningService householdProvisioning)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
+        _householdProvisioning = householdProvisioning;
     }
 
     public async Task<Guid> CreateUserAsync(SigninRequest command)
@@ -22,6 +29,7 @@ public class UserService : IUserService
         var user = new User(command.Name, email, passwordHasher);
 
         await _userRepository.AddAsync(user);
+        await _householdProvisioning.ProvisionNewUserAsync(user.Id, user.Name);
 
         return user.Id;
     }

@@ -21,7 +21,10 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .IsRequired()
             .HasConversion<int>();
 
-        builder.HasIndex(c => new { c.UserId, c.Name });
+        builder.Property(c => c.HouseholdId)
+            .IsRequired();
+
+        builder.HasIndex(c => new { c.HouseholdId, c.Name });
 
 
     }

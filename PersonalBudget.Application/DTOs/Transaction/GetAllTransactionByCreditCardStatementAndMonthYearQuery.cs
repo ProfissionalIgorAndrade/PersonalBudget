@@ -1,1 +1,5 @@
-public record GetAllTransactionByCreditCardStatementAndMonthYearQuery(Guid userId, Guid creditCardId, int month, int year);
+public record GetAllTransactionByCreditCardStatementAndMonthYearQuery(
+    Guid HouseholdId,
+    Guid CreditCardId,
+    int Month,
+    int Year);

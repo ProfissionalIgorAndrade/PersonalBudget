@@ -24,7 +24,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         var date = ParseDate(command.Date);
 
         var creditCard = await _creditCardRepository.GetByIdAsync(command.CreditCardId.Value);
-        if (creditCard is null || creditCard.UserId != command.UserId)
+        if (creditCard is null || creditCard.HouseholdId != command.HouseholdId)
             throw new DomainException("Cartão de crédito não encontrado.");
 
         var isInstallment = command.InstallmentCount is > 1;
@@ -48,6 +48,8 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
 
         var transaction = Transaction.Create(
             command.UserId,
+            command.HouseholdId,
+            command.AttributionProfileId!.Value,
             creditCard.AccountId,
             new Money(command.Amount),
             command.Type,
@@ -91,6 +93,8 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
 
             var transaction = Transaction.Create(
                 command.UserId,
+                command.HouseholdId,
+                command.AttributionProfileId!.Value,
                 creditCard.AccountId,
                 new Money(installmentAmount),
                 command.Type,

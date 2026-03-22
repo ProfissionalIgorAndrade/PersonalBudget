@@ -1,7 +1,12 @@
 public class Transaction
 {
     public Guid Id { get; private set; }
+    /// <summary>Usuário que registrou o lançamento.</summary>
     public Guid UserId { get; private set; }
+    /// <summary>Lar ao qual a transação pertence (visão unificada).</summary>
+    public Guid HouseholdId { get; private set; }
+    /// <summary>Correspondente para resumo por pessoa (Igor, Andreza, Família, etc.).</summary>
+    public Guid AttributionProfileId { get; private set; }
     public Guid AccountId { get; private set; }
     public Guid? CategoryId { get; private set; }
     public Guid? CreditCardId { get; private set; }
@@ -19,6 +24,8 @@ public class Transaction
 
     private Transaction(
         Guid userId,
+        Guid householdId,
+        Guid attributionProfileId,
         Guid accountId,
         Money amount,
         TransactionType type,
@@ -34,6 +41,10 @@ public class Transaction
     {
         if (userId == Guid.Empty)
             throw new DomainException("A transação deve pertencer a um usuário.");
+        if (householdId == Guid.Empty)
+            throw new DomainException("A transação deve pertencer a um lar.");
+        if (attributionProfileId == Guid.Empty)
+            throw new DomainException("Correspondente (perfil) da transação é obrigatório.");
 
         if (accountId == Guid.Empty)
             throw new DomainException("A transação deve pertencer a uma conta.");
@@ -46,6 +57,8 @@ public class Transaction
 
         Id = Guid.NewGuid();
         UserId = userId;
+        HouseholdId = householdId;
+        AttributionProfileId = attributionProfileId;
         AccountId = accountId;
         CategoryId = categoryId;
         CreditCardId = creditCardId;
@@ -65,6 +78,8 @@ public class Transaction
 
     public static Transaction Create(
         Guid userId,
+        Guid householdId,
+        Guid attributionProfileId,
         Guid accountId,
         Money amount,
         TransactionType type,
@@ -80,6 +95,8 @@ public class Transaction
     {
         return new Transaction(
             userId,
+            householdId,
+            attributionProfileId,
             accountId,
             amount,
             type,

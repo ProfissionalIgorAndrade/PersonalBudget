@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PersonalBudget.Api;
 using PersonalBudget.Api.Contracts;
+using PersonalBudget.Application.Interfaces;
 
 [ApiController]
 [Authorize]
@@ -9,20 +11,27 @@ public class AccountsController : ControllerBase
 {
     private readonly IAccountService _service;
     private readonly ITransactionService _transactionService;
+    private readonly IActiveHouseholdResolver _householdResolver;
 
-    public AccountsController(IAccountService service, ITransactionService transactionService)
+    public AccountsController(
+        IAccountService service,
+        ITransactionService transactionService,
+        IActiveHouseholdResolver householdResolver)
     {
         _service = service;
         _transactionService = transactionService;
+        _householdResolver = householdResolver;
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(CreateAccountRequest request)
     {
         var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
         var command = new CreateAccountCommand(
             userId,
+            householdId,
             request.Bank,
             request.Agency,
             request.AccountNumber,
@@ -37,7 +46,8 @@ public class AccountsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var userId = UserContext.GetUserId(User);
-        var accounts = await _service.GetByUserAsync(userId);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var accounts = await _service.GetByHouseholdAsync(householdId);
         return Ok(ApiResponse<object>.Ok(accounts));
     }
 
@@ -50,7 +60,8 @@ public class AccountsController : ControllerBase
         [FromQuery] int? page = null)
     {
         var userId = UserContext.GetUserId(User);
-        var query = new GetTransactionsByAccountAndMonthYearQuery(userId, accountId, month, year);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var query = new GetTransactionsByAccountAndMonthYearQuery(householdId, accountId, month, year);
 
         if (page is null)
         {
@@ -64,16 +75,18 @@ public class AccountsController : ControllerBase
         var result = await _transactionService.GetByAccountAndMonthPagedAsync(query, page.Value);
         return Ok(ApiResponse<object>.Ok(result));
     }
-    
+
     [HttpPut("{accountId}")]
     public async Task<IActionResult> Update(
         Guid accountId,
         [FromBody] UpdateAccountRequest request)
     {
         var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
         var command = new UpdateAccountCommand(
             userId,
+            householdId,
             accountId,
             request.Bank,
             request.Agency,
@@ -88,8 +101,9 @@ public class AccountsController : ControllerBase
     public async Task<IActionResult> Delete(Guid accountId)
     {
         var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
-        var command = new DeleteAccountCommand(userId, accountId);
+        var command = new DeleteAccountCommand(userId, householdId, accountId);
         await _service.DeleteAsync(command);
         return Ok(ApiResponse<object?>.Ok(null, "Conta excluída."));
     }

@@ -18,13 +18,15 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
         var accountId = command.AccountId
             ?? throw new DomainException("AccountId é obrigatório para o método de pagamento Conta.");
 
-        var account = await GetAccountOrThrowAsync(accountId, command.UserId);
+        var account = await GetAccountOrThrowAsync(accountId, command.HouseholdId);
         var date = ParseDate(command.Date);
 
         var expiration = ParseOptionalExpirationDate(command.ExpirationDate);
 
         var transaction = Transaction.Create(
             command.UserId,
+            command.HouseholdId,
+            command.AttributionProfileId!.Value,
             accountId,
             new Money(command.Amount),
             command.Type,

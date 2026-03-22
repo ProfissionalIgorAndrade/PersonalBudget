@@ -15,4 +15,6 @@ public record GetAllTransactionByUserResponse(
     DateTime? ExpirationDate,
     decimal Amount,
     DateTime Date,
-    string Description);
+    string Description,
+    Guid AttributionProfileId,
+    string CorrespondentDisplayName);

@@ -60,10 +60,10 @@ public abstract class TransactionCreationStrategyBase : ITransactionCreationStra
         throw new DomainException("Data inválida. Use dd/MM/yyyy (ex: 02/03/2026) ou ISO (ex: 2026-03-02T12:48:00).");
     }
 
-    protected async Task<Account> GetAccountOrThrowAsync(Guid accountId, Guid userId)
+    protected async Task<Account> GetAccountOrThrowAsync(Guid accountId, Guid householdId)
     {
         var account = await _accountRepository.GetByIdAsync(accountId);
-        if (account is null || account.UserId != userId)
+        if (account is null || account.HouseholdId != householdId)
             throw new DomainException("Conta não encontrada.");
 
         return account;

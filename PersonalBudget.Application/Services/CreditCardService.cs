@@ -13,14 +13,14 @@ public class CreditCardService : ICreditCardService
 
     public async Task<Guid> CreateAsync(CreateCreditCardCommand command)
     {
-        // 🔒 Garantia de domínio: cartão só pode existir para conta do usuário
         var account = await _accountRepository.GetByIdAsync(command.AccountId);
 
-        if (account is null || account.UserId != command.UserId)
+        if (account is null || account.HouseholdId != command.HouseholdId)
             throw new DomainException("Conta não encontrada.");
 
         var creditCard = CreditCard.Create(
             command.UserId,
+            command.HouseholdId,
             command.AccountId,
             command.Name,
             command.Limit,
@@ -32,16 +32,16 @@ public class CreditCardService : ICreditCardService
         return creditCard.Id;
     }
 
-    public async Task<IEnumerable<CreditCard>> GetAllAsync(Guid userId)
+    public async Task<IEnumerable<CreditCard>> GetAllAsync(Guid householdId)
     {
-        return await _repository.GetByUserAsync(userId);
+        return await _repository.GetByHouseholdAsync(householdId);
     }
 
     public async Task UpdateAsync(UpdateCreditCardCommand command)
     {
         var creditCard = await _repository.GetByIdAsync(command.CreditCardId);
 
-        if (creditCard is null || creditCard.UserId != command.UserId)
+        if (creditCard is null || creditCard.HouseholdId != command.HouseholdId)
             throw new DomainException("Cartão de crédito não encontrado.");
 
         creditCard.Update(
@@ -58,7 +58,7 @@ public class CreditCardService : ICreditCardService
     {
         var creditCard = await _repository.GetByIdAsync(command.CreditCardId);
 
-        if (creditCard is null || creditCard.UserId != command.UserId)
+        if (creditCard is null || creditCard.HouseholdId != command.HouseholdId)
             throw new DomainException("Cartão de crédito não encontrado.");
 
         creditCard.Deactivate();
