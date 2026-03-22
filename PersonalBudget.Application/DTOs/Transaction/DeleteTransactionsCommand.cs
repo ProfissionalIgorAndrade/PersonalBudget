@@ -1,1 +1,1 @@
-public record DeleteTransactionsCommand(Guid UserId, IReadOnlyList<Guid> TransactionIds);
+public record DeleteTransactionsCommand(Guid HouseholdId, IReadOnlyList<Guid> TransactionIds);

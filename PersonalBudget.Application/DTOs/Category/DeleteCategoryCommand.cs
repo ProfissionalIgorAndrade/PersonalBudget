@@ -1,1 +1,1 @@
-public record DeleteCategoryCommand(Guid UserId, Guid CategoryId);
+public record DeleteCategoryCommand(Guid HouseholdId, Guid CategoryId);

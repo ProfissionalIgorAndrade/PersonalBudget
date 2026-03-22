@@ -8,5 +8,7 @@ public record StatementTransactionItemDto(
     Guid? CategoryId,
     string? CategoryName,
     string TransactionType,
-    string Status
+    string Status,
+    Guid AttributionProfileId,
+    string CorrespondentDisplayName
 );

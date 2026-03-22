@@ -16,5 +16,7 @@ public record CreateTransactionRequest(
     string? Title,
     string? ExpirationDate = null,
     int? DueDay = null,
-    int? RepeatCount = null
+    int? RepeatCount = null,
+    /// <summary>Correspondente (perfil). Opcional: padrão = perfil vinculado ao usuário.</summary>
+    Guid? AttributionProfileId = null
 );

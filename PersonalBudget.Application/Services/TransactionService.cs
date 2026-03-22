@@ -7,39 +7,62 @@ public class TransactionService : ITransactionService
     private readonly ITransactionRepository _transactionRepository;
     private readonly ITransactionQueryRepository _transactionQueryRepository;
     private readonly IAccountRepository _accountRepository;
+    private readonly IHouseholdMemberProfileRepository _profileRepository;
     private readonly IReadOnlyDictionary<PaymentMethod, ITransactionCreationStrategy> _creationStrategies;
 
     public TransactionService(
         ITransactionRepository transactionRepository,
         ITransactionQueryRepository transactionQueryRepository,
         IAccountRepository accountRepository,
+        IHouseholdMemberProfileRepository profileRepository,
         IEnumerable<ITransactionCreationStrategy> creationStrategies)
     {
         _transactionRepository = transactionRepository;
         _transactionQueryRepository = transactionQueryRepository;
         _accountRepository = accountRepository;
+        _profileRepository = profileRepository;
         _creationStrategies = creationStrategies.ToDictionary(s => s.PaymentMethod);
     }
 
     public async Task<Guid> CreateAsync(CreateTransactionCommand command)
     {
-        ValidateTransactionFrequency(command);
+        var resolvedProfile = await ResolveAttributionProfileIdAsync(command);
+        var withProfile = command with { AttributionProfileId = resolvedProfile };
 
-        if (!_creationStrategies.TryGetValue(command.PaymentMethod, out var strategy))
-            throw new DomainException($"Método de pagamento não suportado: {command.PaymentMethod}");
+        ValidateTransactionFrequency(withProfile);
 
-        var repeatCount = command.RepeatCount ?? 1;
+        if (!_creationStrategies.TryGetValue(withProfile.PaymentMethod, out var strategy))
+            throw new DomainException($"Método de pagamento não suportado: {withProfile.PaymentMethod}");
+
+        var repeatCount = withProfile.RepeatCount ?? 1;
         if (repeatCount > 1)
         {
-            if (command.PaymentMethod != PaymentMethod.Account)
-                throw new DomainException(String.Format("{0} recorrente só é permitida com método de pagamento Conta. PaymentMethod: {1}", command.Type, command.PaymentMethod));
-            var dueDay = command.DueDay ?? ParseDayFromDate(command.Date);
+            if (withProfile.PaymentMethod != PaymentMethod.Account)
+                throw new DomainException(String.Format("{0} recorrente só é permitida com método de pagamento Conta. PaymentMethod: {1}", withProfile.Type, withProfile.PaymentMethod));
+            var dueDay = withProfile.DueDay ?? ParseDayFromDate(withProfile.Date);
             if (dueDay is < 1 or > 31)
                 throw new DomainException("Para recorrência, Data de vencimento deve ser entre 1 e 31.");
-            return await CreateRecurringAsync(command with { DueDay = dueDay }, strategy, repeatCount);
+            return await CreateRecurringAsync(withProfile with { DueDay = dueDay }, strategy, repeatCount);
         }
 
-        return await strategy.CreateAsync(command);
+        return await strategy.CreateAsync(withProfile);
+    }
+
+    private async Task<Guid> ResolveAttributionProfileIdAsync(CreateTransactionCommand command)
+    {
+        if (command.AttributionProfileId is { } pid && pid != Guid.Empty)
+        {
+            var p = await _profileRepository.GetByIdAsync(pid);
+            if (p is null || p.HouseholdId != command.HouseholdId)
+                throw new DomainException("Correspondente inválido para este lar.");
+            return pid;
+        }
+
+        var linked = await _profileRepository.GetLinkedProfileForUserAsync(command.HouseholdId, command.UserId);
+        if (linked is null)
+            throw new DomainException("Não há perfil de correspondente vinculado ao seu usuário neste lar.");
+
+        return linked.Id;
     }
 
     private static void ValidateTransactionFrequency(CreateTransactionCommand command)
@@ -129,21 +152,21 @@ public class TransactionService : ITransactionService
         return new System.DateTime(parsed.Year, parsed.Month, day);
     }
 
-    public async Task<Transaction> GetByIdAsync(Guid transactionId)
+    public async Task<Transaction> GetByIdAsync(Guid transactionId, Guid householdId)
     {
         var transaction = await _transactionRepository.GetByIdAsync(transactionId);
-        if (transaction is null)
+        if (transaction is null || transaction.HouseholdId != householdId)
             throw new DomainException("Transação não encontrada.");
         return transaction;
     }
 
-    public async Task<PaginatedTransactionsResult> GetByUserAndMonthPagedAsync(GetAllTransactionByUserAndMonthQuery query)
+    public async Task<PaginatedTransactionsResult> GetByHouseholdAndMonthPagedAsync(GetAllTransactionByHouseholdAndMonthQuery query)
     {
         if (query.Page < 1)
             throw new DomainException("Page must be at least 1.");
 
-        var (items, totalCount) = await _transactionQueryRepository.GetByUserAndMonthPagedAsync(
-            query.UserId,
+        var (items, totalCount) = await _transactionQueryRepository.GetByHouseholdAndMonthPagedAsync(
+            query.HouseholdId,
             query.Month,
             query.Year,
             query.Page,
@@ -152,19 +175,19 @@ public class TransactionService : ITransactionService
         return new PaginatedTransactionsResult(items, query.Page, TransactionsByMonthPageSize, totalCount);
     }
 
-    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAndMonthAsync(GetAllTransactionByUserAndMonthQuery query)
+    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByHouseholdAndMonthAsync(GetAllTransactionByHouseholdAndMonthQuery query)
     {
-        return await _transactionQueryRepository.GetByUserAndMonthAsync(query.UserId, query.Month, query.Year);
+        return await _transactionQueryRepository.GetByHouseholdAndMonthAsync(query.HouseholdId, query.Month, query.Year);
     }
 
-    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByUserAsync(GetAllTransactionByUserQuery query)
+    public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByHouseholdAsync(GetAllTransactionByHouseholdQuery query)
     {
-        return await _transactionQueryRepository.GetByUserAsync(query.UserId);
+        return await _transactionQueryRepository.GetByHouseholdAsync(query.HouseholdId);
     }
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByAccountAndMonthAsync(GetTransactionsByAccountAndMonthYearQuery query)
     {
-        return await _transactionQueryRepository.GetByAccountAndMonthAsync(query.UserId, query.AccountId, query.Month, query.Year);
+        return await _transactionQueryRepository.GetByAccountAndMonthAsync(query.HouseholdId, query.AccountId, query.Month, query.Year);
     }
 
     public async Task<PaginatedTransactionsResult> GetByAccountAndMonthPagedAsync(GetTransactionsByAccountAndMonthYearQuery query, int page)
@@ -173,7 +196,7 @@ public class TransactionService : ITransactionService
             throw new DomainException("Page must be at least 1.");
 
         var (items, totalCount) = await _transactionQueryRepository.GetByAccountAndMonthPagedAsync(
-            query.UserId,
+            query.HouseholdId,
             query.AccountId,
             query.Month,
             query.Year,
@@ -185,14 +208,15 @@ public class TransactionService : ITransactionService
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetTransactionByCreditCardStatementAndMonthQuery(GetAllTransactionByCreditCardStatementAndMonthYearQuery query)
     {
-        return await _transactionQueryRepository.GetAllTransactionByCreditCardStatementAndMonthYearQuery(query.userId, query.creditCardId, query.month, query.year);
+        return await _transactionQueryRepository.GetAllTransactionByCreditCardStatementAndMonthYearQuery(
+            query.HouseholdId, query.CreditCardId, query.Month, query.Year);
     }
 
     public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)
     {
         var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
 
-        if (transaction is null || transaction.UserId != command.UserId)
+        if (transaction is null || transaction.HouseholdId != command.HouseholdId)
             throw new DomainException("Transação não encontrada.");
 
         var previousStatus = transaction.Status;
@@ -234,7 +258,7 @@ public class TransactionService : ITransactionService
 
         foreach (var transaction in transactions)
         {
-            if (transaction.UserId != command.UserId)
+            if (transaction.HouseholdId != command.HouseholdId)
             {
                 skippedIds.Add(transaction.Id);
                 continue;
@@ -264,5 +288,4 @@ public class TransactionService : ITransactionService
             skippedIds.Count,
             skippedIds);
     }
-
 }

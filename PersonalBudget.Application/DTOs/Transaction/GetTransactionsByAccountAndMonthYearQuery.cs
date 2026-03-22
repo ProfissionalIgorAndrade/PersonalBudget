@@ -1,5 +1,5 @@
 public record GetTransactionsByAccountAndMonthYearQuery(
-    Guid UserId,
+    Guid HouseholdId,
     Guid AccountId,
     int Month,
     int Year

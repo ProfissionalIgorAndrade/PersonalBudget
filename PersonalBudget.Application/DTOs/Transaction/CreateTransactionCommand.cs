@@ -1,5 +1,8 @@
 public record CreateTransactionCommand(
     Guid UserId,
+    Guid HouseholdId,
+    /// <summary>Opcional: se omitido, usa o perfil vinculado ao usuário no lar.</summary>
+    Guid? AttributionProfileId,
     Guid? AccountId,
     Guid? CategoryId,
     Guid? CreditCardId,

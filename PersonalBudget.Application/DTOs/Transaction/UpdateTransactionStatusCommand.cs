@@ -1,5 +1,5 @@
 public record UpdateTransactionStatusCommand(
-    Guid UserId,
+    Guid HouseholdId,
     Guid TransactionId,
     TransactionStatus Status
 );

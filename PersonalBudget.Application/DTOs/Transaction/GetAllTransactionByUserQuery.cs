@@ -1,3 +1,3 @@
-public record GetAllTransactionByUserQuery(
-    Guid UserId
+public record GetAllTransactionByHouseholdQuery(
+    Guid HouseholdId
 );

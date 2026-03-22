@@ -11,6 +11,7 @@ public class AccountService : IAccountService
     {
         var account = Account.Create(
             command.UserId,
+            command.HouseholdId,
             command.Bank,
             new BankAgency(command.Agency),
             new BankAccountNumber(command.AccountNumber),
@@ -21,16 +22,16 @@ public class AccountService : IAccountService
         return account.Id;
     }
 
-    public async Task<IEnumerable<Account>> GetByUserAsync(Guid userId)
+    public async Task<IEnumerable<Account>> GetByHouseholdAsync(Guid householdId)
     {
-        return await _repository.GetByUserIdAsync(userId);
+        return await _repository.GetByHouseholdIdAsync(householdId);
     }
 
     public async Task UpdateAsync(UpdateAccountCommand command)
     {
         var account = await _repository.GetByIdAsync(command.AccountId);
 
-        if (account is null || account.UserId != command.UserId)
+        if (account is null || account.HouseholdId != command.HouseholdId)
             throw new DomainException("Conta não encontrada.");
 
         account.UpdateBankInfo(
@@ -46,7 +47,7 @@ public class AccountService : IAccountService
     {
         var account = await _repository.GetByIdAsync(command.AccountId);
 
-        if (account is null || account.UserId != command.UserId)
+        if (account is null || account.HouseholdId != command.HouseholdId)
             throw new DomainException("Conta não encontrada.");
 
         account.Deactivate();

@@ -1,1 +1,1 @@
-public record CreateCategoryCommand(Guid UserId, string Name, CategoryType Type);
+public record CreateCategoryCommand(Guid HouseholdId, string Name, CategoryType Type);

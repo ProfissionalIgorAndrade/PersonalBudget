@@ -1,5 +1,5 @@
-public record GetAllTransactionByUserAndMonthQuery(
-    Guid UserId,
+public record GetAllTransactionByHouseholdAndMonthQuery(
+    Guid HouseholdId,
     int Month,
     int Year,
     int Page
