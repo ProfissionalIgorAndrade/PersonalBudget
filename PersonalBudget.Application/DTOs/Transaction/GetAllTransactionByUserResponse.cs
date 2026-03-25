@@ -13,6 +13,7 @@ public record GetAllTransactionByUserResponse(
     string PaymentMethod,
     string Frequency,
     DateTime? ExpirationDate,
+    DateTime? DueDate,
     decimal Amount,
     DateTime Date,
     string Description,

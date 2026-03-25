@@ -22,6 +22,7 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
         var date = ParseDate(command.Date);
 
         var expiration = ParseOptionalExpirationDate(command.ExpirationDate);
+        var dueDate = ParseOptionalDueDate(command.DueDate);
 
         var transaction = Transaction.Create(
             command.UserId,
@@ -37,7 +38,8 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
             creditCardId: null,
             transferId: null,
             frequency: command.Frequency,
-            expirationDate: expiration
+            expirationDate: expiration,
+            dueDate: dueDate
         );
 
         if (command.AutoComplete)

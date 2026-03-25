@@ -49,6 +49,9 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.ExpirationDate)
             .HasColumnName("expiration_date");
 
+        builder.Property(t => t.DueDate)
+            .HasColumnName("due_date");
+
         // 🔹 Money (Value Object)
         builder.OwnsOne(t => t.Amount, money =>
         {

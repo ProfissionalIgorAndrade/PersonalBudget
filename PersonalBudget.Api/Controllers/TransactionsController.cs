@@ -47,6 +47,7 @@ public class TransactionsController : ControllerBase
             TotalAmount: request.TotalAmount,
             Title: request.Title,
             ExpirationDate: request.ExpirationDate,
+            DueDate: request.DueDate,
             DueDay: request.DueDay,
             RepeatCount: request.RepeatCount
         );
