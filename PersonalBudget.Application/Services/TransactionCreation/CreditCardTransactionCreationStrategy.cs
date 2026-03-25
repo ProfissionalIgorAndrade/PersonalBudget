@@ -46,6 +46,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
     {
         var statement = await GetOrCreateStatementAsync(creditCard, date, new Money(command.Amount), command.Type);
 
+        var dueDate = ParseOptionalDueDate(command.DueDate);
         var transaction = Transaction.Create(
             command.UserId,
             command.HouseholdId,
@@ -61,7 +62,8 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             statement.Id,
             transferId: null,
             frequency: command.Frequency,
-            expirationDate: null
+            expirationDate: null,
+            dueDate: dueDate
         );
 
         await _transactionRepository.AddAsync(transaction);
@@ -77,6 +79,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         var totalAmount = command.TotalAmount!.Value;
         var amountPerInstallment = Math.Round(totalAmount / count, 2);
         var displayName = string.IsNullOrWhiteSpace(command.Title) ? command.Description : command.Title;
+        var optionalFirstDue = ParseOptionalDueDate(command.DueDate);
         Guid firstTransactionId = default;
 
         for (var i = 0; i < count; i++)
@@ -90,6 +93,10 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             var statement = await GetOrCreateStatementAsync(creditCard, installmentDate, new Money(installmentAmount), command.Type);
 
             var description = $"{displayName} ({i + 1}/{count})";
+
+            DateTime? dueForInstallment = optionalFirstDue.HasValue
+                ? optionalFirstDue.Value.AddMonths(i).Date
+                : null;
 
             var transaction = Transaction.Create(
                 command.UserId,
@@ -106,7 +113,8 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 statement.Id,
                 transferId: null,
                 frequency: TransactionFrequency.Installments,
-                expirationDate: null
+                expirationDate: null,
+                dueDate: dueForInstallment
             );
 
             await _transactionRepository.AddAsync(transaction);

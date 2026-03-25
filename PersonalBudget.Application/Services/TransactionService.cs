@@ -118,7 +118,8 @@ public class TransactionService : ITransactionService
                 Date = dateString,
                 AutoComplete = false,
                 RepeatCount = null,
-                DueDay = null
+                DueDay = null,
+                DueDate = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)
             };
 
             var id = await strategy.CreateAsync(singleCommand);

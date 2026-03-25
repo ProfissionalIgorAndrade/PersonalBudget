@@ -19,6 +19,8 @@ public record CreateTransactionCommand(
     decimal? TotalAmount,
     string? Title,
     string? ExpirationDate = null,
+    /// <summary>Optional due date (dd/MM/yyyy or ISO); persisted when provided.</summary>
+    string? DueDate = null,
     int? DueDay = null,
     int? RepeatCount = null
 );

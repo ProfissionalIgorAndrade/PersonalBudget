@@ -27,6 +27,7 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
         var toAccount = await GetAccountOrThrowAsync(command.ToAccountId.Value, command.HouseholdId);
 
         var date = ParseDate(command.Date);
+        var dueDate = ParseOptionalDueDate(command.DueDate);
         var transferId = Guid.NewGuid();
 
         var outTx = Transaction.Create(
@@ -43,7 +44,8 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
             creditCardId: null,
             transferId: transferId,
             frequency: TransactionFrequency.Variable,
-            expirationDate: null);
+            expirationDate: null,
+            dueDate: dueDate);
 
         var inTx = Transaction.Create(
             command.UserId,
@@ -59,7 +61,8 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
             creditCardId: null,
             transferId: transferId,
             frequency: TransactionFrequency.Variable,
-            expirationDate: null);
+            expirationDate: null,
+            dueDate: dueDate);
 
         outTx.Complete();
         inTx.Complete();

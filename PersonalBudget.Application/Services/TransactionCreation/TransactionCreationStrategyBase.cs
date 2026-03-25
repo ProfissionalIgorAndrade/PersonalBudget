@@ -44,6 +44,15 @@ public abstract class TransactionCreationStrategyBase : ITransactionCreationStra
         return ParseDate(expirationDateString).Date;
     }
 
+    /// <summary>Due date (date-only), same accepted string formats as <see cref="ParseOptionalExpirationDate"/>.</summary>
+    protected DateTime? ParseOptionalDueDate(string? dueDateString)
+    {
+        if (string.IsNullOrWhiteSpace(dueDateString))
+            return null;
+
+        return ParseDate(dueDateString).Date;
+    }
+
     protected DateTime ParseDate(string dateString)
     {
         if (string.IsNullOrWhiteSpace(dateString))

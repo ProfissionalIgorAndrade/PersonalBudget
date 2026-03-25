@@ -18,6 +18,8 @@ public class Transaction
     public TransactionFrequency Frequency { get; private set; }
     /// <summary>Data limite opcional para recorrência fixa (ex.: contrato até esta data).</summary>
     public DateTime? ExpirationDate { get; private set; }
+    /// <summary>Data de vencimento opcional do lançamento (quando informada pelo cliente).</summary>
+    public DateTime? DueDate { get; private set; }
     public Money Amount { get; private set; }
     public TransactionDate Date { get; private set; }
     public TransactionDescription Description { get; private set; }
@@ -37,7 +39,8 @@ public class Transaction
         Guid? statementId,
         Guid? transferId,
         TransactionFrequency frequency,
-        DateTime? expirationDate)
+        DateTime? expirationDate,
+        DateTime? dueDate)
     {
         if (userId == Guid.Empty)
             throw new DomainException("A transação deve pertencer a um usuário.");
@@ -71,6 +74,7 @@ public class Transaction
         Description = description;
         Frequency = frequency;
         ExpirationDate = expirationDate.HasValue ? expirationDate.Value.Date : null;
+        DueDate = dueDate.HasValue ? dueDate.Value.Date : null;
         Status = TransactionStatus.Pending;
     }
 
@@ -91,7 +95,8 @@ public class Transaction
         Guid? statementId = null,
         Guid? transferId = null,
         TransactionFrequency frequency = TransactionFrequency.Variable,
-        DateTime? expirationDate = null)
+        DateTime? expirationDate = null,
+        DateTime? dueDate = null)
     {
         return new Transaction(
             userId,
@@ -108,7 +113,8 @@ public class Transaction
             statementId,
             transferId,
             frequency,
-            expirationDate
+            expirationDate,
+            dueDate
         );
     }
 

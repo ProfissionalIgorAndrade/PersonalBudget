@@ -15,6 +15,8 @@ public record CreateTransactionRequest(
     decimal? TotalAmount,
     string? Title,
     string? ExpirationDate = null,
+    /// <summary>Data de vencimento (dd/MM/yyyy ou ISO); opcional.</summary>
+    string? DueDate = null,
     int? DueDay = null,
     int? RepeatCount = null,
     /// <summary>Correspondente (perfil). Opcional: padrão = perfil vinculado ao usuário.</summary>
