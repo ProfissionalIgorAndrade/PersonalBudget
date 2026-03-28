@@ -79,6 +79,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 c != null ? c.Name : null,
                 t.Type.ToString(),
                 t.Status.ToString(),
+                t.Frequency.ToString(),
                 p.Id,
                 p.DisplayName
             );
@@ -106,6 +107,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 c != null ? c.Name : null,
                 t.Type.ToString(),
                 t.Status.ToString(),
+                t.Frequency.ToString(),
                 p.Id,
                 p.DisplayName
             );
