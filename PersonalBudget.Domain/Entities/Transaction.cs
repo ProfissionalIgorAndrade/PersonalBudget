@@ -40,7 +40,8 @@ public class Transaction
         Guid? transferId,
         TransactionFrequency frequency,
         DateTime? expirationDate,
-        DateTime? dueDate)
+        DateTime? dueDate,
+        TransactionStatus initialStatus)
     {
         if (userId == Guid.Empty)
             throw new DomainException("A transação deve pertencer a um usuário.");
@@ -75,7 +76,7 @@ public class Transaction
         Frequency = frequency;
         ExpirationDate = expirationDate.HasValue ? expirationDate.Value.Date : null;
         DueDate = dueDate.HasValue ? dueDate.Value.Date : null;
-        Status = TransactionStatus.Pending;
+        Status = initialStatus;
     }
 
     protected Transaction() { }
@@ -96,7 +97,8 @@ public class Transaction
         Guid? transferId = null,
         TransactionFrequency frequency = TransactionFrequency.Variable,
         DateTime? expirationDate = null,
-        DateTime? dueDate = null)
+        DateTime? dueDate = null,
+        TransactionStatus initialStatus = TransactionStatus.Pending)
     {
         return new Transaction(
             userId,
@@ -114,8 +116,41 @@ public class Transaction
             transferId,
             frequency,
             expirationDate,
-            dueDate
+            dueDate,
+            initialStatus
         );
+    }
+
+    /// <summary>Atualiza dados editáveis. Não permitido para transações concluídas.</summary>
+    public void UpdateDetails(
+        Money newAmount,
+        TransactionDate newDate,
+        TransactionDescription newDescription,
+        Guid? categoryId,
+        DateTime? expirationDate,
+        DateTime? dueDate)
+    {
+        if (Status == TransactionStatus.Completed)
+            throw new DomainException("Transações concluídas não podem ser editadas.");
+
+        Amount = newAmount;
+        Date = newDate;
+        Description = newDescription;
+        CategoryId = categoryId;
+        ExpirationDate = expirationDate.HasValue ? expirationDate.Value.Date : null;
+        DueDate = dueDate.HasValue ? dueDate.Value.Date : null;
+    }
+
+    /// <summary>Altera o correspondente (perfil). Não permitido para transações concluídas.</summary>
+    public void UpdateAttributionProfileId(Guid attributionProfileId)
+    {
+        if (Status == TransactionStatus.Completed)
+            throw new DomainException("Transações concluídas não podem ser editadas.");
+
+        if (attributionProfileId == Guid.Empty)
+            throw new DomainException("Correspondente inválido.");
+
+        AttributionProfileId = attributionProfileId;
     }
 
     public void Complete()
