@@ -20,5 +20,7 @@ public record CreateTransactionRequest(
     int? DueDay = null,
     int? RepeatCount = null,
     /// <summary>Correspondente (perfil). Opcional: padrão = perfil vinculado ao usuário.</summary>
-    Guid? AttributionProfileId = null
+    Guid? AttributionProfileId = null,
+    /// <summary>Optional initial status; when omitted, behavior follows AutoComplete and payment method rules.</summary>
+    TransactionStatus? Status = null
 );

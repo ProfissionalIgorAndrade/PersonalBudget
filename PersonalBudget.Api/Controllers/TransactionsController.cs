@@ -49,7 +49,8 @@ public class TransactionsController : ControllerBase
             ExpirationDate: request.ExpirationDate,
             DueDate: request.DueDate,
             DueDay: request.DueDay,
-            RepeatCount: request.RepeatCount
+            RepeatCount: request.RepeatCount,
+            Status: request.Status
         );
 
         var transactionId = await _transactionService.CreateAsync(command);
@@ -103,7 +104,54 @@ public class TransactionsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(result));
     }
 
-    [HttpPatch("{transactionId}/status")]
+    [HttpPatch("{transactionId:guid}")]
+    public async Task<IActionResult> Update(
+        Guid transactionId,
+        [FromBody] UpdateTransactionRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var command = new UpdateTransactionCommand(
+            householdId,
+            transactionId,
+            request.Amount,
+            request.Date,
+            request.Description,
+            request.CategoryId,
+            request.DueDate,
+            request.ExpirationDate,
+            request.AttributionProfileId);
+
+        await _transactionService.UpdateAsync(command);
+
+        return Ok(ApiResponse<object?>.Ok(null, "Transação atualizada."));
+    }
+
+    [HttpDelete("{transactionId:guid}")]
+    public async Task<IActionResult> Delete(Guid transactionId)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var result = await _transactionService.DeleteAsync(new DeleteTransactionCommand(householdId, transactionId));
+
+        var message = result.DeletedCount switch
+        {
+            0 when result.SkippedCount > 0 => "Nenhuma transação foi excluída. Apenas transações com status diferente de Concluído podem ser excluídas.",
+            0 => "Nenhuma transação encontrada para excluir.",
+            _ => "Transação excluída."
+        };
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            result.DeletedCount,
+            result.SkippedCount,
+            result.SkippedIds
+        }, message));
+    }
+
+    [HttpPatch("{transactionId:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid transactionId, [FromBody] UpdateTransactionStatusRequest request)
     {
         var userId = UserContext.GetUserId(User);

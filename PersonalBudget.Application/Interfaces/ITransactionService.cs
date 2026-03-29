@@ -9,5 +9,7 @@ public interface ITransactionService
     Task<PaginatedTransactionsResult> GetByAccountAndMonthPagedAsync(GetTransactionsByAccountAndMonthYearQuery query, int page);
     Task<IEnumerable<GetAllTransactionByUserResponse>> GetTransactionByCreditCardStatementAndMonthQuery(GetAllTransactionByCreditCardStatementAndMonthYearQuery query);
     Task UpdateStatusAsync(UpdateTransactionStatusCommand command);
+    Task UpdateAsync(UpdateTransactionCommand command);
+    Task<DeleteTransactionsResult> DeleteAsync(DeleteTransactionCommand command);
     Task<DeleteTransactionsResult> DeleteManyAsync(DeleteTransactionsCommand command);
 }

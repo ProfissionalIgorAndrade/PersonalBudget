@@ -47,6 +47,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         var statement = await GetOrCreateStatementAsync(creditCard, date, new Money(command.Amount), command.Type);
 
         var dueDate = ParseOptionalDueDate(command.DueDate);
+        var initialStatus = command.Status ?? TransactionStatus.Pending;
         var transaction = Transaction.Create(
             command.UserId,
             command.HouseholdId,
@@ -63,7 +64,8 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             transferId: null,
             frequency: command.Frequency,
             expirationDate: null,
-            dueDate: dueDate
+            dueDate: dueDate,
+            initialStatus: initialStatus
         );
 
         await _transactionRepository.AddAsync(transaction);
@@ -98,6 +100,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 ? optionalFirstDue.Value.AddMonths(i).Date
                 : null;
 
+            var installmentInitialStatus = command.Status ?? TransactionStatus.Pending;
             var transaction = Transaction.Create(
                 command.UserId,
                 command.HouseholdId,
@@ -114,7 +117,8 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 transferId: null,
                 frequency: TransactionFrequency.Installments,
                 expirationDate: null,
-                dueDate: dueForInstallment
+                dueDate: dueForInstallment,
+                initialStatus: installmentInitialStatus
             );
 
             await _transactionRepository.AddAsync(transaction);

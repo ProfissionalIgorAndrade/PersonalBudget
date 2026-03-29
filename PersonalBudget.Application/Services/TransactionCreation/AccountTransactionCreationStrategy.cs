@@ -24,6 +24,9 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
         var expiration = ParseOptionalExpirationDate(command.ExpirationDate);
         var dueDate = ParseOptionalDueDate(command.DueDate);
 
+        var initialStatus = command.Status
+            ?? (command.AutoComplete ? TransactionStatus.Completed : TransactionStatus.Pending);
+
         var transaction = Transaction.Create(
             command.UserId,
             command.HouseholdId,
@@ -39,12 +42,12 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
             transferId: null,
             frequency: command.Frequency,
             expirationDate: expiration,
-            dueDate: dueDate
+            dueDate: dueDate,
+            initialStatus: initialStatus
         );
 
-        if (command.AutoComplete)
+        if (initialStatus == TransactionStatus.Completed)
         {
-            transaction.Complete();
             TransactionApplier.Apply(account, transaction);
             await _accountRepository.UpdateAsync(account);
         }

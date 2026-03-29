@@ -1,3 +1,4 @@
+using System.Globalization;
 using PersonalBudget.Application.Interfaces;
 
 public class TransactionService : ITransactionService
@@ -211,6 +212,103 @@ public class TransactionService : ITransactionService
     {
         return await _transactionQueryRepository.GetAllTransactionByCreditCardStatementAndMonthYearQuery(
             query.HouseholdId, query.CreditCardId, query.Month, query.Year);
+    }
+
+    public async Task UpdateAsync(UpdateTransactionCommand command)
+    {
+        var hasAny = command.Amount.HasValue
+            || command.Date is not null
+            || command.Description is not null
+            || command.CategoryId is not null
+            || command.DueDate is not null
+            || command.ExpirationDate is not null
+            || command.AttributionProfileId is not null;
+
+        if (!hasAny)
+            throw new DomainException("Informe ao menos um campo para atualizar.");
+
+        var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
+        if (transaction is null || transaction.HouseholdId != command.HouseholdId)
+            throw new DomainException("Transação não encontrada.");
+
+        EnsureEditableForDetails(transaction);
+
+        if (command.AttributionProfileId is { } pid && pid != Guid.Empty)
+        {
+            var p = await _profileRepository.GetByIdAsync(pid);
+            if (p is null || p.HouseholdId != command.HouseholdId)
+                throw new DomainException("Correspondente inválido para este lar.");
+        }
+
+        var newAmount = command.Amount ?? transaction.Amount.Amount;
+        var newDateVo = command.Date is null
+            ? transaction.Date
+            : new TransactionDate(ParseDateTimeForUpdate(command.Date));
+        var newDescription = command.Description is null
+            ? transaction.Description
+            : new TransactionDescription(command.Description);
+        var newCategoryId = command.CategoryId ?? transaction.CategoryId;
+
+        var newDue = ResolveOptionalDateField(command.DueDate, transaction.DueDate);
+        var newExpiration = ResolveOptionalDateField(command.ExpirationDate, transaction.ExpirationDate);
+
+        if (newExpiration is not null && transaction.Frequency != TransactionFrequency.Fixed)
+            throw new DomainException("ExpirationDate só é permitido com TransactionFrequency.Fixed.");
+
+        transaction.UpdateDetails(
+            new Money(newAmount),
+            newDateVo,
+            newDescription,
+            newCategoryId,
+            newExpiration,
+            newDue);
+
+        if (command.AttributionProfileId is { } apid && apid != Guid.Empty && apid != transaction.AttributionProfileId)
+            transaction.UpdateAttributionProfileId(apid);
+
+        await _transactionRepository.UpdateAsync(transaction);
+    }
+
+    public Task<DeleteTransactionsResult> DeleteAsync(DeleteTransactionCommand command)
+        => DeleteManyAsync(new DeleteTransactionsCommand(command.HouseholdId, new[] { command.TransactionId }));
+
+    private static void EnsureEditableForDetails(Transaction transaction)
+    {
+        if (transaction.Status == TransactionStatus.Completed)
+            throw new DomainException("Transações concluídas não podem ser editadas.");
+
+        if (transaction.PaymentMethod == PaymentMethod.CreditCard || transaction.CreditCardId is not null)
+            throw new DomainException("Transações de cartão de crédito não podem ser editadas por esta operação.");
+
+        if (transaction.TransferId is not null || transaction.PaymentMethod == PaymentMethod.Transfer)
+            throw new DomainException("Transferências não podem ser editadas por esta operação.");
+    }
+
+    private static DateTime? ResolveOptionalDateField(string? commandValue, DateTime? current)
+    {
+        if (commandValue is null)
+            return current;
+
+        if (string.IsNullOrWhiteSpace(commandValue))
+            return null;
+
+        return ParseDateTimeForUpdate(commandValue).Date;
+    }
+
+    private static DateTime ParseDateTimeForUpdate(string dateString)
+    {
+        if (string.IsNullOrWhiteSpace(dateString))
+            throw new DomainException("Data inválida.");
+
+        var trimmed = dateString.Trim();
+        var formats = new[] { "dd/MM/yyyy", "dd/MM/yyyy HH:mm", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss" };
+        if (DateTime.TryParseExact(trimmed, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+            return parsed;
+
+        if (DateTime.TryParseExact(trimmed, new[] { "dd/MM/yyyy", "dd/MM/yyyy HH:mm" }, CultureInfo.GetCultureInfo("pt-BR"), DateTimeStyles.None, out var parsedBr))
+            return parsedBr;
+
+        throw new DomainException("Data inválida. Use dd/MM/yyyy (ex: 08/04/2026) ou ISO.");
     }
 
     public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)

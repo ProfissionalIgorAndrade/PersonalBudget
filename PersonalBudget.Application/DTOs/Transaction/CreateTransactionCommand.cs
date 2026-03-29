@@ -22,5 +22,7 @@ public record CreateTransactionCommand(
     /// <summary>Optional due date (dd/MM/yyyy or ISO); persisted when provided.</summary>
     string? DueDate = null,
     int? DueDay = null,
-    int? RepeatCount = null
+    int? RepeatCount = null,
+    /// <summary>When set, overrides default status (including AutoComplete for Account).</summary>
+    TransactionStatus? Status = null
 );
