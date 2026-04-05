@@ -12,16 +12,50 @@ public class CreditCardsController : ControllerBase
 {
     private readonly ICreditCardService _service;
     private readonly ICreditCardStatementService _statementService;
+    private readonly ICreditCardImportService _importService;
     private readonly IActiveHouseholdResolver _householdResolver;
 
     public CreditCardsController(
         ICreditCardService service,
         ICreditCardStatementService statementService,
+        ICreditCardImportService importService,
         IActiveHouseholdResolver householdResolver)
     {
         _service = service;
         _statementService = statementService;
+        _importService = importService;
         _householdResolver = householdResolver;
+    }
+
+    [HttpPost("{creditCardId}/import")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> ImportCsv(
+        Guid creditCardId,
+        IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(ApiResponse<object?>.Fail("Arquivo CSV é obrigatório."));
+
+        if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) &&
+            !file.ContentType.Contains("text"))
+            return BadRequest(ApiResponse<object?>.Fail("Apenas arquivos CSV são aceitos."));
+
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        string csvContent;
+        using (var reader = new System.IO.StreamReader(file.OpenReadStream()))
+            csvContent = await reader.ReadToEndAsync();
+
+        var command = new ImportCreditCardCsvCommand(userId, householdId, creditCardId, csvContent);
+        var result = await _importService.ImportAsync(command);
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            result.Imported,
+            result.Skipped,
+            result.Errors
+        }, $"{result.Imported} transação(ões) importada(s), {result.Skipped} ignorada(s)."));
     }
 
     [HttpPost]

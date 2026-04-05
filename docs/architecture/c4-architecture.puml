@@ -1,0 +1,603 @@
+' ============================================================
+' PersonalBudget - C4 Architecture Diagrams (All Levels)
+' ============================================================
+' Requires: https://github.com/plantuml-stdlib/C4-PlantUML
+' Render at: https://www.plantuml.com/plantuml
+' ============================================================
+
+' ============================================================
+' LEVEL 1 — SYSTEM CONTEXT
+' ============================================================
+
+@startuml C4_L1_SystemContext
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+title PersonalBudget — Nivel 1: Contexto do Sistema
+
+Person(user, "Usuario", "Pessoa fisica que controla\nsuas financas pessoais\nou compartilhadas com familia.")
+
+System(personalBudget, "PersonalBudget", "Permite ao usuario registrar receitas,\ndespesas, faturas de cartao de credito\ne obter visao consolidada do orcamento\npor perfil de atribuicao.")
+
+System_Ext(emailSystem, "Servico de E-mail", "Envio futuro de convites\nde household por e-mail.\n(nao implementado)")
+
+System_Ext(bankOpenFinance, "Open Finance / Bancos", "Importacao futura de extratos\nbancarios via API.\n(nao implementado)")
+
+Rel(user, personalBudget, "Gerencia financas via", "HTTPS / REST API + JWT")
+Rel(personalBudget, emailSystem, "Envia convites de household", "SMTP (futuro)")
+Rel(personalBudget, bankOpenFinance, "Importa extratos", "Open Finance API (futuro)")
+
+@enduml
+
+' ============================================================
+' LEVEL 2 — CONTAINERS
+' ============================================================
+
+@startuml C4_L2_Containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+title PersonalBudget — Nivel 2: Containers
+
+Person(user, "Usuario", "Acessa o sistema via cliente HTTP\n(browser, app mobile, Postman)")
+
+System_Boundary(personalBudget, "PersonalBudget") {
+
+    Container(webApi, "PersonalBudget.Api", "ASP.NET Core 9\nWeb API", "Expoe endpoints REST.\nResponsavel por autenticacao JWT,\nroteamento, validacao de entrada\ne tratamento de erros.")
+
+    Container(appLayer, "PersonalBudget.Application", "C# Class Library\n(.NET 9)", "Orquestra casos de uso.\nContem services, DTOs,\ninterfaces e estrategias\nde criacao de transacao.")
+
+    Container(domainLayer, "PersonalBudget.Domain", "C# Class Library\n(.NET 9)", "Nucleo do negocio.\nEntidades, Value Objects,\nEnums, Domain Services\ne interfaces de repositorio.")
+
+    Container(infraLayer, "PersonalBudget.Infrastructure", "C# Class Library\n(.NET 9) + EF Core 9", "Implementa acesso a dados.\nRepositorios, DbContext,\nconfiguracoes Fluent API,\nPasswordHasher e Seeds.")
+
+    ContainerDb(database, "Banco de Dados", "EF Core InMemory\n(dev) / SQLite ou\nPostgreSQL (prod)", "Armazena usuarios, households,\ncontas, transacoes, cartoes,\nfaturas e categorias.")
+}
+
+Rel(user, webApi, "Faz requisicoes", "HTTPS / JSON")
+Rel(webApi, appLayer, "Delega casos de uso", "Chamadas in-process")
+Rel(appLayer, domainLayer, "Executa regras de negocio", "Chamadas in-process")
+Rel(appLayer, infraLayer, "Persiste e consulta dados\n(via interfaces de repositorio)", "Chamadas in-process")
+Rel(infraLayer, database, "Le e grava dados", "EF Core / SQL")
+
+@enduml
+
+' ============================================================
+' LEVEL 3 — COMPONENTS (PersonalBudget.Api)
+' ============================================================
+
+@startuml C4_L3_Components_Api
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+title PersonalBudget — Nivel 3: Componentes da API
+
+Person(user, "Usuario", "Cliente HTTP externo")
+
+Container_Boundary(webApi, "PersonalBudget.Api") {
+
+    Component(authMiddleware, "ExceptionHandlingMiddleware", "ASP.NET Middleware", "Captura excecoes globais\ne mapeia para respostas HTTP\n(400, 403, 500)")
+
+    Component(authController, "AuthenticationController", "ASP.NET Controller", "POST /signin\nPOST /login\nCriacao e autenticacao de usuarios")
+
+    Component(householdsCtrl, "HouseholdsController", "ASP.NET Controller", "Gerencia households,\nconvites, perfis de atribuicao\ne resumo financeiro por perfil")
+
+    Component(accountsCtrl, "AccountsController", "ASP.NET Controller", "CRUD de contas bancarias\ne listagem de transacoes por conta")
+
+    Component(transactionsCtrl, "TransactionsController", "ASP.NET Controller", "CRUD de transacoes, filtros\npor mes/ano, atualizacao de\nstatus e exclusao em lote")
+
+    Component(creditCardsCtrl, "CreditCardsController", "ASP.NET Controller", "CRUD de cartoes, consulta\nde faturas, fechamento,\npagamento e importacao CSV")
+
+    Component(categoriesCtrl, "CategoriesController", "ASP.NET Controller", "CRUD de categorias\n(receita / despesa)")
+
+    Component(jwtGenerator, "JwtTokenGenerator", "Security Component", "Gera tokens JWT (HMAC-SHA256)\ncom claim de UserId")
+
+    Component(userContext, "UserContext", "Security Component", "Extrai UserId do\nJWT claim 'sub'")
+
+    Component(corsExt, "CorsExtensions", "Configuration", "Politica AllowAll\n(desenvolvimento)")
+
+    Component(diExtensions, "DependencyInjectionExtensions", "Configuration", "Registro de todos os\nservices, repositorios\ne estrategias no DI container")
+}
+
+Container(appLayer, "PersonalBudget.Application", "Application Services")
+
+Rel(user, authMiddleware, "Toda requisicao passa por", "HTTPS")
+Rel(authMiddleware, authController, "Encaminha")
+Rel(authMiddleware, householdsCtrl, "Encaminha")
+Rel(authMiddleware, accountsCtrl, "Encaminha")
+Rel(authMiddleware, transactionsCtrl, "Encaminha")
+Rel(authMiddleware, creditCardsCtrl, "Encaminha")
+Rel(authMiddleware, categoriesCtrl, "Encaminha")
+
+Rel(authController, jwtGenerator, "Usa para gerar token")
+Rel(authController, appLayer, "Chama UserService")
+Rel(householdsCtrl, userContext, "Le UserId do JWT")
+Rel(householdsCtrl, appLayer, "Chama HouseholdService")
+Rel(accountsCtrl, appLayer, "Chama AccountService\ne TransactionService")
+Rel(transactionsCtrl, appLayer, "Chama TransactionService")
+Rel(creditCardsCtrl, appLayer, "Chama CreditCardService\nCreditCardStatementService\nCreditCardImportService")
+Rel(categoriesCtrl, appLayer, "Chama CategoryService")
+
+@enduml
+
+' ============================================================
+' LEVEL 3 — COMPONENTS (PersonalBudget.Application)
+' ============================================================
+
+@startuml C4_L3_Components_Application
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+title PersonalBudget — Nivel 3: Componentes da Camada Application
+
+Container_Boundary(appLayer, "PersonalBudget.Application") {
+
+    Component(userService, "UserService", "Application Service", "Criacao de usuario,\nautenticacao e\nverificacao de senha")
+
+    Component(householdService, "HouseholdService", "Application Service", "Gerencia households,\nconvites por token,\nperfis e sumario por perfil")
+
+    Component(householdProvisioning, "HouseholdProvisioningService", "Application Service", "Cria household inicial\npara novos usuarios")
+
+    Component(accountService, "AccountService", "Application Service", "CRUD de contas,\nvalidacao de propriedade\ne household")
+
+    Component(categoryService, "CategoryService", "Application Service", "CRUD de categorias,\nvalidacao de tipo e\npertencimento ao household")
+
+    Component(transactionService, "TransactionService", "Application Service", "Orquestra criacao via\nstrategy, consultas\ne atualizacoes de status")
+
+    Component(txCreationBase, "TransactionCreationStrategyBase", "Strategy Base Class", "Valida dados comuns\n(account, category, card)\nantes de delegar a estrategia")
+
+    Component(accountStrategy, "AccountTransactionCreationStrategy", "Strategy", "Cria transacoes em conta\nou dinheiro fisico (Cash).\nAtualiza saldo automaticamente.")
+
+    Component(creditCardStrategy, "CreditCardTransactionCreationStrategy", "Strategy", "Cria transacoes no cartao.\nGerencia abertura/vinculo\nde fatura.")
+
+    Component(transferStrategy, "TransferTransactionCreationStrategy", "Strategy", "Cria transferencia entre\ncontas. Atualiza saldo\norigem e destino.")
+
+    Component(creditCardService, "CreditCardService", "Application Service", "CRUD de cartoes,\nvalidacao de household")
+
+    Component(statementService, "CreditCardStatementService", "Application Service", "Fechamento e pagamento\nde faturas")
+
+    Component(importService, "CreditCardImportService", "Application Service", "Parse de CSV e criacao\nem lote de transacoes\nno cartao")
+
+    Component(householdResolver, "ActiveHouseholdResolver", "Application Service", "Resolve household ativo\nvia header HTTP ou\npadrao do usuario")
+}
+
+Container(domainLayer, "PersonalBudget.Domain", "Domain Entities & Rules")
+Container(infraLayer, "PersonalBudget.Infrastructure", "Repositories")
+
+Rel(transactionService, txCreationBase, "Seleciona estrategia por\nPaymentMethod e delega")
+Rel(txCreationBase, accountStrategy, "Heranca / interface")
+Rel(txCreationBase, creditCardStrategy, "Heranca / interface")
+Rel(txCreationBase, transferStrategy, "Heranca / interface")
+
+Rel(userService, domainLayer, "Cria User, valida regras")
+Rel(householdService, domainLayer, "Cria/valida Household e Invite")
+Rel(accountService, domainLayer, "Cria/valida Account")
+Rel(transactionService, domainLayer, "Cria Transaction via Strategy")
+Rel(creditCardService, domainLayer, "Cria/valida CreditCard")
+Rel(statementService, domainLayer, "Fecha/paga CreditCardStatement")
+Rel(importService, domainLayer, "Cria transacoes em lote")
+
+Rel(accountService, infraLayer, "IAccountRepository")
+Rel(transactionService, infraLayer, "ITransactionRepository\nITransactionQueryRepository")
+Rel(creditCardService, infraLayer, "ICreditCardRepository")
+Rel(statementService, infraLayer, "ICreditCardStatementRepository")
+Rel(householdService, infraLayer, "IHouseholdRepository\nIHouseholdInviteRepository\nIHouseholdMemberProfileRepository")
+
+@enduml
+
+' ============================================================
+' LEVEL 3 — COMPONENTS (PersonalBudget.Infrastructure)
+' ============================================================
+
+@startuml C4_L3_Components_Infrastructure
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+title PersonalBudget — Nivel 3: Componentes da Infrastructure
+
+Container_Boundary(infraLayer, "PersonalBudget.Infrastructure") {
+
+    Component(appDbContext, "AppDbContext", "EF Core DbContext", "Contexto central do EF Core.\nExpoe DbSets para todas\nas 10 entidades.")
+
+    Component(userRepo, "UserRepository", "Repository", "CRUD de User")
+    Component(householdRepo, "HouseholdRepository", "Repository", "CRUD de Household")
+    Component(membershipRepo, "HouseholdMembershipRepository", "Repository", "Gerencia membros do household")
+    Component(profileRepo, "HouseholdMemberProfileRepository", "Repository", "Perfis de atribuicao")
+    Component(inviteRepo, "HouseholdInviteRepository", "Repository", "Convites de household")
+    Component(accountRepo, "AccountRepository", "Repository", "CRUD de Account")
+    Component(categoryRepo, "CategoryRepository", "Repository", "CRUD de Category")
+    Component(transactionRepo, "TransactionRepository", "Repository", "CRUD de Transaction")
+    Component(creditCardRepo, "CreditCardRepository", "Repository", "CRUD de CreditCard")
+    Component(statementRepo, "CreditCardStatementRepository", "Repository", "CRUD de CreditCardStatement")
+
+    Component(txQueryRepo, "TransactionQueryRepository", "Query Repository", "Consultas complexas de transacao:\npor mes/ano, por conta,\npor fatura, agrupado por perfil")
+
+    Component(passwordHasher, "PasswordHasher", "Security", "SHA-256 + Base64\npara hash de senhas")
+
+    Component(dbSeeder, "DatabaseSeeder", "Seeder", "Popula banco em dev\ncom usuarios, household,\ncontas e categorias")
+
+    Component(entityConfigs, "Entity Configurations\n(Fluent API)", "EF Core Config", "Mapeamento das 10 entidades:\ncolunas, value objects (OwnsOne),\nindices, constraints e enum conversions")
+}
+
+ContainerDb(database, "Banco de Dados", "EF Core InMemory / SQLite / PostgreSQL")
+
+Rel(userRepo, appDbContext, "Usa")
+Rel(householdRepo, appDbContext, "Usa")
+Rel(membershipRepo, appDbContext, "Usa")
+Rel(profileRepo, appDbContext, "Usa")
+Rel(inviteRepo, appDbContext, "Usa")
+Rel(accountRepo, appDbContext, "Usa")
+Rel(categoryRepo, appDbContext, "Usa")
+Rel(transactionRepo, appDbContext, "Usa")
+Rel(creditCardRepo, appDbContext, "Usa")
+Rel(statementRepo, appDbContext, "Usa")
+Rel(txQueryRepo, appDbContext, "Usa (queries projetadas)")
+Rel(appDbContext, entityConfigs, "Aplica configuracoes via\nIEntityTypeConfiguration")
+Rel(appDbContext, database, "Grava e consulta", "EF Core Provider")
+Rel(dbSeeder, appDbContext, "Insere dados iniciais")
+
+@enduml
+
+' ============================================================
+' LEVEL 4 — CODE: Domain Model (Aggregates & Relationships)
+' ============================================================
+
+@startuml C4_L4_DomainModel
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam linetype ortho
+
+title PersonalBudget — Nivel 4: Modelo de Dominio
+
+package "Aggregate: User" #LightBlue {
+    class User {
+        +Id: Guid
+        +Name: string
+        +Email: Email
+        +PasswordHash: PasswordHash
+        +IsActive: bool
+        +CreatedAt: DateTime
+        --
+        +Deactivate()
+        +ChangePassword(newHash)
+        +CanAuthenticate(): bool
+    }
+    class Email <<ValueObject>> {
+        +Value: string
+        --
+        Normaliza lowercase
+        Valida formato @
+    }
+    class PasswordHash <<ValueObject>> {
+        +Value: string
+        --
+        SHA-256 Base64
+    }
+    User *-- Email
+    User *-- PasswordHash
+}
+
+package "Aggregate: Household" #LightGreen {
+    class Household {
+        +Id: Guid
+        +Name: string
+        +CreatedAt: DateTime
+    }
+    class HouseholdMembership {
+        +Id: Guid
+        +HouseholdId: Guid
+        +UserId: Guid
+        +Role: HouseholdRole
+        +JoinedAt: DateTime
+    }
+    class HouseholdMemberProfile {
+        +Id: Guid
+        +HouseholdId: Guid
+        +UserId: Guid?
+        +DisplayName: string
+        +Kind: HouseholdMemberProfileKind
+        +SortOrder: int
+        +IsActive: bool
+    }
+    class HouseholdInvite {
+        +Id: Guid
+        +HouseholdId: Guid
+        +InvitedByUserId: Guid
+        +Token: string
+        +Status: HouseholdInviteStatus
+        +ExpiresAt: DateTime
+        --
+        +Accept()
+        +Revoke()
+        +IsExpired(): bool
+    }
+    enum HouseholdRole {
+        Owner
+        Member
+    }
+    enum HouseholdInviteStatus {
+        Pending
+        Accepted
+        Expired
+        Revoked
+    }
+    enum HouseholdMemberProfileKind {
+        LinkedUser
+        Joint
+    }
+    Household "1" o-- "0..*" HouseholdMembership
+    Household "1" o-- "0..*" HouseholdMemberProfile
+    Household "1" o-- "0..*" HouseholdInvite
+    HouseholdMembership --> HouseholdRole
+    HouseholdMemberProfile --> HouseholdMemberProfileKind
+    HouseholdInvite --> HouseholdInviteStatus
+}
+
+package "Aggregate: Account" #LightYellow {
+    class Account {
+        +Id: Guid
+        +UserId: Guid
+        +HouseholdId: Guid
+        +Bank: Bank
+        +Agency: BankAgency
+        +Number: BankAccountNumber
+        +Balance: Money
+        +IsActive: bool
+        +CreatedAt: DateTime
+        --
+        +UpdateBankInfo(...)
+        +Deactivate()
+        +Credit(amount)
+        +Debit(amount)
+    }
+    class Money <<ValueObject>> {
+        +Amount: decimal
+        --
+        Nao permite negativo
+        +Add(other): Money
+        +Subtract(other): Money
+    }
+    class BankAgency <<ValueObject>> {
+        +Value: string
+    }
+    class BankAccountNumber <<ValueObject>> {
+        +Value: string
+    }
+    enum Bank {
+        Itau
+        Nubank
+        Inter
+        Santander
+        Bradesco
+        Caixa
+    }
+    Account *-- Money
+    Account *-- BankAgency
+    Account *-- BankAccountNumber
+    Account --> Bank
+}
+
+package "Aggregate: CreditCard" #LightCoral {
+    class CreditCard {
+        +Id: Guid
+        +UserId: Guid
+        +HouseholdId: Guid
+        +AccountId: Guid?
+        +Name: string
+        +Limit: decimal
+        +ClosingDay: int
+        +DueDay: int
+        +IsActive: bool
+        --
+        +GetOrCreateOpenStatement(date): Statement
+        +AddExpense(transaction)
+        +CloseStatement(statementId)
+        +PayStatement(statementId)
+    }
+    class CreditCardStatement {
+        +Id: Guid
+        +CreditCardId: Guid
+        +PeriodStart: DateTime
+        +PeriodEnd: DateTime
+        +ClosingDate: DateTime
+        +DueDate: DateTime
+        +ClosingMonth: int
+        +ClosingYear: int
+        +Status: BillStatus
+        +TotalAmount: Money
+        --
+        +AddTransaction(amount, type)
+        +Close()
+        +MarkAsPaid()
+    }
+    enum BillStatus {
+        Open
+        Closed
+        Paid
+    }
+    CreditCard "1" *-- "0..*" CreditCardStatement
+    CreditCardStatement --> BillStatus
+    CreditCardStatement *-- Money
+}
+
+package "Aggregate: Transaction" #Lavender {
+    class Transaction {
+        +Id: Guid
+        +UserId: Guid
+        +HouseholdId: Guid
+        +AttributionProfileId: Guid
+        +AccountId: Guid?
+        +CategoryId: Guid
+        +CreditCardId: Guid?
+        +StatementId: Guid?
+        +TransferId: Guid?
+        +Type: TransactionType
+        +PaymentMethod: PaymentMethod
+        +Status: TransactionStatus
+        +Frequency: TransactionFrequency
+        +Amount: Money
+        +Date: TransactionDate
+        +Description: TransactionDescription
+        +DueDate: DateTime?
+        +ExpirationDate: DateTime?
+        --
+        +UpdateDetails(...)
+        +Complete()
+        +Cancel()
+        +SetStatus(status)
+    }
+    class TransactionDate <<ValueObject>> {
+        +Value: DateTime
+    }
+    class TransactionDescription <<ValueObject>> {
+        +Value: string
+        --
+        Max 200 chars
+        Required
+    }
+    enum TransactionType {
+        Income
+        Expense
+    }
+    enum PaymentMethod {
+        Account
+        CreditCard
+        Cash
+        Transfer
+    }
+    enum TransactionStatus {
+        Pending
+        Completed
+        Simulated
+        Cancelled
+    }
+    enum TransactionFrequency {
+        Variable
+        Fixed
+        Installments
+    }
+    Transaction *-- Money
+    Transaction *-- TransactionDate
+    Transaction *-- TransactionDescription
+    Transaction --> TransactionType
+    Transaction --> PaymentMethod
+    Transaction --> TransactionStatus
+    Transaction --> TransactionFrequency
+}
+
+package "Aggregate: Category" #Wheat {
+    class Category {
+        +Id: Guid
+        +HouseholdId: Guid
+        +Name: string
+        +Type: CategoryType
+        +IsSystem: bool
+        +IsActive: bool
+        --
+        +Rename(name)
+        +Deactivate()
+    }
+    enum CategoryType {
+        Income
+        Expense
+    }
+    Category --> CategoryType
+}
+
+' Cross-aggregate relationships
+User "1" -- "0..*" HouseholdMembership : participa
+User "1" -- "0..*" HouseholdMemberProfile : vinculado
+Household "1" -- "0..*" Account
+Household "1" -- "0..*" Category
+Household "1" -- "0..*" CreditCard
+Household "1" -- "0..*" Transaction
+CreditCard "1" -- "0..*" Transaction : referencia
+CreditCardStatement "1" -- "0..*" Transaction : agrupa
+Account "1" -- "0..*" Transaction : referencia
+Category "1" -- "0..*" Transaction : classifica
+HouseholdMemberProfile "1" -- "0..*" Transaction : atribui
+
+@enduml
+
+' ============================================================
+' LEVEL 4 — CODE: Strategy Pattern (Transaction Creation)
+' ============================================================
+
+@startuml C4_L4_StrategyPattern
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+
+title PersonalBudget — Nivel 4: Strategy Pattern — Criacao de Transacoes
+
+interface ITransactionCreationStrategy {
+    +CreateAsync(command: CreateTransactionCommand): Task<Transaction>
+    +AppliesTo(paymentMethod: PaymentMethod): bool
+}
+
+abstract class TransactionCreationStrategyBase {
+    #ValidateAccount(accountId, householdId)
+    #ValidateCategory(categoryId, householdId)
+    #ValidateCreditCard(cardId, householdId)
+    --
+    Validacoes comuns antes\nde delegar a subclasse
+}
+
+class AccountTransactionCreationStrategy {
+    -_accountRepo: IAccountRepository
+    -_transactionApplier: TransactionApplier
+    --
+    +AppliesTo(): Account, Cash
+    Atualiza saldo da conta\nautomaticamente se\nstatus = Completed
+}
+
+class CreditCardTransactionCreationStrategy {
+    -_creditCardRepo: ICreditCardRepository
+    -_statementRepo: ICreditCardStatementRepository
+    --
+    +AppliesTo(): CreditCard
+    Abre ou reutiliza fatura\ncom base em ClosingDay
+}
+
+class TransferTransactionCreationStrategy {
+    -_accountRepo: IAccountRepository
+    -_transactionApplier: TransactionApplier
+    --
+    +AppliesTo(): Transfer
+    Cria 2 transacoes vinculadas.\nDebita origem, credita destino.
+}
+
+class TransactionService {
+    -_strategies: IEnumerable<ITransactionCreationStrategy>
+    --
+    +CreateAsync(command)
+    Seleciona strategy por\nPaymentMethod e delega
+}
+
+class TransactionApplier <<DomainService>> {
+    +Apply(transaction, account)
+    +Revert(transaction, account)
+    --
+    Aplica/reverte efeito\nde transacao no saldo\nda conta
+}
+
+ITransactionCreationStrategy <|.. TransactionCreationStrategyBase
+TransactionCreationStrategyBase <|-- AccountTransactionCreationStrategy
+TransactionCreationStrategyBase <|-- CreditCardTransactionCreationStrategy
+TransactionCreationStrategyBase <|-- TransferTransactionCreationStrategy
+TransactionService o-- ITransactionCreationStrategy
+AccountTransactionCreationStrategy --> TransactionApplier
+TransferTransactionCreationStrategy --> TransactionApplier
+
+@enduml

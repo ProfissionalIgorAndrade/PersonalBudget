@@ -129,6 +129,9 @@ public static class DatabaseSeeder
         context.CreditCards.Add(nubankCard);
         context.CreditCards.Add(itauCard);
 
+        Console.WriteLine("CreditCards: " + itauCard.Id);
+        Console.WriteLine("CreditCards: " + nubankCard.Id);
+
         // Não salvar cartões antes de AddExpense: as faturas vão para o campo privado _statements e,
         // se o cartão já estiver persistido (Unchanged), o provider InMemory pode gerar DbUpdateConcurrencyException
         // ao tentar atualizar faturas que o modelo não rastreou corretamente. Tudo segue num único SaveChanges ao final.
