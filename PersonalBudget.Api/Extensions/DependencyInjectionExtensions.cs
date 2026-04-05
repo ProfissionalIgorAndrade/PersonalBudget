@@ -31,6 +31,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICreditCardService, CreditCardService>();
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<ICreditCardStatementService, CreditCardStatementService>();
+        services.AddScoped<ICreditCardImportService, CreditCardImportService>();
 
         // Transaction creation strategies
         services.AddScoped<ITransactionCreationStrategy, AccountTransactionCreationStrategy>();
