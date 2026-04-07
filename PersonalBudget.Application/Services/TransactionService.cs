@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
+using PersonalBudget.Application.DTOs.Transaction;
 using PersonalBudget.Application.Interfaces;
 
 public class TransactionService : ITransactionService
@@ -167,19 +169,20 @@ public class TransactionService : ITransactionService
         if (query.Page < 1)
             throw new DomainException("Page must be at least 1.");
 
-        var (items, totalCount) = await _transactionQueryRepository.GetByHouseholdAndMonthPagedAsync(
+        var (items, totalCount, periodIncome, periodExpense) = await _transactionQueryRepository.GetByHouseholdAndMonthPagedAsync(
             query.HouseholdId,
             query.Month,
             query.Year,
             query.Page,
-            TransactionsByMonthPageSize);
+            TransactionsByMonthPageSize,
+            query.Frequency);
 
-        return new PaginatedTransactionsResult(items, query.Page, TransactionsByMonthPageSize, totalCount);
+        return new PaginatedTransactionsResult(items, query.Page, TransactionsByMonthPageSize, totalCount, periodIncome, periodExpense);
     }
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByHouseholdAndMonthAsync(GetAllTransactionByHouseholdAndMonthQuery query)
     {
-        return await _transactionQueryRepository.GetByHouseholdAndMonthAsync(query.HouseholdId, query.Month, query.Year);
+        return await _transactionQueryRepository.GetByHouseholdAndMonthAsync(query.HouseholdId, query.Month, query.Year, query.Frequency);
     }
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByHouseholdAsync(GetAllTransactionByHouseholdQuery query)
@@ -189,7 +192,7 @@ public class TransactionService : ITransactionService
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetByAccountAndMonthAsync(GetTransactionsByAccountAndMonthYearQuery query)
     {
-        return await _transactionQueryRepository.GetByAccountAndMonthAsync(query.HouseholdId, query.AccountId, query.Month, query.Year);
+        return await _transactionQueryRepository.GetByAccountAndMonthAsync(query.HouseholdId, query.AccountId, query.Month, query.Year, query.Frequency);
     }
 
     public async Task<PaginatedTransactionsResult> GetByAccountAndMonthPagedAsync(GetTransactionsByAccountAndMonthYearQuery query, int page)
@@ -203,9 +206,90 @@ public class TransactionService : ITransactionService
             query.Month,
             query.Year,
             page,
-            TransactionsByMonthPageSize);
+            TransactionsByMonthPageSize,
+            query.Frequency);
 
-        return new PaginatedTransactionsResult(items, page, TransactionsByMonthPageSize, totalCount);
+        return new PaginatedTransactionsResult(items, page, TransactionsByMonthPageSize, totalCount, 0m, 0m);
+    }
+
+    public Task<TransactionsCategoryGroupResponse> GetGroupedByCategoryForMonthAsync(Guid householdId, int month, int year)
+        => _transactionQueryRepository.GetGroupedByCategoryForMonthAsync(householdId, month, year);
+
+    private static readonly Regex InstallmentPattern = new(@"^(.+)\s+\((\d+)/(\d+)\)$", RegexOptions.Compiled);
+
+    public async Task<IReadOnlyList<ActiveInstallmentGroupDto>> GetActiveInstallmentsAsync(Guid householdId, DateTime upTo)
+    {
+        var all = await _transactionQueryRepository.GetInstallmentTransactionsAsync(householdId);
+
+        // Group by (creditCardId, base description, total count extracted from suffix)
+        var groups = new Dictionary<string, List<GetAllTransactionByUserResponse>>();
+        foreach (var t in all)
+        {
+            var key = BuildInstallmentGroupKey(t);
+            if (!groups.TryGetValue(key, out var list))
+                groups[key] = list = [];
+            list.Add(t);
+        }
+
+        var result = new List<ActiveInstallmentGroupDto>();
+        foreach (var (groupKey, items) in groups)
+        {
+            // Only include groups that have at least one pending installment due <= upTo
+            var pendingUpTo = items
+                .Where(t => t.Status != TransactionStatus.Completed.ToString()
+                         && t.Status != TransactionStatus.Cancelled.ToString()
+                         && t.Date <= upTo)
+                .ToList();
+
+            if (pendingUpTo.Count == 0)
+                continue;
+
+            var first = items[0];
+            var (baseDesc, _, total) = ParseInstallmentDescription(first.Description);
+            var installmentsTotal = total > 0 ? total : items.Count;
+            var installmentsPaid = items.Count(t => t.Status == TransactionStatus.Completed.ToString());
+            var pendingItems = items.Where(t => t.Status != TransactionStatus.Completed.ToString()
+                                             && t.Status != TransactionStatus.Cancelled.ToString()).ToList();
+            var remainingAmount = pendingItems.Sum(t => t.Amount);
+            var nextDue = pendingItems.OrderBy(t => t.Date).FirstOrDefault();
+            var installmentAmount = items.OrderBy(t => t.Date).First().Amount;
+            var totalAmount = items.Sum(t => t.Amount);
+
+            result.Add(new ActiveInstallmentGroupDto(
+                GroupKey: groupKey,
+                Description: baseDesc,
+                CreditCardId: first.CreditCardId,
+                CreditCardName: first.CreditCardName,
+                CategoryId: first.CategoryId,
+                CategoryName: first.CategoryName,
+                InstallmentAmount: installmentAmount,
+                TotalAmount: totalAmount,
+                InstallmentsPaid: installmentsPaid,
+                InstallmentsTotal: installmentsTotal,
+                RemainingAmount: remainingAmount,
+                NextDueDate: nextDue?.Date.ToString("yyyy-MM-dd"),
+                Items: items));
+        }
+
+        return result.OrderBy(g => g.NextDueDate).ToList();
+    }
+
+    private static string BuildInstallmentGroupKey(GetAllTransactionByUserResponse t)
+    {
+        var (baseDesc, _, total) = ParseInstallmentDescription(t.Description);
+        return $"{t.CreditCardId}|{baseDesc}|{total}";
+    }
+
+    private static (string BaseDescription, int Current, int Total) ParseInstallmentDescription(string description)
+    {
+        var match = InstallmentPattern.Match(description);
+        if (match.Success
+            && int.TryParse(match.Groups[2].Value, out var current)
+            && int.TryParse(match.Groups[3].Value, out var total))
+        {
+            return (match.Groups[1].Value, current, total);
+        }
+        return (description, 0, 0);
     }
 
     public async Task<IEnumerable<GetAllTransactionByUserResponse>> GetTransactionByCreditCardStatementAndMonthQuery(GetAllTransactionByCreditCardStatementAndMonthYearQuery query)
