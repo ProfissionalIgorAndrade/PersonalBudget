@@ -1,4 +1,5 @@
 using PersonalBudget.Application.Interfaces;
+using PersonalBudget.Application.Services;
 using PersonalBudget.Application.Services.TransactionCreation;
 using PersonalBudget.Infrastructure.Repositories;
 
@@ -30,6 +31,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<ICreditCardService, CreditCardService>();
         services.AddScoped<ITransactionService, TransactionService>();
+        services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<ICreditCardStatementService, CreditCardStatementService>();
         services.AddScoped<ICreditCardImportService, CreditCardImportService>();
 
