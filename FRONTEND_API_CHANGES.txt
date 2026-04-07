@@ -1,0 +1,264 @@
+============================================================
+  BACKEND API — CHANGELOG FOR FRONTEND (PersonalBudgetUI / Bolso)
+  Date: 2026-04-06
+  Branch: main
+============================================================
+
+This document describes every API change that was applied to the
+PersonalBudget backend. Use it to update the frontend service layer,
+hooks, and UI components.
+
+------------------------------------------------------------
+1. NEW ENDPOINT — GET /api/dashboard/summary
+------------------------------------------------------------
+Purpose : Single aggregated call that replaces 4–5 individual calls
+          on dashboard load.
+
+Query params:
+  month  (int, required)
+  year   (int, required)
+
+Response shape:
+{
+  month: number,
+  year: number,
+  totalIncome: number,
+  totalExpense: number,
+  balance: number,               // totalIncome - totalExpense
+  fixedExpenses: number,
+  variableExpenses: number,
+  installmentsThisMonth: number,
+  creditCardInvoice: number,
+  committedIncomePercent: number, // (fixedExpenses / totalIncome) * 100
+  savingsPercent: number,         // (balance / totalIncome) * 100
+  transactionCount: number
+}
+
+Example: GET /api/dashboard/summary?month=4&year=2026
+
+
+------------------------------------------------------------
+2. NEW ENDPOINT — GET /api/dashboard/trends
+------------------------------------------------------------
+Purpose : Last N months of income/expense aggregates for trend charts.
+
+Query params:
+  months    (int, default 6)  — how many months to return
+  endMonth  (int, default current month)
+  endYear   (int, default current year)
+
+Response shape: array of
+{
+  month: number,
+  year: number,
+  label: string,          // e.g. "Apr/26"
+  totalIncome: number,
+  totalExpense: number,
+  fixedExpenses: number,
+  variableExpenses: number,
+  balance: number
+}
+
+Example: GET /api/dashboard/trends?months=6&endMonth=4&endYear=2026
+
+
+------------------------------------------------------------
+3. NEW ENDPOINT — GET /api/dashboard/opportunities
+------------------------------------------------------------
+Purpose : Categories where current month's expenses are >20% above
+          rolling average of previous N months.
+
+Query params:
+  month          (int, required)
+  year           (int, required)
+  lookbackMonths (int, default 3)
+
+Response shape: array of
+{
+  categoryId: string (uuid),
+  categoryName: string,
+  currentMonthAmount: number,
+  rollingAverage: number,
+  excessAmount: number,
+  excessPercent: number
+}
+
+Example: GET /api/dashboard/opportunities?month=4&year=2026&lookbackMonths=3
+
+
+------------------------------------------------------------
+4. NEW ENDPOINT — GET /api/installments/active
+------------------------------------------------------------
+Purpose : All open installment groups with progress info.
+          Replaces 3–4 per-month fetches used by the installments table.
+
+Query params:
+  upTo  (string, ISO date YYYY-MM-DD, default = today + 3 months)
+        — only groups with a next due date on or before this cutoff
+          are returned.
+
+Response shape: array of
+{
+  groupKey: string,
+  description: string,          // base description, without "(N/M)"
+  creditCardId: string | null,
+  creditCardName: string | null,
+  categoryId: string | null,
+  categoryName: string | null,
+  installmentAmount: number,    // per-installment value (first installment)
+  totalAmount: number,          // sum of all installments
+  installmentsPaid: number,
+  installmentsTotal: number,
+  remainingAmount: number,
+  nextDueDate: string | null,   // ISO date of next pending installment
+  items: Transaction[]          // individual rows (full transaction shape)
+}
+
+Example: GET /api/installments/active?upTo=2026-07-31
+
+
+------------------------------------------------------------
+5. NEW ENDPOINT — GET /api/transactions/month/{month}/year/{year}/grouped-by-category
+------------------------------------------------------------
+Purpose : Expenses and incomes already grouped and summed by category.
+          Replaces client-side iteration over all monthly transactions
+          for pie/bar charts.
+
+Path params:
+  month (int)
+  year  (int)
+
+Response shape:
+{
+  expenses: [
+    { categoryId: string|null, categoryName: string|null, total: number, transactionCount: number }
+  ],
+  incomes: [
+    { categoryId: string|null, categoryName: string|null, total: number, transactionCount: number }
+  ]
+}
+
+Example: GET /api/transactions/month/4/year/2026/grouped-by-category
+
+
+------------------------------------------------------------
+6. NEW ENDPOINT — GET /api/accounts/summary
+------------------------------------------------------------
+Purpose : Consolidated balance + account list in one call.
+          Replaces full account list fetch just to sum balances.
+
+Response shape:
+{
+  totalBalance: number,
+  accounts: [
+    { id: string, name: string, bank: string, balance: number }
+  ]
+}
+
+Note: "name" is the agency value (same as Account.Agency.Value).
+      "bank" is the Bank enum name (e.g. "Nubank", "Itau").
+
+Example: GET /api/accounts/summary
+
+
+------------------------------------------------------------
+7. UPDATED — GET /api/transactions/month/{month}/year/{year}
+------------------------------------------------------------
+New optional query param:
+  frequency  (string) — filter by frequency
+             Accepted values (case-insensitive): Fixed | Variable | Installments
+
+Example: GET /api/transactions/month/4/year/2026?frequency=Installments
+         GET /api/transactions/month/4/year/2026?page=1&frequency=Fixed
+
+
+------------------------------------------------------------
+8. UPDATED — GET /api/accounts/{accountId}/transactions
+------------------------------------------------------------
+New optional query param:
+  frequency  (string) — same values as above
+
+Example: GET /api/accounts/{id}/transactions?month=4&year=2026&frequency=Fixed
+
+
+------------------------------------------------------------
+9. UPDATED — paginated transaction response envelope
+------------------------------------------------------------
+The paginated endpoint (GET /api/transactions/month/{month}/year/{year}?page=N)
+now always includes period-wide totals in the response:
+
+{
+  items: [...],
+  page: number,
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
+  periodTotalIncome: number,    // sum across ALL pages for the month
+  periodTotalExpense: number    // sum across ALL pages for the month
+}
+
+Frontend no longer needs to paginate through all pages to show KPI cards.
+
+
+------------------------------------------------------------
+10. UPDATED — GET /api/households/{householdId}/summary/by-profile
+------------------------------------------------------------
+Response row shape now includes two new fields:
+
+{
+  profileId: string,
+  displayName: string,
+  totalExpenses: number,
+  totalIncome: number,
+  net: number,              // NEW: totalIncome - totalExpenses
+  avatarColor: string       // NEW: deterministic CSS hex color, e.g. "#6366f1"
+}
+
+No request changes needed — same endpoint, same params.
+
+
+------------------------------------------------------------
+11. UPDATED — GET /api/categories (and POST/PUT)
+------------------------------------------------------------
+Categories now support optional display metadata.
+
+GET /api/categories response — each item now includes:
+{
+  id: string,
+  name: string,
+  type: "Income" | "Expense",
+  color: string | null,    // NEW: CSS hex, e.g. "#6366f1"
+  icon: string | null      // NEW: emoji or icon name, e.g. "🏠"
+}
+
+POST /api/categories — request body now accepts optional fields:
+{
+  name: string,
+  type: "Income" | "Expense",
+  color?: string | null,
+  icon?: string | null
+}
+
+PUT /api/categories/{id} — same optional fields in body.
+
+
+------------------------------------------------------------
+NOTES
+------------------------------------------------------------
+
+- All monetary amounts are positive numbers (expenses included).
+  The "type" field ("Income" / "Expense") is the discriminator.
+
+- All date fields use ISO 8601: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ssZ
+
+- Household scoping is resolved automatically from the JWT +
+  X-Household-Id request header. No changes needed in how the
+  frontend passes the header.
+
+- The /api/transactions/grouped-by-category endpoint that existed
+  previously (without month/year filter) is NOT affected. The new
+  endpoint is at month/{month}/year/{year}/grouped-by-category.
+
+============================================================
+END OF DOCUMENT
+============================================================

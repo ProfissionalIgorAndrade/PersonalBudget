@@ -9,7 +9,7 @@ public class CategoryService : ICategoryService
 
     public async Task<Guid> CreateAsync(CreateCategoryCommand command)
     {
-        var category = Category.Create(command.HouseholdId, command.Name, command.Type);
+        var category = Category.Create(command.HouseholdId, command.Name, command.Type, command.Color, command.Icon);
         await _repository.AddAsync(category);
         return category.Id;
     }
@@ -24,7 +24,7 @@ public class CategoryService : ICategoryService
         if (category is null || category.HouseholdId != command.HouseholdId)
             throw new DomainException("Categoria não encontrada.");
 
-        category.Rename(command.Name, command.Type);
+        category.Rename(command.Name, command.Type, command.Color, command.Icon);
         await _repository.UpdateAsync(category);
     }
 

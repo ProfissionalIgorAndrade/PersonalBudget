@@ -51,17 +51,33 @@ public class AccountsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(accounts));
     }
 
+    /// <summary>Saldo total consolidado e lista de contas ativas.</summary>
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetSummary()
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var summary = await _service.GetSummaryAsync(householdId);
+        return Ok(ApiResponse<object>.Ok(summary));
+    }
+
     /// <summary>Transações da conta no mês/ano; exclui <see cref="PaymentMethod.CreditCard"/>.</summary>
     [HttpGet("{accountId}/transactions")]
     public async Task<IActionResult> GetTransactionsByAccountAndMonth(
         Guid accountId,
         [FromQuery] int month,
         [FromQuery] int year,
-        [FromQuery] int? page = null)
+        [FromQuery] int? page = null,
+        [FromQuery] string? frequency = null)
     {
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        var query = new GetTransactionsByAccountAndMonthYearQuery(householdId, accountId, month, year);
+
+        TransactionFrequency? freq = null;
+        if (frequency is not null && Enum.TryParse<TransactionFrequency>(frequency, ignoreCase: true, out var parsedFreq))
+            freq = parsedFreq;
+
+        var query = new GetTransactionsByAccountAndMonthYearQuery(householdId, accountId, month, year, freq);
 
         if (page is null)
         {

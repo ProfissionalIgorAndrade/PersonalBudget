@@ -4,5 +4,7 @@ public record HouseholdProfileSummaryRow(
     Guid ProfileId,
     string DisplayName,
     decimal TotalExpenses,
-    decimal TotalIncome
+    decimal TotalIncome,
+    decimal Net,
+    string? AvatarColor
 );

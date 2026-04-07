@@ -83,14 +83,21 @@ public class TransactionsController : ControllerBase
     }
 
     [HttpGet("month/{month}/year/{year}")]
-    public async Task<IActionResult> GetAllByMonth(int month, int year, [FromQuery] int? page = null)
+    public async Task<IActionResult> GetAllByMonth(
+        int month, int year,
+        [FromQuery] int? page = null,
+        [FromQuery] string? frequency = null)
     {
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
+        TransactionFrequency? freq = null;
+        if (frequency is not null && Enum.TryParse<TransactionFrequency>(frequency, ignoreCase: true, out var parsedFreq))
+            freq = parsedFreq;
+
         if (page is null)
         {
-            var unpagedQuery = new GetAllTransactionByHouseholdAndMonthQuery(householdId, month, year, 1);
+            var unpagedQuery = new GetAllTransactionByHouseholdAndMonthQuery(householdId, month, year, 1, freq);
             var transactions = await _transactionService.GetByHouseholdAndMonthAsync(unpagedQuery);
             return Ok(ApiResponse<object>.Ok(transactions));
         }
@@ -98,9 +105,19 @@ public class TransactionsController : ControllerBase
         if (page < 1)
             return BadRequest(ApiResponse<object?>.Fail("Page must be at least 1."));
 
-        var pagedQuery = new GetAllTransactionByHouseholdAndMonthQuery(householdId, month, year, page.Value);
+        var pagedQuery = new GetAllTransactionByHouseholdAndMonthQuery(householdId, month, year, page.Value, freq);
         var result = await _transactionService.GetByHouseholdAndMonthPagedAsync(pagedQuery);
 
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    /// <summary>Receitas e despesas agrupadas por categoria para o mês.</summary>
+    [HttpGet("month/{month}/year/{year}/grouped-by-category")]
+    public async Task<IActionResult> GetGroupedByCategory(int month, int year)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var result = await _transactionService.GetGroupedByCategoryForMonthAsync(householdId, month, year);
         return Ok(ApiResponse<object>.Ok(result));
     }
 
