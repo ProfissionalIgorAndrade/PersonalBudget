@@ -23,7 +23,7 @@ public class CategoriesController : ControllerBase
     {
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        var id = await _service.CreateAsync(new CreateCategoryCommand(householdId, request.Name, request.Type));
+        var id = await _service.CreateAsync(new CreateCategoryCommand(householdId, request.Name, request.Type, request.Color, request.Icon));
         return CreatedAtAction(nameof(GetAll), new { id }, ApiResponse<object>.Ok(new { Id = id }, "Categoria criada."));
     }
 
@@ -40,7 +40,7 @@ public class CategoriesController : ControllerBase
     {
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        await _service.UpdateAsync(new UpdateCategoryCommand(householdId, id, request.Name, request.Type));
+        await _service.UpdateAsync(new UpdateCategoryCommand(householdId, id, request.Name, request.Type, request.Color, request.Icon));
         return Ok(ApiResponse<object?>.Ok(null, "Categoria atualizada."));
     }
 

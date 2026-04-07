@@ -24,8 +24,12 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(c => c.HouseholdId)
             .IsRequired();
 
+        builder.Property(c => c.Color)
+            .HasMaxLength(20);
+
+        builder.Property(c => c.Icon)
+            .HasMaxLength(50);
+
         builder.HasIndex(c => new { c.HouseholdId, c.Name });
-
-
     }
 }
