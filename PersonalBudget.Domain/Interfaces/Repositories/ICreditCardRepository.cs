@@ -5,5 +5,7 @@ public interface ICreditCardRepository
     Task<CreditCard?> GetByIdAsync(Guid id);
     Task<CreditCard?> GetByIdWithStatementsAsync(Guid id);
     Task<IEnumerable<CreditCard>> GetByHouseholdAsync(Guid householdId);
+    /// <summary>Desativa (<see cref="CreditCard.IsActive"/>) todos os cartões ainda ativos vinculados à conta de débito.</summary>
+    Task DeactivateByAccountIdAsync(Guid accountId);
     Task SaveChangesAsync();
 }
