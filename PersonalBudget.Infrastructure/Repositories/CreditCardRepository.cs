@@ -45,4 +45,17 @@ public class CreditCardRepository : ICreditCardRepository
             .Where(c => c.HouseholdId == householdId && c.IsActive)
             .ToListAsync();
     }
+
+    public async Task DeactivateByAccountIdAsync(Guid accountId)
+    {
+        var creditCards = await _context.CreditCards
+            .Where(c => c.AccountId == accountId && c.IsActive)
+            .ToListAsync();
+
+        foreach (var card in creditCards)
+            card.Deactivate();
+
+        if (creditCards.Count > 0)
+            await _context.SaveChangesAsync();
+    }
 }
