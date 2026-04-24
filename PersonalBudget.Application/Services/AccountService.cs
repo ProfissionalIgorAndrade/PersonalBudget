@@ -3,10 +3,12 @@ using PersonalBudget.Application.DTOs.Account;
 public class AccountService : IAccountService
 {
     private readonly IAccountRepository _repository;
+    private readonly ICreditCardRepository _creditCardRepository;
 
-    public AccountService(IAccountRepository repository)
+    public AccountService(IAccountRepository repository, ICreditCardRepository creditCardRepository)
     {
         _repository = repository;
+        _creditCardRepository = creditCardRepository;
     }
 
     public async Task<Guid> CreateAsync(CreateAccountCommand command)
@@ -66,5 +68,6 @@ public class AccountService : IAccountService
         account.Deactivate();
 
         await _repository.UpdateAsync(account);
+        await _creditCardRepository.DeactivateByAccountIdAsync(command.AccountId);
     }
 }
