@@ -153,6 +153,18 @@ public class Transaction
         AttributionProfileId = attributionProfileId;
     }
 
+    /// <summary>Usado ao editar data da transação de cartão para outro período (fatura aberta).</summary>
+    public void ChangeCreditCardStatement(Guid statementId)
+    {
+        if (PaymentMethod != PaymentMethod.CreditCard || CreditCardId is null)
+            throw new DomainException("Apenas transações de cartão de crédito podem ter a fatura alterada.");
+
+        if (statementId == Guid.Empty)
+            throw new DomainException("Fatura inválida.");
+
+        StatementId = statementId;
+    }
+
     public void Complete()
     {
         if (Status != TransactionStatus.Pending)

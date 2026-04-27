@@ -112,6 +112,36 @@ public class CreditCardStatement
         throw new DomainException($"Tipo de transação não suportado na fatura: {transactionType}.");
     }
 
+    /// <summary>Desfaz o efeito de um lançamento no total (edição ou remoção). Apenas fatura aberta.</summary>
+    public void RemoveTransactionContribution(Money amount, TransactionType transactionType)
+    {
+        if (Status != BillStatus.Open)
+            throw new DomainException("Não é possível alterar valores em uma fatura fechada ou paga.");
+
+        if (transactionType == TransactionType.Expense)
+        {
+            var newTotal = TotalAmount.Amount - amount.Amount;
+            if (newTotal < 0)
+                newTotal = 0;
+            TotalAmount = new Money(newTotal);
+            return;
+        }
+
+        if (transactionType == TransactionType.Income)
+        {
+            TotalAmount = TotalAmount.Add(amount);
+            return;
+        }
+
+        throw new DomainException($"Tipo de transação não suportado na fatura: {transactionType}.");
+    }
+
+    public void ReplaceTransactionContribution(Money oldAmount, Money newAmount, TransactionType transactionType)
+    {
+        RemoveTransactionContribution(oldAmount, transactionType);
+        AddTransaction(newAmount, transactionType);
+    }
+
     public void Close()
     {
         if (Status != BillStatus.Open)

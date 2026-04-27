@@ -10,6 +10,8 @@ public class TransactionService : ITransactionService
     private readonly ITransactionRepository _transactionRepository;
     private readonly ITransactionQueryRepository _transactionQueryRepository;
     private readonly IAccountRepository _accountRepository;
+    private readonly ICreditCardRepository _creditCardRepository;
+    private readonly ICreditCardStatementRepository _creditCardStatementRepository;
     private readonly IHouseholdMemberProfileRepository _profileRepository;
     private readonly IReadOnlyDictionary<PaymentMethod, ITransactionCreationStrategy> _creationStrategies;
 
@@ -17,12 +19,16 @@ public class TransactionService : ITransactionService
         ITransactionRepository transactionRepository,
         ITransactionQueryRepository transactionQueryRepository,
         IAccountRepository accountRepository,
+        ICreditCardRepository creditCardRepository,
+        ICreditCardStatementRepository creditCardStatementRepository,
         IHouseholdMemberProfileRepository profileRepository,
         IEnumerable<ITransactionCreationStrategy> creationStrategies)
     {
         _transactionRepository = transactionRepository;
         _transactionQueryRepository = transactionQueryRepository;
         _accountRepository = accountRepository;
+        _creditCardRepository = creditCardRepository;
+        _creditCardStatementRepository = creditCardStatementRepository;
         _profileRepository = profileRepository;
         _creationStrategies = creationStrategies.ToDictionary(s => s.PaymentMethod);
     }
@@ -317,6 +323,10 @@ public class TransactionService : ITransactionService
 
         EnsureEditableForDetails(transaction);
 
+        var isCreditCard = transaction.PaymentMethod == PaymentMethod.CreditCard || transaction.CreditCardId is not null;
+        if (isCreditCard)
+            await EnsureCreditCardTransactionEditableAsync(transaction);
+
         if (command.AttributionProfileId is { } pid && pid != Guid.Empty)
         {
             var p = await _profileRepository.GetByIdAsync(pid);
@@ -338,6 +348,9 @@ public class TransactionService : ITransactionService
 
         if (newExpiration is not null && transaction.Frequency != TransactionFrequency.Fixed)
             throw new DomainException("ExpirationDate só é permitido com TransactionFrequency.Fixed.");
+
+        if (isCreditCard)
+            await ApplyCreditCardStatementAdjustmentsAsync(transaction, command.HouseholdId, newAmount, newDateVo);
 
         transaction.UpdateDetails(
             new Money(newAmount),
@@ -361,11 +374,82 @@ public class TransactionService : ITransactionService
         if (transaction.Status == TransactionStatus.Completed)
             throw new DomainException("Transações concluídas não podem ser editadas.");
 
-        if (transaction.PaymentMethod == PaymentMethod.CreditCard || transaction.CreditCardId is not null)
-            throw new DomainException("Transações de cartão de crédito não podem ser editadas por esta operação.");
-
         if (transaction.TransferId is not null || transaction.PaymentMethod == PaymentMethod.Transfer)
             throw new DomainException("Transferências não podem ser editadas por esta operação.");
+    }
+
+    private async Task EnsureCreditCardTransactionEditableAsync(Transaction transaction)
+    {
+        if (transaction.StatementId is null)
+            throw new DomainException("Transação de cartão sem fatura associada.");
+
+        var statement = await _creditCardStatementRepository.GetByIdAsync(transaction.StatementId.Value);
+        if (statement is null)
+            throw new DomainException("Fatura não encontrada.");
+
+        if (statement.Status != BillStatus.Open)
+            throw new DomainException("Só é possível editar transações enquanto a fatura estiver aberta.");
+    }
+
+    private async Task ApplyCreditCardStatementAdjustmentsAsync(
+        Transaction transaction,
+        Guid householdId,
+        decimal newAmount,
+        TransactionDate newDateVo)
+    {
+        var creditCard = await _creditCardRepository.GetByIdAsync(transaction.CreditCardId!.Value);
+        if (creditCard is null || creditCard.HouseholdId != householdId)
+            throw new DomainException("Cartão de crédito não encontrado.");
+
+        var oldStatement = await _creditCardStatementRepository.GetByIdAsync(transaction.StatementId!.Value);
+        if (oldStatement is null)
+            throw new DomainException("Fatura não encontrada.");
+
+        if (oldStatement.Status != BillStatus.Open)
+            throw new DomainException("Só é possível editar transações enquanto a fatura estiver aberta.");
+
+        var newMoney = new Money(newAmount);
+        var targetDate = newDateVo.Value;
+
+        var targetOpen = await _creditCardStatementRepository.GetOpenStatementForDateAsync(creditCard.Id, targetDate);
+        CreditCardStatement targetStatement;
+        var createdNewStatement = false;
+
+        if (targetOpen is not null)
+        {
+            targetStatement = targetOpen;
+        }
+        else
+        {
+            var covering = await _creditCardStatementRepository.GetByCreditCardAndContainingDateAsync(creditCard.Id, targetDate);
+            if (covering is not null)
+                throw new DomainException("Não é possível alterar para esta data: a fatura deste período não está aberta.");
+
+            targetStatement = CreditCardStatement.CreateForDate(creditCard.Id, targetDate, creditCard.ClosingDay, creditCard.DueDay);
+            targetStatement.AddTransaction(newMoney, transaction.Type);
+            await _creditCardStatementRepository.AddAsync(targetStatement);
+            createdNewStatement = true;
+        }
+
+        var movingToDifferentStatement = targetStatement.Id != oldStatement.Id;
+
+        if (movingToDifferentStatement)
+        {
+            oldStatement.RemoveTransactionContribution(transaction.Amount, transaction.Type);
+
+            if (!createdNewStatement)
+                targetStatement.AddTransaction(newMoney, transaction.Type);
+
+            await _creditCardStatementRepository.UpdateAsync(oldStatement);
+            await _creditCardStatementRepository.UpdateAsync(targetStatement);
+
+            transaction.ChangeCreditCardStatement(targetStatement.Id);
+        }
+        else if (transaction.Amount.Amount != newAmount)
+        {
+            oldStatement.ReplaceTransactionContribution(transaction.Amount, newMoney, transaction.Type);
+            await _creditCardStatementRepository.UpdateAsync(oldStatement);
+        }
     }
 
     private static DateTime? ResolveOptionalDateField(string? commandValue, DateTime? current)

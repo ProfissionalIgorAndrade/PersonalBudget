@@ -29,12 +29,23 @@ public class CreditCardStatementRepository : ICreditCardStatementRepository
 
     public async Task<CreditCardStatement?> GetOpenStatementForDateAsync(Guid creditCardId, DateTime date)
     {
+        var d = date.Date;
         return await _context.CreditCardStatements
             .FirstOrDefaultAsync(x =>
                 x.CreditCardId == creditCardId &&
-                x.PeriodStart <= date &&
-                x.PeriodEnd >= date &&
+                x.PeriodStart <= d &&
+                x.PeriodEnd >= d &&
                 x.Status == BillStatus.Open);
+    }
+
+    public async Task<CreditCardStatement?> GetByCreditCardAndContainingDateAsync(Guid creditCardId, DateTime date)
+    {
+        var d = date.Date;
+        return await _context.CreditCardStatements
+            .FirstOrDefaultAsync(x =>
+                x.CreditCardId == creditCardId &&
+                x.PeriodStart <= d &&
+                x.PeriodEnd >= d);
     }
 
     public async Task<CreditCardStatement?> GetByIdAsync(Guid id)
