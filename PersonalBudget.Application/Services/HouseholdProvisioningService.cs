@@ -21,10 +21,7 @@ public class HouseholdProvisioningService : IHouseholdProvisioningService
         var name = string.IsNullOrWhiteSpace(displayName) ? "Eu" : displayName.Trim();
         var household = Household.Create($"{name} — lar");
         await _households.AddAsync(household);
-
         await _memberships.AddAsync(HouseholdMembership.CreateOwner(household.Id, userId));
-
         await _profiles.AddAsync(HouseholdMemberProfile.CreateLinkedUser(household.Id, userId, name, 0));
-        await _profiles.AddAsync(HouseholdMemberProfile.CreateJoint("Família", household.Id, 1));
     }
 }
