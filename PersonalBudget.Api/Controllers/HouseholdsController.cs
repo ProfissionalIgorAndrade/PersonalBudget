@@ -25,6 +25,33 @@ public class HouseholdsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(list));
     }
 
+    /// <summary>Convites pendentes cujo destinatário é o seu e-mail (inclui token para aceitar).</summary>
+    [HttpGet("invites/me")]
+    public async Task<IActionResult> ListMyPendingInvites()
+    {
+        var userId = UserContext.GetUserId(User);
+        var list = await _householdService.ListMyPendingInvitesAsync(userId);
+        return Ok(ApiResponse<object>.Ok(list));
+    }
+
+    /// <summary>Convites pendentes enviados por este lar (sem token).</summary>
+    [HttpGet("{householdId:guid}/invites/pending")]
+    public async Task<IActionResult> ListPendingInvitesForHousehold(Guid householdId)
+    {
+        var userId = UserContext.GetUserId(User);
+        var list = await _householdService.ListPendingInvitesForHouseholdAsync(userId, householdId);
+        return Ok(ApiResponse<object>.Ok(list));
+    }
+
+    /// <summary>Membros que entraram como convidados (papel Member após aceitar convite).</summary>
+    [HttpGet("{householdId:guid}/members/invited")]
+    public async Task<IActionResult> ListInvitedMembers(Guid householdId)
+    {
+        var userId = UserContext.GetUserId(User);
+        var list = await _householdService.ListInvitedMembersAsync(userId, householdId);
+        return Ok(ApiResponse<object>.Ok(list));
+    }
+
     /// <summary>Perfis de correspondente (Igor, Andreza, Família, etc.) para atribuição de lançamentos.</summary>
     [HttpGet("{householdId:guid}/profiles")]
     public async Task<IActionResult> GetProfiles(Guid householdId)
@@ -42,6 +69,21 @@ public class HouseholdsController : ControllerBase
         var created = await _householdService.CreateJointProfileAsync(userId, householdId, request.DisplayName);
         return CreatedAtAction(nameof(GetProfiles), new { householdId },
             ApiResponse<object>.Ok(created, "Perfil de correspondente criado."));
+    }
+
+    /// <summary>
+    /// Remove um correspondente: migra todos os lançamentos para outro perfil; contas e cartões só quando ambos forem perfis vinculados a usuários diferentes (titularidade).
+    /// </summary>
+    [HttpPost("{householdId:guid}/profiles/delete")]
+    public async Task<IActionResult> DeleteProfile(Guid householdId, [FromBody] DeleteHouseholdMemberProfileRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        await _householdService.DeleteProfileAndMergeAsync(
+            userId,
+            householdId,
+            request.RemoveProfileId,
+            request.MergeIntoProfileId);
+        return Ok(ApiResponse<object?>.Ok(null, "Perfil removido e dados migrados."));
     }
 
     /// <summary>Resumo por pessoa: totais de saídas e ganhos por correspondente no mês/ano.</summary>
