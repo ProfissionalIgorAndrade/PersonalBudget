@@ -29,7 +29,18 @@ public class UserRepository : IUserRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == id);
     }
-    
+
+    public async Task<IReadOnlyList<User>> GetByIdsAsync(IReadOnlyList<Guid> ids)
+    {
+        if (ids.Count == 0)
+            return [];
+
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

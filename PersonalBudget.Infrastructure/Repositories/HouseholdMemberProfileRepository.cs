@@ -21,6 +21,21 @@ public class HouseholdMemberProfileRepository : IHouseholdMemberProfileRepositor
         await SaveChangesAsync();
     }
 
+    public async Task RemoveAsync(HouseholdMemberProfile profile)
+    {
+        _context.HouseholdMemberProfiles.Remove(profile);
+        await SaveChangesAsync();
+    }
+
+    public async Task BulkUpdateAsync(IReadOnlyList<HouseholdMemberProfile> profiles)
+    {
+        if (profiles.Count == 0)
+            return;
+
+        _context.HouseholdMemberProfiles.UpdateRange(profiles);
+        await SaveChangesAsync();
+    }
+
     public async Task<IReadOnlyList<HouseholdMemberProfile>> GetByHouseholdAsync(Guid householdId)
     {
         return await _context.HouseholdMemberProfiles

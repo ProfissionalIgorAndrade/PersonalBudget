@@ -20,7 +20,16 @@ public class TransactionRepository : ITransactionRepository
         _context.Transactions.Update(transaction);
         await SaveChangesAsync();
     }
-    
+
+    public async Task BulkUpdateAsync(IReadOnlyList<Transaction> transactions)
+    {
+        if (transactions.Count == 0)
+            return;
+
+        _context.Transactions.UpdateRange(transactions);
+        await SaveChangesAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
@@ -62,6 +71,17 @@ public class TransactionRepository : ITransactionRepository
         return await _context.Transactions
             .Where(t => t.HouseholdId == householdId)
             .OrderByDescending(t => t.Date.Value)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Transaction>> GetByHouseholdAndAttributionProfileAsync(
+        Guid householdId,
+        Guid attributionProfileId)
+    {
+        return await _context.Transactions
+            .Where(t =>
+                t.HouseholdId == householdId &&
+                t.AttributionProfileId == attributionProfileId)
             .ToListAsync();
     }
 

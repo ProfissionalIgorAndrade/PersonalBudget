@@ -46,6 +46,29 @@ public class CreditCardRepository : ICreditCardRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<CreditCard>> GetAllByHouseholdAsync(Guid householdId)
+    {
+        return await _context.CreditCards
+            .Where(c => c.HouseholdId == householdId)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<CreditCard>> GetAllByHouseholdAndUserAsync(Guid householdId, Guid userId)
+    {
+        return await _context.CreditCards
+            .Where(c => c.HouseholdId == householdId && c.UserId == userId)
+            .ToListAsync();
+    }
+
+    public async Task BulkUpdateAsync(IReadOnlyList<CreditCard> creditCards)
+    {
+        if (creditCards.Count == 0)
+            return;
+
+        _context.CreditCards.UpdateRange(creditCards);
+        await SaveChangesAsync();
+    }
+
     public async Task DeactivateByAccountIdAsync(Guid accountId)
     {
         var creditCards = await _context.CreditCards

@@ -34,6 +34,29 @@ public class HouseholdInviteRepository : IHouseholdInviteRepository
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<HouseholdInvite>> GetPendingInvitesByHouseholdAsync(Guid householdId)
+    {
+        return await _context.HouseholdInvites
+            .AsNoTracking()
+            .Where(i =>
+                i.HouseholdId == householdId &&
+                i.Status == HouseholdInviteStatus.Pending)
+            .OrderBy(i => i.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<HouseholdInvite>> GetPendingInvitesByInviteeEmailAsync(string emailNormalized)
+    {
+        var n = emailNormalized.Trim().ToLowerInvariant();
+        return await _context.HouseholdInvites
+            .AsNoTracking()
+            .Where(i =>
+                i.InviteeEmailNormalized == n &&
+                i.Status == HouseholdInviteStatus.Pending)
+            .OrderBy(i => i.ExpiresAt)
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

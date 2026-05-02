@@ -28,6 +28,29 @@ public class AccountRepository : IAccountRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Account>> GetAllByHouseholdIdAsync(Guid householdId)
+    {
+        return await _context.Accounts
+            .Where(a => a.HouseholdId == householdId)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Account>> GetAllByHouseholdAndUserAsync(Guid householdId, Guid userId)
+    {
+        return await _context.Accounts
+            .Where(a => a.HouseholdId == householdId && a.UserId == userId)
+            .ToListAsync();
+    }
+
+    public async Task BulkUpdateAsync(IReadOnlyList<Account> accounts)
+    {
+        if (accounts.Count == 0)
+            return;
+
+        _context.Accounts.UpdateRange(accounts);
+        await SaveChangesAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

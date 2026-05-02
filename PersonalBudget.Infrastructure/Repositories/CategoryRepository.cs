@@ -29,6 +29,25 @@ public class CategoryRepository : ICategoryRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Category>> GetAllByHouseholdAsync(Guid householdId)
+    {
+        return await _context.Categories
+            .Where(c => c.HouseholdId == householdId)
+            .ToListAsync();
+    }
+
+    public async Task RemoveByHouseholdAsync(Guid householdId)
+    {
+        var categories = await _context.Categories
+            .Where(c => c.HouseholdId == householdId)
+            .ToListAsync();
+        if (categories.Count == 0)
+            return;
+
+        _context.Categories.RemoveRange(categories);
+        await SaveChangesAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

@@ -15,6 +15,12 @@ public class HouseholdRepository : IHouseholdRepository
         await SaveChangesAsync();
     }
 
+    public async Task RemoveAsync(Household household)
+    {
+        _context.Households.Remove(household);
+        await SaveChangesAsync();
+    }
+
     public async Task<Household?> GetByIdAsync(Guid id)
     {
         return await _context.Households.FirstOrDefaultAsync(h => h.Id == id);
