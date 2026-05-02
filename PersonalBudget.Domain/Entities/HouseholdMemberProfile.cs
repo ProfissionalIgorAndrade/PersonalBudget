@@ -44,4 +44,16 @@ public class HouseholdMemberProfile
 
     public static HouseholdMemberProfile CreateJoint(string displayName, Guid householdId, int sortOrder = 0)
         => new(householdId, HouseholdMemberProfileKind.Joint, displayName, null, sortOrder);
+
+    /// <summary>Move perfil compartilhado para outro lar (mantém o mesmo Id para referências de transações).</summary>
+    public void RelocateToHousehold(Guid newHouseholdId, int newSortOrder)
+    {
+        if (newHouseholdId == Guid.Empty)
+            throw new DomainException("Lar inválido.");
+        if (Kind != HouseholdMemberProfileKind.Joint)
+            throw new DomainException("Apenas perfis compartilhados podem ser relocados desta forma.");
+
+        HouseholdId = newHouseholdId;
+        SortOrder = newSortOrder;
+    }
 }

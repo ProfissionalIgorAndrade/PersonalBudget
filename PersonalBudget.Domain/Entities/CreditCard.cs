@@ -63,6 +63,24 @@ public class CreditCard
     public void Deactivate()
         => IsActive = false;
 
+    /// <summary>Transferência de titularidade do cartão no mesmo lar (ex.: fusão de perfis vinculados).</summary>
+    public void ReassignUserId(Guid newUserId)
+    {
+        if (newUserId == Guid.Empty)
+            throw new DomainException("Usuário inválido.");
+
+        UserId = newUserId;
+    }
+
+    /// <summary>Move o cartão para outro lar (ex.: fusão ao aceitar convite).</summary>
+    public void RelocateToHousehold(Guid newHouseholdId)
+    {
+        if (newHouseholdId == Guid.Empty)
+            throw new DomainException("Lar inválido.");
+
+        HouseholdId = newHouseholdId;
+    }
+
     public CreditCardStatement GetOrCreateOpenStatement(DateTime transactionDate)
     {
         var statement = _statements

@@ -214,4 +214,32 @@ public class Transaction
                 throw new DomainException($"O status {newStatus} não é permitido para esta operação.");
         }
     }
+
+    /// <summary>Reatribui correspondente ao fundir/excluir perfil no mesmo lar (inclui lançamentos concluídos).</summary>
+    public void ReassignAttributionProfileForMerge(Guid newAttributionProfileId)
+    {
+        if (newAttributionProfileId == Guid.Empty)
+            throw new DomainException("Correspondente inválido.");
+
+        AttributionProfileId = newAttributionProfileId;
+    }
+
+    /// <summary>
+    /// Atualiza lar, correspondente e categoria ao migrar dados para o lar do convite.
+    /// Permite alterar lançamentos concluídos (regra normal de edição não se aplica).
+    /// </summary>
+    public void ApplyInviteAcceptanceMigration(
+        Guid newHouseholdId,
+        Guid newAttributionProfileId,
+        Guid? newCategoryId)
+    {
+        if (newHouseholdId == Guid.Empty)
+            throw new DomainException("Lar inválido.");
+        if (newAttributionProfileId == Guid.Empty)
+            throw new DomainException("Correspondente inválido.");
+
+        HouseholdId = newHouseholdId;
+        AttributionProfileId = newAttributionProfileId;
+        CategoryId = newCategoryId;
+    }
 }
