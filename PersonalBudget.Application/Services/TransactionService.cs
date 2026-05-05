@@ -325,7 +325,7 @@ public class TransactionService : ITransactionService
 
         var isCreditCard = transaction.PaymentMethod == PaymentMethod.CreditCard || transaction.CreditCardId is not null;
         if (isCreditCard)
-            await EnsureCreditCardTransactionEditableAsync(transaction);
+            await EnsureCreditCardStatementIsOpenForMutationAsync(transaction, "editar");
 
         if (command.AttributionProfileId is { } pid && pid != Guid.Empty)
         {
@@ -378,8 +378,13 @@ public class TransactionService : ITransactionService
             throw new DomainException("Transferências não podem ser editadas por esta operação.");
     }
 
-    private async Task EnsureCreditCardTransactionEditableAsync(Transaction transaction)
+    /// <param name="deniedActionVerb">Frase no infinitivo, ex.: "editar", "excluir", "alterar o status de".</param>
+    private async Task EnsureCreditCardStatementIsOpenForMutationAsync(Transaction transaction, string deniedActionVerb)
     {
+        var isCreditCard = transaction.PaymentMethod == PaymentMethod.CreditCard || transaction.CreditCardId is not null;
+        if (!isCreditCard)
+            return;
+
         if (transaction.StatementId is null)
             throw new DomainException("Transação de cartão sem fatura associada.");
 
@@ -388,7 +393,7 @@ public class TransactionService : ITransactionService
             throw new DomainException("Fatura não encontrada.");
 
         if (statement.Status != BillStatus.Open)
-            throw new DomainException("Só é possível editar transações enquanto a fatura estiver aberta.");
+            throw new DomainException($"Não é possível {deniedActionVerb} transações de cartão em fatura fechada ou paga.");
     }
 
     private async Task ApplyCreditCardStatementAdjustmentsAsync(
@@ -406,7 +411,7 @@ public class TransactionService : ITransactionService
             throw new DomainException("Fatura não encontrada.");
 
         if (oldStatement.Status != BillStatus.Open)
-            throw new DomainException("Só é possível editar transações enquanto a fatura estiver aberta.");
+            throw new DomainException("Não é possível editar transações de cartão em fatura fechada ou paga.");
 
         var newMoney = new Money(newAmount);
         var targetDate = newDateVo.Value;
@@ -486,6 +491,8 @@ public class TransactionService : ITransactionService
         if (transaction is null || transaction.HouseholdId != command.HouseholdId)
             throw new DomainException("Transação não encontrada.");
 
+        await EnsureCreditCardStatementIsOpenForMutationAsync(transaction, "alterar o status de");
+
         var previousStatus = transaction.Status;
 
         if (command.Status == TransactionStatus.Pending && previousStatus == TransactionStatus.Completed)
@@ -536,6 +543,8 @@ public class TransactionService : ITransactionService
                 skippedIds.Add(transaction.Id);
                 continue;
             }
+
+            await EnsureCreditCardStatementIsOpenForMutationAsync(transaction, "excluir");
 
             toDelete.Add(transaction);
         }
