@@ -58,69 +58,7 @@ public class TransactionsController : ControllerBase
         return CreatedAtAction(nameof(GetAll), new { accountId = request.AccountId },
             ApiResponse<object>.Ok(new { TransactionId = transactionId }, "Transação criada."));
     }
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var userId = UserContext.GetUserId(User);
-        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-
-        var query = new GetAllTransactionByHouseholdQuery(householdId);
-        var transactions = await _transactionService.GetByHouseholdAsync(query);
-
-        return Ok(ApiResponse<object>.Ok(transactions));
-    }
-
-
-    [HttpGet("id/{transactionId}")]
-    public async Task<IActionResult> GetById(Guid transactionId)
-    {
-        var userId = UserContext.GetUserId(User);
-        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        var transaction = await _transactionService.GetByIdAsync(transactionId, householdId);
-
-        return Ok(ApiResponse<object>.Ok(transaction));
-    }
-
-    [HttpGet("month/{month}/year/{year}")]
-    public async Task<IActionResult> GetAllByMonth(
-        int month, int year,
-        [FromQuery] int? page = null,
-        [FromQuery] string? frequency = null)
-    {
-        var userId = UserContext.GetUserId(User);
-        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-
-        TransactionFrequency? freq = null;
-        if (frequency is not null && Enum.TryParse<TransactionFrequency>(frequency, ignoreCase: true, out var parsedFreq))
-            freq = parsedFreq;
-
-        if (page is null)
-        {
-            var unpagedQuery = new GetAllTransactionByHouseholdAndMonthQuery(householdId, month, year, 1, freq);
-            var transactions = await _transactionService.GetByHouseholdAndMonthAsync(unpagedQuery);
-            return Ok(ApiResponse<object>.Ok(transactions));
-        }
-
-        if (page < 1)
-            return BadRequest(ApiResponse<object?>.Fail("Page must be at least 1."));
-
-        var pagedQuery = new GetAllTransactionByHouseholdAndMonthQuery(householdId, month, year, page.Value, freq);
-        var result = await _transactionService.GetByHouseholdAndMonthPagedAsync(pagedQuery);
-
-        return Ok(ApiResponse<object>.Ok(result));
-    }
-
-    /// <summary>Receitas e despesas agrupadas por categoria para o mês.</summary>
-    [HttpGet("month/{month}/year/{year}/grouped-by-category")]
-    public async Task<IActionResult> GetGroupedByCategory(int month, int year)
-    {
-        var userId = UserContext.GetUserId(User);
-        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        var result = await _transactionService.GetGroupedByCategoryForMonthAsync(householdId, month, year);
-        return Ok(ApiResponse<object>.Ok(result));
-    }
-
+    
     [HttpPatch("{transactionId:guid}")]
     public async Task<IActionResult> Update(
         Guid transactionId,
@@ -206,5 +144,67 @@ public class TransactionsController : ControllerBase
             result.SkippedCount,
             result.SkippedIds
         }, message));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var query = new GetAllTransactionByHouseholdQuery(householdId);
+        var transactions = await _transactionService.GetByHouseholdAsync(query);
+
+        return Ok(ApiResponse<object>.Ok(transactions));
+    }
+
+
+    [HttpGet("id/{transactionId}")]
+    public async Task<IActionResult> GetById(Guid transactionId)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var transaction = await _transactionService.GetByIdAsync(transactionId, householdId);
+
+        return Ok(ApiResponse<object>.Ok(transaction));
+    }
+
+    [HttpGet("month/{month}/year/{year}")]
+    public async Task<IActionResult> GetAllByMonth(
+        int month, int year,
+        [FromQuery] int? page = null,
+        [FromQuery] string? frequency = null)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        TransactionFrequency? freq = null;
+        if (frequency is not null && Enum.TryParse<TransactionFrequency>(frequency, ignoreCase: true, out var parsedFreq))
+            freq = parsedFreq;
+
+        if (page is null)
+        {
+            var unpagedQuery = new GetAllTransactionByHouseholdAndMonthQuery(householdId, month, year, 1, freq);
+            var transactions = await _transactionService.GetByHouseholdAndMonthAsync(unpagedQuery);
+            return Ok(ApiResponse<object>.Ok(transactions));
+        }
+
+        if (page < 1)
+            return BadRequest(ApiResponse<object?>.Fail("Page must be at least 1."));
+
+        var pagedQuery = new GetAllTransactionByHouseholdAndMonthQuery(householdId, month, year, page.Value, freq);
+        var result = await _transactionService.GetByHouseholdAndMonthPagedAsync(pagedQuery);
+
+        return Ok(ApiResponse<object>.Ok(result));
+    }
+
+    /// <summary>Receitas e despesas agrupadas por categoria para o mês.</summary>
+    [HttpGet("month/{month}/year/{year}/grouped-by-category")]
+    public async Task<IActionResult> GetGroupedByCategory(int month, int year)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var result = await _transactionService.GetGroupedByCategoryForMonthAsync(householdId, month, year);
+        return Ok(ApiResponse<object>.Ok(result));
     }
 }
