@@ -139,6 +139,10 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
 
         if (statement is null)
         {
+            var covering = await _creditCardStatementRepository.GetByCreditCardAndContainingDateAsync(creditCard.Id, date);
+            if (covering is not null && covering.Status != BillStatus.Open)
+                throw new DomainException("Não é possível lançar transações em fatura fechada ou já paga.");
+
             statement = CreditCardStatement.CreateForDate(creditCard.Id, date, creditCard.ClosingDay, creditCard.DueDay);
             statement.AddTransaction(amount, transactionType);
             await _creditCardStatementRepository.AddAsync(statement);
