@@ -69,10 +69,11 @@ var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 await context.Database.MigrateAsync();
 
 if (app.Environment.IsDevelopment())
+{
     DevUser.Id = await DatabaseSeeder.SeedAsync(context);
-
-app.UseSwagger();
-app.UseSwaggerUI();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseCors("AllowAll");
 app.UseMiddleware<ExceptionHandlingMiddleware>();
