@@ -67,7 +67,9 @@ using var scope = app.Services.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
 await context.Database.MigrateAsync();
-DevUser.Id = await DatabaseSeeder.SeedAsync(context);
+
+if (app.Environment.IsDevelopment())
+    DevUser.Id = await DatabaseSeeder.SeedAsync(context);
 
 app.UseSwagger();
 app.UseSwaggerUI();
