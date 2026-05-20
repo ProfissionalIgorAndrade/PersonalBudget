@@ -28,6 +28,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 .Where(cc => t.CreditCardId != null && cc.Id == t.CreditCardId)
                 .DefaultIfEmpty()
             where t.HouseholdId == householdId
+            orderby t.Date.Value descending
             select new GetAllTransactionByUserResponse(
                 t.Id, t.AccountId, a.Agency.Value,
                 t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
@@ -129,7 +130,6 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByHouseholdAsync(Guid householdId)
     {
         return await BuildFullTransactionQuery(householdId)
-            .OrderByDescending(t => t.Date)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -144,7 +144,6 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             query = query.Where(t => t.Frequency == frequency.Value.ToString());
 
         return await query
-            .OrderByDescending(t => t.Date)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -184,7 +183,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
         if (frequency.HasValue)
             query = query.Where(t => t.Frequency == frequency.Value.ToString());
 
-        return await query.OrderByDescending(t => t.Date).AsNoTracking().ToListAsync();
+        return await query.AsNoTracking().ToListAsync();
     }
 
     public async Task<(IReadOnlyList<GetAllTransactionByUserResponse> Items, int TotalCount)> GetByAccountAndMonthPagedAsync(
@@ -201,7 +200,6 @@ public class TransactionQueryRepository : ITransactionQueryRepository
 
         var totalCount = await query.AsNoTracking().CountAsync();
         var items = await query
-            .OrderByDescending(t => t.Date)
             .AsNoTracking()
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -373,12 +371,13 @@ public class TransactionQueryRepository : ITransactionQueryRepository
 
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetInstallmentTransactionsAsync(Guid householdId)
     {
-        return await BuildFullTransactionQuery(householdId)
+        var results = await BuildFullTransactionQuery(householdId)
             .Where(t => t.Frequency == TransactionFrequency.Installments.ToString()
                      && t.Status != TransactionStatus.Cancelled.ToString())
-            .OrderBy(t => t.Date)
             .AsNoTracking()
             .ToListAsync();
+
+        return results.OrderBy(t => t.Date).ToList();
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────────
