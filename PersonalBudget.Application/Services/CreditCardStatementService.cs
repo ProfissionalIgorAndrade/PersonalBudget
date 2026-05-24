@@ -47,7 +47,8 @@ public class CreditCardStatementService : ICreditCardStatementService
         if (card is null || card.HouseholdId != householdId)
             return null;
 
-        var statement = await _statementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCardId, month, year);
+        var midMonth = DateTime.SpecifyKind(new DateTime(year, month, 15), DateTimeKind.Utc);
+        var statement = await _statementRepository.GetByCreditCardAndContainingDateAsync(creditCardId, midMonth);
         if (statement is null)
             return null;
 
@@ -80,7 +81,8 @@ public class CreditCardStatementService : ICreditCardStatementService
         if (card is null || card.HouseholdId != householdId)
             return null;
 
-        var statement = await _statementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCardId, month, year);
+        var midMonth = DateTime.SpecifyKind(new DateTime(year, month, 15), DateTimeKind.Utc);
+        var statement = await _statementRepository.GetByCreditCardAndContainingDateAsync(creditCardId, midMonth);
         if (statement is null)
             return null;
 

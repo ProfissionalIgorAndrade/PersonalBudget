@@ -174,38 +174,58 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByAccountAndMonthAsync(
         Guid householdId, Guid accountId, int month, int year, TransactionFrequency? frequency = null)
     {
-        var query = BuildFullTransactionQuery(householdId)
-            .Where(t => t.AccountId == accountId
-                     && t.Date.Month == month
-                     && t.Date.Year == year
-                     && t.PaymentMethod != PaymentMethod.CreditCard.ToString());
-
-        if (frequency.HasValue)
-            query = query.Where(t => t.Frequency == frequency.Value.ToString());
-
-        return await query.AsNoTracking().ToListAsync();
+        return await BuildAccountAndMonthQuery(householdId, accountId, month, year, frequency)
+            .AsNoTracking()
+            .ToListAsync();
     }
 
     public async Task<(IReadOnlyList<GetAllTransactionByUserResponse> Items, int TotalCount)> GetByAccountAndMonthPagedAsync(
         Guid householdId, Guid accountId, int month, int year, int page, int pageSize, TransactionFrequency? frequency = null)
     {
-        var query = BuildFullTransactionQuery(householdId)
-            .Where(t => t.AccountId == accountId
-                     && t.Date.Month == month
-                     && t.Date.Year == year
-                     && t.PaymentMethod != PaymentMethod.CreditCard.ToString());
+        var query = BuildAccountAndMonthQuery(householdId, accountId, month, year, frequency)
+            .AsNoTracking();
 
-        if (frequency.HasValue)
-            query = query.Where(t => t.Frequency == frequency.Value.ToString());
-
-        var totalCount = await query.AsNoTracking().CountAsync();
+        var totalCount = await query.CountAsync();
         var items = await query
-            .AsNoTracking()
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
         return (items, totalCount);
+    }
+
+    private IQueryable<GetAllTransactionByUserResponse> BuildAccountAndMonthQuery(
+        Guid householdId, Guid accountId, int month, int year, TransactionFrequency? frequency)
+    {
+        var transactions = _context.Transactions
+            .Where(t => t.HouseholdId == householdId
+                     && t.AccountId == accountId
+                     && t.Date.Value.Month == month
+                     && t.Date.Value.Year == year
+                     && t.PaymentMethod != PaymentMethod.CreditCard);
+
+        if (frequency.HasValue)
+            transactions = transactions.Where(t => t.Frequency == frequency.Value);
+
+        return from t in transactions
+               join a in _context.Accounts on t.AccountId equals a.Id
+               join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
+               from c in _context.Categories
+                   .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
+                   .DefaultIfEmpty()
+               from cc in _context.CreditCards
+                   .Where(cc => t.CreditCardId != null && cc.Id == t.CreditCardId)
+                   .DefaultIfEmpty()
+               orderby t.Date.Value descending
+               select new GetAllTransactionByUserResponse(
+                   t.Id, t.AccountId, a.Agency.Value,
+                   t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
+                   t.CreditCardId, cc != null ? cc.Name : null,
+                   t.TransferId, t.Type.ToString(), t.Status.ToString(),
+                   t.PaymentMethod.ToString(), t.Frequency.ToString(),
+                   t.ExpirationDate, t.DueDate,
+                   t.Amount.Amount, t.Date.Value, t.Description.Value,
+                   p.Id, p.DisplayName);
     }
 
     public async Task<IReadOnlyList<HouseholdProfileSummaryRow>> GetHouseholdSummaryByProfileAsync(
