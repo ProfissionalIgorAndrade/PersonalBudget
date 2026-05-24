@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using PersonalBudget.Api.Contracts;
 
 namespace PersonalBudget.Api.Middleware;
@@ -8,7 +9,6 @@ public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
-    private readonly IHostEnvironment _env;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -17,12 +17,10 @@ public class ExceptionHandlingMiddleware
 
     public ExceptionHandlingMiddleware(
         RequestDelegate next,
-        ILogger<ExceptionHandlingMiddleware> logger,
-        IHostEnvironment env)
+        ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
         _logger = logger;
-        _env = env;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -45,7 +43,8 @@ public class ExceptionHandlingMiddleware
             ApplicationException appEx when appEx.Message.Contains("não pertence ao usuário") => (HttpStatusCode.Forbidden, appEx.Message),
             ApplicationException appEx => (HttpStatusCode.BadRequest, appEx.Message),
             ArgumentException argEx => (HttpStatusCode.BadRequest, argEx.Message),
-            _ => (HttpStatusCode.InternalServerError, _env.IsDevelopment() ? ex.Message : "Ocorreu um erro interno.")
+            DbUpdateException dbEx => (HttpStatusCode.InternalServerError, $"Erro ao salvar no banco: {dbEx.InnerException?.Message ?? dbEx.Message}"),
+            _ => (HttpStatusCode.InternalServerError, ex.Message)
         };
 
         if (statusCode == HttpStatusCode.InternalServerError)

@@ -16,7 +16,9 @@
       "Bash(cp ~/.claude/skills/ship.md ~/.claude/commands/ship.md)",
       "Bash(mkdir -p ~/.claude/skills/ship)",
       "Bash(mv ~/.claude/skills/ship.md ~/.claude/skills/ship/SKILL.md)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(grep -r \"axios\\\\|fetch\\\\|XMLHttpRequest\" /c/Users/igorw/dev/personal/PersonalBudget --include=*.ts --include=*.tsx --include=*.js --include=*.jsx)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
