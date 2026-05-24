@@ -7,7 +7,16 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git merge:*)",
-      "Bash(winget install:*)"
+      "Bash(winget install:*)",
+      "Bash(flyctl secrets:*)",
+      "Skill(update-config)",
+      "Read(//c/Users/igorw/.claude/skills/**)",
+      "Read(//c/Users/igorw/.claude/**)",
+      "Bash(mkdir -p ~/.claude/commands)",
+      "Bash(cp ~/.claude/skills/ship.md ~/.claude/commands/ship.md)",
+      "Bash(mkdir -p ~/.claude/skills/ship)",
+      "Bash(mv ~/.claude/skills/ship.md ~/.claude/skills/ship/SKILL.md)",
+      "Bash(git pull:*)"
     ]
   }
 }
