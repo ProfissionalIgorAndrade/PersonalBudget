@@ -97,7 +97,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             var description = $"{displayName} ({i + 1}/{count})";
 
             DateTime? dueForInstallment = optionalFirstDue.HasValue
-                ? optionalFirstDue.Value.AddMonths(i).Date
+                ? DateTime.SpecifyKind(optionalFirstDue.Value.AddMonths(i).Date, DateTimeKind.Utc)
                 : null;
 
             var installmentInitialStatus = command.Status ?? TransactionStatus.Pending;

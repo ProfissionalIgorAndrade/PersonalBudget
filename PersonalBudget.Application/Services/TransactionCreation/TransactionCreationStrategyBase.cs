@@ -41,7 +41,7 @@ public abstract class TransactionCreationStrategyBase : ITransactionCreationStra
         if (string.IsNullOrWhiteSpace(expirationDateString))
             return null;
 
-        return ParseDate(expirationDateString).Date;
+        return DateTime.SpecifyKind(ParseDate(expirationDateString).Date, DateTimeKind.Utc);
     }
 
     /// <summary>Due date (date-only), same accepted string formats as <see cref="ParseOptionalExpirationDate"/>.</summary>
@@ -50,7 +50,7 @@ public abstract class TransactionCreationStrategyBase : ITransactionCreationStra
         if (string.IsNullOrWhiteSpace(dueDateString))
             return null;
 
-        return ParseDate(dueDateString).Date;
+        return DateTime.SpecifyKind(ParseDate(dueDateString).Date, DateTimeKind.Utc);
     }
 
     protected DateTime ParseDate(string dateString)

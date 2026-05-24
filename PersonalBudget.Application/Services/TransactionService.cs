@@ -465,7 +465,7 @@ public class TransactionService : ITransactionService
         if (string.IsNullOrWhiteSpace(commandValue))
             return null;
 
-        return ParseDateTimeForUpdate(commandValue).Date;
+        return DateTime.SpecifyKind(ParseDateTimeForUpdate(commandValue).Date, DateTimeKind.Utc);
     }
 
     private static DateTime ParseDateTimeForUpdate(string dateString)
@@ -476,10 +476,10 @@ public class TransactionService : ITransactionService
         var trimmed = dateString.Trim();
         var formats = new[] { "dd/MM/yyyy", "dd/MM/yyyy HH:mm", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss" };
         if (DateTime.TryParseExact(trimmed, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
-            return parsed;
+            return DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
 
         if (DateTime.TryParseExact(trimmed, new[] { "dd/MM/yyyy", "dd/MM/yyyy HH:mm" }, CultureInfo.GetCultureInfo("pt-BR"), DateTimeStyles.None, out var parsedBr))
-            return parsedBr;
+            return DateTime.SpecifyKind(parsedBr, DateTimeKind.Utc);
 
         throw new DomainException("Data inválida. Use dd/MM/yyyy (ex: 08/04/2026) ou ISO.");
     }
