@@ -70,14 +70,14 @@ public class CreditCardStatement
     {
         int year = date.Year, month = date.Month;
         int day = Math.Min(closingDay, DateTime.DaysInMonth(year, month));
-        var thisMonthEnd = new DateTime(year, month, day);
+        var thisMonthEnd = DateTime.SpecifyKind(new DateTime(year, month, day), DateTimeKind.Utc);
         DateTime periodEnd;
         if (date.Date <= thisMonthEnd)
             periodEnd = thisMonthEnd;
         else
         {
             var next = date.AddMonths(1);
-            periodEnd = new DateTime(next.Year, next.Month, Math.Min(closingDay, DateTime.DaysInMonth(next.Year, next.Month)));
+            periodEnd = DateTime.SpecifyKind(new DateTime(next.Year, next.Month, Math.Min(closingDay, DateTime.DaysInMonth(next.Year, next.Month))), DateTimeKind.Utc);
         }
         var periodStart = periodEnd.AddMonths(-1).AddDays(1);
         var closingDate = periodEnd;

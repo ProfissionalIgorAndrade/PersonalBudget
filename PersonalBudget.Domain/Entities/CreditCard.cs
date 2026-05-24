@@ -106,7 +106,7 @@ public class CreditCard
         var daysInMonth = DateTime.DaysInMonth(year, month);
         var closingDay = Math.Clamp(ClosingDay, 1, daysInMonth);
 
-        var periodEnd = new DateTime(year, month, closingDay);
+        var periodEnd = DateTime.SpecifyKind(new DateTime(year, month, closingDay), DateTimeKind.Utc);
         var periodStart = periodEnd.AddMonths(-1).AddDays(1);
 
         var closingDate = periodEnd;

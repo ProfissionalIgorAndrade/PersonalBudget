@@ -125,7 +125,7 @@ public class CreditCardStatementService : ICreditCardStatementService
         }
         var maxDay = DateTime.DaysInMonth(dueYear, dueMonth);
         var day = Math.Min(dueDay, maxDay);
-        return new DateTime(dueYear, dueMonth, day);
+        return DateTime.SpecifyKind(new DateTime(dueYear, dueMonth, day), DateTimeKind.Utc);
     }
 
     public async Task CloseAsync(CloseStatementCommand command)
