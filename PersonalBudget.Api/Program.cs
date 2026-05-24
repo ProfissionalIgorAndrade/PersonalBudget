@@ -5,6 +5,8 @@ using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using PersonalBudget.Infrastructure.Persistence.Seed;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
