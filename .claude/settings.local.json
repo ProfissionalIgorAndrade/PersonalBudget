@@ -18,7 +18,8 @@
       "Bash(mv ~/.claude/skills/ship.md ~/.claude/skills/ship/SKILL.md)",
       "Bash(git pull:*)",
       "Bash(grep -r \"axios\\\\|fetch\\\\|XMLHttpRequest\" /c/Users/igorw/dev/personal/PersonalBudget --include=*.ts --include=*.tsx --include=*.js --include=*.jsx)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(grep -v \"//\")"
     ]
   }
 }
