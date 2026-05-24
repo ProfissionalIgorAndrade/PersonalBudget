@@ -74,8 +74,8 @@ public class Transaction
         Date = date;
         Description = description;
         Frequency = frequency;
-        ExpirationDate = expirationDate.HasValue ? expirationDate.Value.Date : null;
-        DueDate = dueDate.HasValue ? dueDate.Value.Date : null;
+        ExpirationDate = expirationDate.HasValue ? DateTime.SpecifyKind(expirationDate.Value.Date, DateTimeKind.Utc) : null;
+        DueDate = dueDate.HasValue ? DateTime.SpecifyKind(dueDate.Value.Date, DateTimeKind.Utc) : null;
         Status = initialStatus;
     }
 
@@ -137,8 +137,8 @@ public class Transaction
         Date = newDate;
         Description = newDescription;
         CategoryId = categoryId;
-        ExpirationDate = expirationDate.HasValue ? expirationDate.Value.Date : null;
-        DueDate = dueDate.HasValue ? dueDate.Value.Date : null;
+        ExpirationDate = expirationDate.HasValue ? DateTime.SpecifyKind(expirationDate.Value.Date, DateTimeKind.Utc) : null;
+        DueDate = dueDate.HasValue ? DateTime.SpecifyKind(dueDate.Value.Date, DateTimeKind.Utc) : null;
     }
 
     /// <summary>Altera o correspondente (perfil). Não permitido para transações concluídas.</summary>

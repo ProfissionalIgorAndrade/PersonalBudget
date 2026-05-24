@@ -61,10 +61,10 @@ public abstract class TransactionCreationStrategyBase : ITransactionCreationStra
         var trimmed = dateString.Trim();
 
         if (DateTime.TryParseExact(trimmed, DateFormatsBr, PtBr, DateTimeStyles.None, out var dateBr))
-            return dateBr;
+            return DateTime.SpecifyKind(dateBr, DateTimeKind.Utc);
 
         if (DateTime.TryParseExact(trimmed, DateFormatsIso, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateIso))
-            return dateIso;
+            return DateTime.SpecifyKind(dateIso, DateTimeKind.Utc);
 
         throw new DomainException("Data inválida. Use dd/MM/yyyy (ex: 02/03/2026) ou ISO (ex: 2026-03-02T12:48:00).");
     }

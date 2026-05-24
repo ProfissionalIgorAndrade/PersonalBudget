@@ -7,7 +7,7 @@ public sealed class TransactionDate
         if (value == default)
             throw new DomainException("Data da transação é inválida.");
 
-        Value = value.Date;
+        Value = DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
     }
 
     public override bool Equals(object? obj)
