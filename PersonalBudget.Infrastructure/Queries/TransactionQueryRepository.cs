@@ -78,14 +78,20 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             .ToListAsync();
     }
 
-    public async Task<IReadOnlyList<StatementTransactionItemDto>> GetTransactionDetailsByStatementIdAsync(Guid statementId)
+    public async Task<IReadOnlyList<StatementTransactionItemDto>> GetTransactionDetailsByStatementAsync(
+        Guid creditCardId, DateTime periodEnd)
     {
+        var periodStart = DateTime.SpecifyKind(periodEnd.AddMonths(-1).Date, DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind(periodEnd.Date, DateTimeKind.Utc);
+
         var query =
             from t in _context.Transactions
             join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
             join c in _context.Categories on t.CategoryId equals c.Id into categoryJoin
             from c in categoryJoin.DefaultIfEmpty()
-            where t.StatementId == statementId
+            where t.CreditCardId == creditCardId
+                && t.Date.Value >= periodStart
+                && t.Date.Value < end
             orderby t.Date.Value descending
             select new StatementTransactionItemDto(
                 t.Id, t.Date.Value, t.DueDate, t.Description.Value, t.Amount.Amount,
@@ -96,15 +102,20 @@ public class TransactionQueryRepository : ITransactionQueryRepository
         return await query.AsNoTracking().ToListAsync();
     }
 
-    public async Task<(IReadOnlyList<StatementTransactionItemDto> Items, int TotalCount)> GetTransactionDetailsByStatementIdPagedAsync(
-        Guid statementId, int page, int pageSize)
+    public async Task<(IReadOnlyList<StatementTransactionItemDto> Items, int TotalCount)> GetTransactionDetailsByStatementPagedAsync(
+        Guid creditCardId, DateTime periodEnd, int page, int pageSize)
     {
+        var periodStart = DateTime.SpecifyKind(periodEnd.AddMonths(-1).Date, DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind(periodEnd.Date, DateTimeKind.Utc);
+
         var query =
             from t in _context.Transactions
             join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
             join c in _context.Categories on t.CategoryId equals c.Id into categoryJoin
             from c in categoryJoin.DefaultIfEmpty()
-            where t.StatementId == statementId
+            where t.CreditCardId == creditCardId
+                && t.Date.Value >= periodStart
+                && t.Date.Value < end
             orderby t.Date.Value descending
             select new StatementTransactionItemDto(
                 t.Id, t.Date.Value, t.DueDate, t.Description.Value, t.Amount.Amount,
@@ -117,11 +128,16 @@ public class TransactionQueryRepository : ITransactionQueryRepository
         return (items, totalCount);
     }
 
-    public async Task<decimal> GetStatementNetTotalAsync(Guid statementId)
+    public async Task<decimal> GetStatementNetTotalAsync(Guid creditCardId, DateTime periodEnd)
     {
+        var periodStart = DateTime.SpecifyKind(periodEnd.AddMonths(-1).Date, DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind(periodEnd.Date, DateTimeKind.Utc);
+
         var net = await _context.Transactions
             .AsNoTracking()
-            .Where(t => t.StatementId == statementId)
+            .Where(t => t.CreditCardId == creditCardId
+                     && t.Date.Value >= periodStart
+                     && t.Date.Value < end)
             .Select(t => t.Type == TransactionType.Expense ? t.Amount.Amount : -t.Amount.Amount)
             .SumAsync();
         return net < 0 ? 0 : net;
