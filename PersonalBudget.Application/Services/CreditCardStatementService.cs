@@ -51,8 +51,8 @@ public class CreditCardStatementService : ICreditCardStatementService
         if (statement is null)
             return null;
 
-        var transactions = await _transactionQueryRepository.GetTransactionDetailsByStatementIdAsync(statement.Id);
-        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
+        var transactions = await _transactionQueryRepository.GetTransactionDetailsByStatementAsync(creditCardId, statement.PeriodEnd);
+        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(creditCardId, statement.PeriodEnd);
         var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
 
         return new StatementWithTransactionsResponse(
@@ -84,9 +84,9 @@ public class CreditCardStatementService : ICreditCardStatementService
         if (statement is null)
             return null;
 
-        var (transactions, totalCount) = await _transactionQueryRepository.GetTransactionDetailsByStatementIdPagedAsync(
-            statement.Id, page, pageSize);
-        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
+        var (transactions, totalCount) = await _transactionQueryRepository.GetTransactionDetailsByStatementPagedAsync(
+            creditCardId, statement.PeriodEnd, page, pageSize);
+        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(creditCardId, statement.PeriodEnd);
         var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
 
         return new PaginatedStatementWithTransactionsResponse(
