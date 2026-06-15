@@ -158,9 +158,12 @@ public class CreditCardStatementService : ICreditCardStatementService
         if (statement is null)
             throw new ApplicationException("Fatura não encontrada.");
 
-        var account = await _accountRepository.GetByIdAsync(card.AccountId);
+        var account = await _accountRepository.GetByIdAsync(command.AccountId);
         if (account is null)
             throw new ApplicationException("Conta não encontrada.");
+
+        if (account.HouseholdId != command.HouseholdId)
+            throw new ApplicationException("Conta não pertence ao lar.");
 
         var amount = card.PayStatement(statement.Id);
 
