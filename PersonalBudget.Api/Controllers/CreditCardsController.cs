@@ -135,12 +135,19 @@ public class CreditCardsController : ControllerBase
     }
 
     [HttpPost("{creditCardId}/statements/{statementId}/pay")]
-    public async Task<IActionResult> PayStatement(Guid creditCardId, Guid statementId)
+    public async Task<IActionResult> PayStatement(Guid creditCardId, Guid statementId, [FromBody] PayStatementRequest request)
     {
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        var command = new PayStatementCommand(householdId, creditCardId, statementId);
-        await _statementService.PayAsync(command);
+        var command = new PayStatementCommand(householdId, creditCardId, statementId, request.AccountId);
+        try
+        {
+            await _statementService.PayAsync(command);
+        }
+        catch (DomainException ex)
+        {
+            return UnprocessableEntity(ApiResponse<object?>.Fail(ex.Message));
+        }
         return Ok(ApiResponse<object?>.Ok(DateTime.Now, "Fatura paga com sucesso."));
     }
 
