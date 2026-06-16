@@ -160,10 +160,10 @@ public class CreditCardStatementService : ICreditCardStatementService
 
         var account = await _accountRepository.GetByIdAsync(command.AccountId);
         if (account is null)
-            throw new ApplicationException("Conta não encontrada.");
+            throw new DomainException("Conta não encontrada.");
 
         if (account.HouseholdId != command.HouseholdId)
-            throw new ApplicationException("Conta não pertence ao lar.");
+            throw new DomainException("Conta não pertence ao lar.");
 
         var amount = card.PayStatement(statement.Id);
 
