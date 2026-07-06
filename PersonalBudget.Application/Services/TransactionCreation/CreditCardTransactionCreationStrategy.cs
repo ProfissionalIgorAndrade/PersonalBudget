@@ -82,6 +82,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         var amountPerInstallment = Math.Round(totalAmount / count, 2);
         var displayName = string.IsNullOrWhiteSpace(command.Title) ? command.Description : command.Title;
         var optionalFirstDue = ParseOptionalDueDate(command.DueDate);
+        var recurrenceId = Guid.NewGuid();
         Guid firstTransactionId = default;
 
         for (var i = 0; i < count; i++)
@@ -121,6 +122,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 initialStatus: installmentInitialStatus
             );
 
+            transaction.AssignRecurrenceId(recurrenceId);
             await _transactionRepository.AddAsync(transaction);
             if (i == 0)
                 firstTransactionId = transaction.Id;
