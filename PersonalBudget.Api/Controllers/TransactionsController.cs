@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonalBudget.Api;
 using PersonalBudget.Api.Contracts;
+using PersonalBudget.Application.DTOs.Transaction;
 using PersonalBudget.Application.Interfaces;
 
 [ApiController]
@@ -81,6 +82,31 @@ public class TransactionsController : ControllerBase
         await _transactionService.UpdateAsync(command);
 
         return Ok(ApiResponse<object?>.Ok(null, "Transação atualizada."));
+    }
+
+    [HttpPatch("{transactionId:guid}/recurring")]
+    public async Task<IActionResult> UpdateRecurring(
+        Guid transactionId,
+        [FromBody] UpdateRecurringTransactionRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var command = new UpdateRecurringTransactionCommand(
+            householdId,
+            transactionId,
+            request.Amount,
+            request.Date,
+            request.Description,
+            request.CategoryId,
+            request.DueDate,
+            request.ExpirationDate,
+            request.AttributionProfileId,
+            request.RecurrenceEditMode);
+
+        await _transactionService.UpdateRecurringAsync(command);
+
+        return Ok(ApiResponse<object?>.Ok(null, "Transação(ões) atualizada(s)."));
     }
 
     [HttpDelete("{transactionId:guid}")]

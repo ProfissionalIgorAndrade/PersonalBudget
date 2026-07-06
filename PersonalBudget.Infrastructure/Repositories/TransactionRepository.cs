@@ -92,4 +92,12 @@ public class TransactionRepository : ITransactionRepository
             .OrderBy(t => t.Date.Value)
             .ToListAsync();
     }
+
+    public async Task<IReadOnlyList<Transaction>> GetByRecurrenceIdAsync(Guid recurrenceId, Guid householdId)
+    {
+        return await _context.Transactions
+            .Where(t => t.RecurrenceId == recurrenceId && t.HouseholdId == householdId)
+            .OrderBy(t => t.Date.Value)
+            .ToListAsync();
+    }
 }

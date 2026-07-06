@@ -18,4 +18,5 @@ public record GetAllTransactionByUserResponse(
     DateTime Date,
     string Description,
     Guid AttributionProfileId,
-    string CorrespondentDisplayName);
+    string CorrespondentDisplayName,
+    Guid? RecurrenceId = null);

@@ -113,7 +113,7 @@ public class TransactionService : ITransactionService
     private async Task<Guid> CreateRecurringAsync(CreateTransactionCommand command, ITransactionCreationStrategy strategy, int repeatCount)
     {
         var firstDate = ParseFirstDate(command.Date, command.DueDay!.Value);
-        Guid? firstId = null;
+        var createdIds = new List<Guid>();
 
         for (var i = 0; i < repeatCount; i++)
         {
@@ -132,11 +132,16 @@ public class TransactionService : ITransactionService
             };
 
             var id = await strategy.CreateAsync(singleCommand);
-            if (firstId is null)
-                firstId = id;
+            createdIds.Add(id);
         }
 
-        return firstId!.Value;
+        var recurrenceId = Guid.NewGuid();
+        var transactions = (await _transactionRepository.GetByIdsAsync(createdIds)).ToList();
+        foreach (var t in transactions)
+            t.AssignRecurrenceId(recurrenceId);
+        await _transactionRepository.BulkUpdateAsync(transactions);
+
+        return createdIds[0];
     }
 
     private static int ParseDayFromDate(string dateString)
@@ -366,6 +371,95 @@ public class TransactionService : ITransactionService
         await _transactionRepository.UpdateAsync(transaction);
     }
 
+    public async Task UpdateRecurringAsync(UpdateRecurringTransactionCommand command)
+    {
+        var hasAny = command.Amount.HasValue
+            || command.Date is not null
+            || command.Description is not null
+            || command.CategoryId is not null
+            || command.DueDate is not null
+            || command.ExpirationDate is not null
+            || command.AttributionProfileId is not null;
+
+        if (!hasAny)
+            throw new DomainException("Informe ao menos um campo para atualizar.");
+
+        var pivot = await _transactionRepository.GetByIdAsync(command.TransactionId);
+        if (pivot is null || pivot.HouseholdId != command.HouseholdId)
+            throw new DomainException("Transação não encontrada.");
+
+        if (command.RecurrenceEditMode == RecurrenceEditMode.OnlyThis || pivot.RecurrenceId is null)
+        {
+            var singleCommand = new UpdateTransactionCommand(
+                command.HouseholdId,
+                command.TransactionId,
+                command.Amount,
+                command.Date,
+                command.Description,
+                command.CategoryId,
+                command.DueDate,
+                command.ExpirationDate,
+                command.AttributionProfileId);
+            await UpdateAsync(singleCommand);
+            return;
+        }
+
+        var allInSeries = await _transactionRepository.GetByRecurrenceIdAsync(
+            pivot.RecurrenceId.Value, command.HouseholdId);
+
+        var targets = command.RecurrenceEditMode switch
+        {
+            RecurrenceEditMode.ThisAndFuture =>
+                allInSeries.Where(t => t.Date.Value >= pivot.Date.Value).ToList(),
+            RecurrenceEditMode.All =>
+                allInSeries.ToList(),
+            _ => throw new DomainException("RecurrenceEditMode inválido.")
+        };
+
+        foreach (var t in targets)
+            EnsureEditableForDetails(t);
+
+        var newExpiration = ResolveOptionalDateField(command.ExpirationDate, targets[0].ExpirationDate);
+        if (newExpiration is not null)
+        {
+            foreach (var t in targets)
+            {
+                if (t.Frequency != TransactionFrequency.Fixed)
+                    throw new DomainException("ExpirationDate só é permitido com TransactionFrequency.Fixed.");
+            }
+        }
+
+        if (command.AttributionProfileId is { } pid && pid != Guid.Empty)
+        {
+            var p = await _profileRepository.GetByIdAsync(pid);
+            if (p is null || p.HouseholdId != command.HouseholdId)
+                throw new DomainException("Correspondente inválido para este lar.");
+        }
+
+        int? newDay = command.Date is null ? null : ParseDateTimeForUpdate(command.Date).Day;
+
+        foreach (var t in targets)
+        {
+            var newAmount = command.Amount ?? t.Amount.Amount;
+            var newDateVo = newDay is null
+                ? t.Date
+                : new TransactionDate(ApplyDayToExistingMonth(newDay.Value, t.Date.Value));
+            var newDescription = command.Description is null
+                ? t.Description
+                : new TransactionDescription(BuildDescriptionPreservingInstallmentSuffix(command.Description, t.Description.Value));
+            var newCategoryId = command.CategoryId ?? t.CategoryId;
+            var newDue = ResolveOptionalDateField(command.DueDate, t.DueDate);
+            var newExp = ResolveOptionalDateField(command.ExpirationDate, t.ExpirationDate);
+
+            t.UpdateDetails(new Money(newAmount), newDateVo, newDescription, newCategoryId, newExp, newDue);
+
+            if (command.AttributionProfileId is { } apid && apid != Guid.Empty && apid != t.AttributionProfileId)
+                t.UpdateAttributionProfileId(apid);
+        }
+
+        await _transactionRepository.BulkUpdateAsync(targets);
+    }
+
     public Task<DeleteTransactionsResult> DeleteAsync(DeleteTransactionCommand command)
         => DeleteManyAsync(new DeleteTransactionsCommand(command.HouseholdId, new[] { command.TransactionId }));
 
@@ -466,6 +560,21 @@ public class TransactionService : ITransactionService
             return null;
 
         return DateTime.SpecifyKind(ParseDateTimeForUpdate(commandValue).Date, DateTimeKind.Utc);
+    }
+
+    private static string BuildDescriptionPreservingInstallmentSuffix(string newBase, string existing)
+    {
+        var (strippedBase, _, _) = ParseInstallmentDescription(newBase);
+        var (_, current, total) = ParseInstallmentDescription(existing);
+        return current > 0 && total > 0
+            ? $"{strippedBase} ({current}/{total})"
+            : strippedBase;
+    }
+
+    private static DateTime ApplyDayToExistingMonth(int day, DateTime existing)
+    {
+        var safeDay = Math.Min(day, DateTime.DaysInMonth(existing.Year, existing.Month));
+        return DateTime.SpecifyKind(new DateTime(existing.Year, existing.Month, safeDay), DateTimeKind.Utc);
     }
 
     private static DateTime ParseDateTimeForUpdate(string dateString)

@@ -14,6 +14,7 @@ public interface ITransactionService
     Task<IReadOnlyList<ActiveInstallmentGroupDto>> GetActiveInstallmentsAsync(Guid householdId, DateTime upTo);
     Task UpdateStatusAsync(UpdateTransactionStatusCommand command);
     Task UpdateAsync(UpdateTransactionCommand command);
+    Task UpdateRecurringAsync(UpdateRecurringTransactionCommand command);
     Task<DeleteTransactionsResult> DeleteAsync(DeleteTransactionCommand command);
     Task<DeleteTransactionsResult> DeleteManyAsync(DeleteTransactionsCommand command);
 }

@@ -37,7 +37,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.PaymentMethod.ToString(), t.Frequency.ToString(),
                 t.ExpirationDate, t.DueDate,
                 t.Amount.Amount, t.Date.Value, t.Description.Value,
-                p.Id, p.DisplayName);
+                p.Id, p.DisplayName, t.RecurrenceId);
     }
 
     // ─── existing methods ───────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  t.PaymentMethod.ToString(), t.Frequency.ToString(),
                  t.ExpirationDate, t.DueDate,
                  t.Amount.Amount, t.Date.Value, t.Description.Value,
-                 p.Id, p.DisplayName))
+                 p.Id, p.DisplayName, t.RecurrenceId))
             .AsNoTracking()
             .ToListAsync();
     }
@@ -241,7 +241,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                    t.PaymentMethod.ToString(), t.Frequency.ToString(),
                    t.ExpirationDate, t.DueDate,
                    t.Amount.Amount, t.Date.Value, t.Description.Value,
-                   p.Id, p.DisplayName);
+                   p.Id, p.DisplayName, t.RecurrenceId);
     }
 
     public async Task<IReadOnlyList<HouseholdProfileSummaryRow>> GetHouseholdSummaryByProfileAsync(
