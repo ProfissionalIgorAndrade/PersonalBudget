@@ -26,7 +26,17 @@ public class TransactionRepository : ITransactionRepository
         if (transactions.Count == 0)
             return;
 
-        _context.Transactions.UpdateRange(transactions);
+        // Entities loaded via GetByRecurrenceIdAsync are already tracked.
+        // UpdateRange only marks root scalar properties as Modified and skips
+        // OwnsOne entries (Amount, Date, Description), causing those columns
+        // to be omitted from the UPDATE. Let the snapshot change detector handle
+        // all changes instead.
+        foreach (var t in transactions)
+        {
+            if (_context.Entry(t).State == EntityState.Detached)
+                _context.Transactions.Update(t);
+        }
+
         await SaveChangesAsync();
     }
 
