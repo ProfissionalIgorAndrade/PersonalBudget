@@ -12,5 +12,6 @@ public interface ITransactionRepository
         Guid householdId,
         Guid attributionProfileId);
     Task<IEnumerable<Transaction>> GetByStatementIdAsync(Guid statementId);
+    Task<IReadOnlyList<Transaction>> GetByRecurrenceIdAsync(Guid recurrenceId, Guid householdId);
     Task SaveChangesAsync();
 }

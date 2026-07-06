@@ -29,6 +29,9 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 
         builder.Property(t => t.TransferId);
 
+        builder.Property(t => t.RecurrenceId)
+            .HasColumnName("recurrence_id");
+
         builder.Property(t => t.Type)
             .IsRequired()
             .HasConversion<int>();
@@ -84,5 +87,6 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.HasIndex(t => t.CreditCardId);
         builder.HasIndex(t => t.TransferId);
         builder.HasIndex(t => t.Status);
+        builder.HasIndex(t => t.RecurrenceId);
     }
 }

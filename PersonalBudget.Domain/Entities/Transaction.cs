@@ -12,6 +12,8 @@ public class Transaction
     public Guid? CreditCardId { get; private set; }
     public Guid? StatementId { get; private set; }
     public Guid? TransferId { get; private set; }
+    /// <summary>Agrupa transações da mesma série recorrente ou parcelamento. Null para lançamentos avulsos.</summary>
+    public Guid? RecurrenceId { get; private set; }
     public TransactionType Type { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
     public TransactionStatus Status { get; private set; }
@@ -213,6 +215,15 @@ public class Transaction
             default:
                 throw new DomainException($"O status {newStatus} não é permitido para esta operação.");
         }
+    }
+
+    /// <summary>Vincula esta transação a um grupo de recorrência. Chamado uma vez após a criação em lote.</summary>
+    public void AssignRecurrenceId(Guid recurrenceId)
+    {
+        if (recurrenceId == Guid.Empty)
+            throw new DomainException("RecurrenceId inválido.");
+
+        RecurrenceId = recurrenceId;
     }
 
     /// <summary>Reatribui correspondente ao fundir/excluir perfil no mesmo lar (inclui lançamentos concluídos).</summary>
