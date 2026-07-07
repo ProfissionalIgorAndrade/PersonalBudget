@@ -109,6 +109,33 @@ public class TransactionsController : ControllerBase
         return Ok(ApiResponse<object?>.Ok(null, "Transação(ões) atualizada(s)."));
     }
 
+    [HttpDelete("{transactionId:guid}/recurring")]
+    public async Task<IActionResult> DeleteRecurring(
+        Guid transactionId,
+        [FromBody] DeleteRecurringTransactionRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var command = new DeleteRecurringTransactionCommand(householdId, transactionId, request.RecurrenceDeleteMode);
+        var result = await _transactionService.DeleteRecurringAsync(command);
+
+        var message = result.DeletedCount switch
+        {
+            0 when result.SkippedCount > 0 => "Nenhuma transação foi excluída. Apenas transações com status diferente de Concluído podem ser excluídas.",
+            0 => "Nenhuma transação encontrada para excluir.",
+            _ when result.SkippedCount > 0 => $"{result.DeletedCount} transação(ões) excluída(s). {result.SkippedCount} ignorada(s) (concluídas ou não encontradas).",
+            _ => $"{result.DeletedCount} transação(ões) excluída(s)."
+        };
+
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            result.DeletedCount,
+            result.SkippedCount,
+            result.SkippedIds
+        }, message));
+    }
+
     [HttpDelete("{transactionId:guid}")]
     public async Task<IActionResult> Delete(Guid transactionId)
     {

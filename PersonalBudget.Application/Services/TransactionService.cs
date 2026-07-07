@@ -463,6 +463,31 @@ public class TransactionService : ITransactionService
     public Task<DeleteTransactionsResult> DeleteAsync(DeleteTransactionCommand command)
         => DeleteManyAsync(new DeleteTransactionsCommand(command.HouseholdId, new[] { command.TransactionId }));
 
+    public async Task<DeleteTransactionsResult> DeleteRecurringAsync(DeleteRecurringTransactionCommand command)
+    {
+        var pivot = await _transactionRepository.GetByIdAsync(command.TransactionId);
+        if (pivot is null || pivot.HouseholdId != command.HouseholdId)
+            throw new DomainException("Transação não encontrada.");
+
+        if (pivot.RecurrenceId is null || command.RecurrenceDeleteMode == RecurrenceDeleteMode.OnlyThis)
+            return await DeleteAsync(new DeleteTransactionCommand(command.HouseholdId, command.TransactionId));
+
+        var allInSeries = await _transactionRepository.GetByRecurrenceIdAsync(
+            pivot.RecurrenceId.Value, command.HouseholdId);
+
+        var targets = command.RecurrenceDeleteMode switch
+        {
+            RecurrenceDeleteMode.ThisAndFuture =>
+                allInSeries.Where(t => t.Date.Value >= pivot.Date.Value).ToList(),
+            RecurrenceDeleteMode.All =>
+                allInSeries.ToList(),
+            _ => throw new DomainException("RecurrenceDeleteMode inválido.")
+        };
+
+        var ids = targets.Select(t => t.Id).ToList();
+        return await DeleteManyAsync(new DeleteTransactionsCommand(command.HouseholdId, ids));
+    }
+
     private static void EnsureEditableForDetails(Transaction transaction)
     {
         if (transaction.Status == TransactionStatus.Completed)

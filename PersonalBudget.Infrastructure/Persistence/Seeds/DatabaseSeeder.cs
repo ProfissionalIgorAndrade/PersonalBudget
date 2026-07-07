@@ -148,12 +148,12 @@ public static class DatabaseSeeder
         var transactions = new List<Transaction>();
         var rng = new Random(20250318);
 
-        void AddTx(Transaction t) => transactions.Add(t);
+        Transaction AddTx(Transaction t) { transactions.Add(t); return t; }
 
         Account AccountForCard(CreditCard card)
             => card.AccountId == account1.Id ? account1 : card.AccountId == account2.Id ? account2 : accountConjunta;
 
-        void AddCcExpense(
+        Transaction AddCcExpense(
             Guid userId,
             Guid profileId,
             CreditCard card,
@@ -164,7 +164,7 @@ public static class DatabaseSeeder
             TransactionFrequency frequency = TransactionFrequency.Variable)
         {
             var statement = card.AddExpense(date, amount);
-            AddTx(Transaction.Create(
+            return AddTx(Transaction.Create(
                 userId,
                 hId,
                 profileId,
@@ -218,31 +218,46 @@ public static class DatabaseSeeder
             return start.AddDays(random.Next(days + 1));
         }
 
+        // --- Salário Empresa X (série recorrente: mês passado / atual / próximo) ---
+        var salarioIgorRecId = Guid.NewGuid();
         AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(7800), TransactionType.Income, PaymentMethod.Account,
-            new DateTime(lastMonth.Year, lastMonth.Month, 5), "Salário - Empresa X (mês passado)", salario.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(lastMonth.Year, lastMonth.Month, 5)));
+            new DateTime(lastMonth.Year, lastMonth.Month, 5), "Salário - Empresa X (mês passado)", salario.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(lastMonth.Year, lastMonth.Month, 5)))
+            .AssignRecurrenceId(salarioIgorRecId);
         AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(8000), TransactionType.Income, PaymentMethod.Account,
-            new DateTime(now.Year, now.Month, 5), "Salário - Empresa X (mês atual)", salario.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 5)));
+            new DateTime(now.Year, now.Month, 5), "Salário - Empresa X (mês atual)", salario.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 5)))
+            .AssignRecurrenceId(salarioIgorRecId);
         AddTx(Transaction.Create(igor.Id, hId, PAN, account1.Id, new Money(8200), TransactionType.Income, PaymentMethod.Account,
-            new DateTime(nextMonth.Year, nextMonth.Month, 5), "Salário - Empresa X (próximo mês)", salario.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(nextMonth.Year, nextMonth.Month, 5)));
+            new DateTime(nextMonth.Year, nextMonth.Month, 5), "Salário - Empresa X (próximo mês)", salario.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(nextMonth.Year, nextMonth.Month, 5)))
+            .AssignRecurrenceId(salarioIgorRecId);
 
         AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, new Money(350), TransactionType.Income, PaymentMethod.Account,
             new DateTime(now.Year, now.Month, 20), "Rendimento investimentos", investimento.Id));
 
+        // --- Aluguel (série recorrente: mês passado / atual / próximo / daqui a 2 meses) ---
+        var aluguelRecId = Guid.NewGuid();
         AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, new Money(2500), TransactionType.Expense, PaymentMethod.Account,
-            new DateTime(lastMonth.Year, lastMonth.Month, 8), "Aluguel (mês passado)", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(lastMonth.Year, lastMonth.Month, 8)));
+            new DateTime(lastMonth.Year, lastMonth.Month, 8), "Aluguel (mês passado)", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(lastMonth.Year, lastMonth.Month, 8)))
+            .AssignRecurrenceId(aluguelRecId);
         AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, new Money(2500), TransactionType.Expense, PaymentMethod.Account,
-            new DateTime(now.Year, now.Month, 8), "Aluguel (mês atual)", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 8)));
+            new DateTime(now.Year, now.Month, 8), "Aluguel (mês atual)", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 8)))
+            .AssignRecurrenceId(aluguelRecId);
         AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, new Money(2500), TransactionType.Expense, PaymentMethod.Account,
-            new DateTime(nextMonth.Year, nextMonth.Month, 8), "Aluguel (próximo mês)", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(nextMonth.Year, nextMonth.Month, 8)));
+            new DateTime(nextMonth.Year, nextMonth.Month, 8), "Aluguel (próximo mês)", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(nextMonth.Year, nextMonth.Month, 8)))
+            .AssignRecurrenceId(aluguelRecId);
         AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, new Money(2500), TransactionType.Expense, PaymentMethod.Account,
-            new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 8), "Aluguel (daqui a 2 meses)", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 8)));
+            new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 8), "Aluguel (daqui a 2 meses)", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 8)))
+            .AssignRecurrenceId(aluguelRecId);
 
+        // --- Contas fixas mensais (Fixed isolados — cada uma é sua própria série no seed) ---
         AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(150), TransactionType.Expense, PaymentMethod.Account,
-            new DateTime(now.Year, now.Month, 12), "Internet banda larga", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 12)));
+            new DateTime(now.Year, now.Month, 12), "Internet banda larga", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 12)))
+            .AssignRecurrenceId(Guid.NewGuid());
         AddTx(Transaction.Create(igor.Id, hId, PAN, account2.Id, new Money(220), TransactionType.Expense, PaymentMethod.Account,
-            new DateTime(now.Year, now.Month, 15), "Conta de luz", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 15)));
+            new DateTime(now.Year, now.Month, 15), "Conta de luz", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 15)))
+            .AssignRecurrenceId(Guid.NewGuid());
         AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(130), TransactionType.Expense, PaymentMethod.Account,
-            new DateTime(now.Year, now.Month, 10), "Conta de água", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 10)));
+            new DateTime(now.Year, now.Month, 10), "Conta de água", moradia.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 10)))
+            .AssignRecurrenceId(Guid.NewGuid());
 
         var tvAmount = new Money(3200);
         var tvDate = new DateTime(now.Year, now.Month, 3);
@@ -325,7 +340,8 @@ public static class DatabaseSeeder
         AddTx(Transaction.Create(igor.Id, hId, PAN, account1.Id, new Money(35), TransactionType.Expense, PaymentMethod.Account,
             new DateTime(now.Year, now.Month, 2), "Padaria", alimentacao.Id));
         AddTx(Transaction.Create(andreza.Id, hId, PAN, account2.Id, new Money(120), TransactionType.Expense, PaymentMethod.Account,
-            new DateTime(now.Year, now.Month, 3), "Mensalidade academia", lazer.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 3)));
+            new DateTime(now.Year, now.Month, 3), "Mensalidade academia", lazer.Id, frequency: TransactionFrequency.Fixed, dueDate: new DateTime(now.Year, now.Month, 3)))
+            .AssignRecurrenceId(Guid.NewGuid());
         AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(1000), TransactionType.Expense, PaymentMethod.Account,
             new DateTime(now.Year, now.Month, 21), "Depósito poupança", investimento.Id));
         AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, new Money(500), TransactionType.Income, PaymentMethod.Account,
@@ -409,9 +425,11 @@ public static class DatabaseSeeder
                     var acc = rng.Next(3) switch { 0 => account1, 1 => account2, _ => accountConjunta };
                     var freq = rng.Next(15) == 0 ? TransactionFrequency.Fixed : TransactionFrequency.Variable;
                     var desc = $"{accountExpDescs[rng.Next(accountExpDescs.Length)]} · #{i + 1}";
-                    AddTx(Transaction.Create(registrarUserId, hId, profileId, acc.Id, new Money(amt), TransactionType.Expense,
+                    var t = AddTx(Transaction.Create(registrarUserId, hId, profileId, acc.Id, new Money(amt), TransactionType.Expense,
                         PaymentMethod.Account, date, desc, catId, frequency: freq,
                         dueDate: freq == TransactionFrequency.Fixed ? date.Date : null));
+                    if (freq == TransactionFrequency.Fixed)
+                        t.AssignRecurrenceId(Guid.NewGuid());
                 }
                 else if (sub < 78)
                 {
@@ -434,9 +452,11 @@ public static class DatabaseSeeder
                 var acc = rng.Next(3) switch { 0 => account1, 1 => account2, _ => accountConjunta };
                 var desc = $"{incomeDescs[rng.Next(incomeDescs.Length)]} · #{i + 1}";
                 var freq = rng.Next(20) == 0 ? TransactionFrequency.Fixed : TransactionFrequency.Variable;
-                AddTx(Transaction.Create(registrarUserId, hId, profileId, acc.Id, new Money(amt), TransactionType.Income,
+                var t = AddTx(Transaction.Create(registrarUserId, hId, profileId, acc.Id, new Money(amt), TransactionType.Income,
                     PaymentMethod.Account, date, desc, catId, frequency: freq,
                     dueDate: freq == TransactionFrequency.Fixed ? date.Date : null));
+                if (freq == TransactionFrequency.Fixed)
+                    t.AssignRecurrenceId(Guid.NewGuid());
             }
             else
             {
@@ -453,19 +473,22 @@ public static class DatabaseSeeder
             }
         }
 
-        // Parcelas no cartão (TransactionFrequency.Installments)
+        // --- Parcelas no cartão (TransactionFrequency.Installments) — cada série com um RecurrenceId próprio ---
+
         {
             var totalGeladeira = 4299.90m;
             var parcelas = 10;
             var baseD = new DateTime(lastMonth.Year, lastMonth.Month, 12);
             var valorParcela = Math.Round(totalGeladeira / parcelas, 2);
             var ultima = totalGeladeira - valorParcela * (parcelas - 1);
+            var recId = Guid.NewGuid();
             for (var p = 0; p < parcelas; p++)
             {
                 var d = baseD.AddMonths(p);
                 var v = p == parcelas - 1 ? ultima : valorParcela;
                 AddCcExpense(igor.Id, PFAM, nubankCard, new Money(v), d,
-                    $"Geladeira Brastemp ({p + 1}/{parcelas})", moradia.Id, TransactionFrequency.Installments);
+                    $"Geladeira Brastemp ({p + 1}/{parcelas})", moradia.Id, TransactionFrequency.Installments)
+                    .AssignRecurrenceId(recId);
             }
         }
 
@@ -476,12 +499,14 @@ public static class DatabaseSeeder
             var baseD = new DateTime(inicio.Year, inicio.Month, 5);
             var valorParcela = Math.Round(totalNotebook / parcelas, 2);
             var ultima = totalNotebook - valorParcela * (parcelas - 1);
+            var recId = Guid.NewGuid();
             for (var p = 0; p < parcelas; p++)
             {
                 var d = baseD.AddMonths(p);
                 var v = p == parcelas - 1 ? ultima : valorParcela;
                 AddCcExpense(andreza.Id, PAN, itauCard, new Money(v), d,
-                    $"Notebook trabalho ({p + 1}/{parcelas})", educacao.Id, TransactionFrequency.Installments);
+                    $"Notebook trabalho ({p + 1}/{parcelas})", educacao.Id, TransactionFrequency.Installments)
+                    .AssignRecurrenceId(recId);
             }
         }
 
@@ -491,12 +516,14 @@ public static class DatabaseSeeder
             var baseD = new DateTime(now.Year, now.Month, 8);
             var valorParcela = Math.Round(totalSofa / parcelas, 2);
             var ultima = totalSofa - valorParcela * (parcelas - 1);
+            var recId = Guid.NewGuid();
             for (var p = 0; p < parcelas; p++)
             {
                 var d = baseD.AddMonths(p);
                 var v = p == parcelas - 1 ? ultima : valorParcela;
                 AddCcExpense(andreza.Id, PAN, itauCard, new Money(v), d,
-                    $"Sofá sala ({p + 1}/{parcelas})", moradia.Id, TransactionFrequency.Installments);
+                    $"Sofá sala ({p + 1}/{parcelas})", moradia.Id, TransactionFrequency.Installments)
+                    .AssignRecurrenceId(recId);
             }
         }
 
@@ -506,12 +533,14 @@ public static class DatabaseSeeder
             var baseD = new DateTime(lastMonth.Year, lastMonth.Month, 20);
             var valorParcela = Math.Round(totalCurso / parcelas, 2);
             var ultima = totalCurso - valorParcela * (parcelas - 1);
+            var recId = Guid.NewGuid();
             for (var p = 0; p < parcelas; p++)
             {
                 var d = baseD.AddMonths(p);
                 var v = p == parcelas - 1 ? ultima : valorParcela;
                 AddCcExpense(igor.Id, PIG, nubankCard, new Money(v), d,
-                    $"Curso online certificação ({p + 1}/{parcelas})", educacao.Id, TransactionFrequency.Installments);
+                    $"Curso online certificação ({p + 1}/{parcelas})", educacao.Id, TransactionFrequency.Installments)
+                    .AssignRecurrenceId(recId);
             }
         }
 
@@ -532,7 +561,8 @@ public static class DatabaseSeeder
 
             // Andreza (PAN) — ganhos e gastos no mês
             AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(6200), TransactionType.Income, PaymentMethod.Account,
-                D(5), "Salário CLT — Andreza", salario.Id, frequency: TransactionFrequency.Fixed, dueDate: D(5)));
+                D(5), "Salário CLT — Andreza", salario.Id, frequency: TransactionFrequency.Fixed, dueDate: D(5)))
+                .AssignRecurrenceId(Guid.NewGuid());
             AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(1200), TransactionType.Income, PaymentMethod.Account,
                 D(12), "Freelance — projeto UX", freelance.Id));
             AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(350), TransactionType.Income, PaymentMethod.Account,
@@ -546,7 +576,8 @@ public static class DatabaseSeeder
             AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(95), TransactionType.Expense, PaymentMethod.Cash,
                 D(8), "Farmácia (dinheiro)", saude.Id));
             AddTx(Transaction.Create(andreza.Id, hId, PAN, account1.Id, new Money(220), TransactionType.Expense, PaymentMethod.Account,
-                D(9), "Academia", lazer.Id, frequency: TransactionFrequency.Fixed, dueDate: D(9)));
+                D(9), "Academia", lazer.Id, frequency: TransactionFrequency.Fixed, dueDate: D(9)))
+                .AssignRecurrenceId(Guid.NewGuid());
             AddCcExpense(andreza.Id, PAN, nubankCard, new Money(167.50m), D(11), "Livraria & papelaria", educacao.Id);
             AddCcExpense(andreza.Id, PAN, itauCard, new Money(289), D(14), "Restaurante — jantar", lazer.Id);
             AddCcExpense(andreza.Id, PAN, nubankCard, new Money(79.90m), D(16), "Streaming", servicos.Id);
