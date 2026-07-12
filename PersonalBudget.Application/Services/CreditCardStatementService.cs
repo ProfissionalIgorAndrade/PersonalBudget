@@ -111,18 +111,31 @@ public class CreditCardStatementService : ICreditCardStatementService
     }
 
     /// <summary>
-    /// Estorna o pagamento de uma fatura paga: credita o valor na conta de origem,
-    /// reverte as transações para pendente, cria um lançamento de estorno visível
+    /// Estorna o pagamento de uma fatura paga: reverte as transações para pendente
     /// e muda o status para Fechada (Paid → Closed).
-    /// O AddAsync salva tudo em uma única operação ao final.
+    /// Quando PaidFromAccountId está registrado, também credita o valor na conta de origem
+    /// e cria um lançamento de estorno visível.
     /// </summary>
     private async Task ApplyPaymentReversalAsync(
         CreditCard card,
         CreditCardStatement statement,
         UpdateStatementStatusCommand command)
     {
+        var statementTransactions = await _transactionRepository.GetByStatementIdAsync(statement.Id);
+        foreach (var t in statementTransactions)
+        {
+            if (t.Status == TransactionStatus.Completed)
+                t.RevertToPending();
+        }
+
+        card.ReversePaymentStatement(statement.Id);          // Paid → Closed
+
         if (statement.PaidFromAccountId is null)
-            throw new DomainException("Não é possível estornar: conta de pagamento não registrada na fatura.");
+        {
+            // Fatura paga sem conta registrada (legado): apenas reverte status e transações.
+            await _accountRepository.SaveChangesAsync();
+            return;
+        }
 
         var refundAccount = await _accountRepository.GetByIdAsync(statement.PaidFromAccountId.Value);
         if (refundAccount is null)
@@ -158,17 +171,8 @@ public class CreditCardStatementService : ICreditCardStatementService
             description: description,
             initialStatus: TransactionStatus.Completed);
 
-        // ── 1. Todas as mutações de domínio ──────────────────────────────────────
+        // ── 1. Mutações de domínio com conta registrada ──────────────────────────
         refundAccount.Credit(refundAmount);
-
-        var statementTransactions = await _transactionRepository.GetByStatementIdAsync(statement.Id);
-        foreach (var t in statementTransactions)
-        {
-            if (t.Status == TransactionStatus.Completed)
-                t.RevertToPending();
-        }
-
-        card.ReversePaymentStatement(statement.Id);          // Paid → Closed
         statement.SetRefundTransactionId(refundTransaction.Id);
 
         // ── 2. Persiste APENAS as mudanças de domínio (conta, fatura, transações revertidas) ──
