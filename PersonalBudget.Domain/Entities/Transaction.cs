@@ -175,6 +175,18 @@ public class Transaction
         Status = TransactionStatus.Completed;
     }
 
+    /// <summary>
+    /// Reverte uma transação concluída para pendente ao estornar o pagamento de uma fatura.
+    /// Operação restrita ao domínio de fatura — não exposta via SetStatus para evitar uso indevido.
+    /// </summary>
+    public void RevertToPending()
+    {
+        if (Status != TransactionStatus.Completed)
+            throw new DomainException("Apenas transações concluídas podem ser revertidas para pendente.");
+
+        Status = TransactionStatus.Pending;
+    }
+
     public void Cancel()
     {
         if (Status == TransactionStatus.Completed)

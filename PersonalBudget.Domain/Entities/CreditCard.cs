@@ -140,14 +140,34 @@ public class CreditCard
         statement.Close();
     }
 
-    public decimal PayStatement(Guid statementId)
+    public void ReopenStatement(Guid statementId)
     {
         var statement = _statements.FirstOrDefault(x => x.Id == statementId);
 
         if (statement == null)
             throw new DomainException("Fatura não encontrada.");
 
-        statement.MarkAsPaid();
+        statement.Reopen();
+    }
+
+    public void ReversePaymentStatement(Guid statementId)
+    {
+        var statement = _statements.FirstOrDefault(x => x.Id == statementId);
+
+        if (statement == null)
+            throw new DomainException("Fatura não encontrada.");
+
+        statement.ReversePayment();
+    }
+
+    public decimal PayStatement(Guid statementId, Guid accountId)
+    {
+        var statement = _statements.FirstOrDefault(x => x.Id == statementId);
+
+        if (statement == null)
+            throw new DomainException("Fatura não encontrada.");
+
+        statement.MarkAsPaid(accountId);
 
         return statement.TotalAmount.Amount;
     }
