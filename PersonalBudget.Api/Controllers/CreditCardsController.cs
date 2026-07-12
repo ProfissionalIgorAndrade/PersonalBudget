@@ -124,31 +124,24 @@ public class CreditCardsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(pagedStatement));
     }
 
-    [HttpPost("{creditCardId}/statements/{statementId}/close")]
-    public async Task<IActionResult> CloseStatement(Guid creditCardId, Guid statementId)
+    [HttpPatch("{creditCardId}/statements/{statementId}/status")]
+    public async Task<IActionResult> UpdateStatementStatus(
+        Guid creditCardId,
+        Guid statementId,
+        [FromBody] UpdateStatementStatusRequest request)
     {
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        var command = new CloseStatementCommand(householdId, creditCardId, statementId);
-        await _statementService.CloseAsync(command);
-        return Ok(ApiResponse<object?>.Ok(DateTime.Now, "Fatura marcada como fechada."));
-    }
-
-    [HttpPost("{creditCardId}/statements/{statementId}/pay")]
-    public async Task<IActionResult> PayStatement(Guid creditCardId, Guid statementId, [FromBody] PayStatementRequest request)
-    {
-        var userId = UserContext.GetUserId(User);
-        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        var command = new PayStatementCommand(householdId, creditCardId, statementId, request.AccountId);
+        var command = new UpdateStatementStatusCommand(userId, householdId, creditCardId, statementId, request.Status, request.AccountId);
         try
         {
-            await _statementService.PayAsync(command);
+            await _statementService.UpdateStatusAsync(command);
         }
         catch (DomainException ex)
         {
             return UnprocessableEntity(ApiResponse<object?>.Fail(ex.Message));
         }
-        return Ok(ApiResponse<object?>.Ok(DateTime.Now, "Fatura paga com sucesso."));
+        return Ok(ApiResponse<object?>.Ok(DateTime.Now, "Status da fatura atualizado com sucesso."));
     }
 
     [HttpPut("{creditCardId}")]

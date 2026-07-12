@@ -41,6 +41,12 @@ public class CreditCardStatementConfiguration : IEntityTypeConfiguration<CreditC
             .HasConversion<string>()
             .IsRequired();
 
+        builder.Property(x => x.PaidFromAccountId)
+            .IsRequired(false);
+
+        builder.Property(x => x.RefundTransactionId)
+            .IsRequired(false);
+
         builder.HasIndex(x => new { x.CreditCardId, x.PeriodStart, x.PeriodEnd });
     }
 }

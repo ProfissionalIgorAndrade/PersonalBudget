@@ -21,6 +21,18 @@ public class CreditCardStatement
 
     public Money TotalAmount { get; private set; }
 
+    /// <summary>
+    /// Conta utilizada para pagar a fatura. Preenchida ao marcar como paga e
+    /// usada para estornar o valor caso a fatura seja reaberta.
+    /// </summary>
+    public Guid? PaidFromAccountId { get; private set; }
+
+    /// <summary>
+    /// Lançamento de estorno criado ao reverter o pagamento desta fatura.
+    /// Excluído automaticamente ao pagar novamente, para manter o histórico limpo.
+    /// </summary>
+    public Guid? RefundTransactionId { get; private set; }
+
     protected CreditCardStatement() { }
 
     public CreditCardStatement(
@@ -150,7 +162,28 @@ public class CreditCardStatement
         Status = BillStatus.Closed;
     }
 
-    public void MarkAsPaid()
+    public void Reopen()
+    {
+        if (Status != BillStatus.Closed)
+            throw new DomainException("Apenas faturas fechadas podem ser reabertas.");
+
+        Status = BillStatus.Open;
+    }
+
+    public void ReversePayment()
+    {
+        if (Status != BillStatus.Paid)
+            throw new DomainException("Apenas faturas pagas podem ter o pagamento estornado.");
+
+        PaidFromAccountId = null;
+        Status = BillStatus.Closed;
+    }
+
+    public void SetRefundTransactionId(Guid transactionId) => RefundTransactionId = transactionId;
+
+    public void ClearRefundTransactionId() => RefundTransactionId = null;
+
+    public void MarkAsPaid(Guid accountId)
     {
         if (Status == BillStatus.Paid)
             throw new DomainException("A fatura já foi paga.");
@@ -158,6 +191,7 @@ public class CreditCardStatement
         if (Status == BillStatus.Open)
             Close();
 
+        PaidFromAccountId = accountId;
         Status = BillStatus.Paid;
     }
 }
