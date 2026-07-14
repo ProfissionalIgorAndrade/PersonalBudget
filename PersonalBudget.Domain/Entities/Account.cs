@@ -5,6 +5,8 @@ public class Account
     public Guid UserId { get; private set; }
     /// <summary>Lar ao qual a conta pertence (visível a todos os membros).</summary>
     public Guid HouseholdId { get; private set; }
+    /// <summary>Membro da família ao qual esta conta pertence.</summary>
+    public Guid? MemberProfileId { get; private set; }
     public Bank Bank { get; private set; }
     public BankAgency Agency { get; private set; } = null!;
     public BankAccountNumber Number { get; private set; } = null!;
@@ -18,16 +20,20 @@ public class Account
         Bank bank,
         BankAgency agency,
         BankAccountNumber number,
-        Money initialBalance)
+        Money initialBalance,
+        Guid memberProfileId)
     {
         if (userId == Guid.Empty)
             throw new DomainException("A conta deve pertencer a um usuário.");
         if (householdId == Guid.Empty)
             throw new DomainException("A conta deve pertencer a um lar.");
+        if (memberProfileId == Guid.Empty)
+            throw new DomainException("A conta deve estar vinculada a um membro da família.");
 
         Id = Guid.NewGuid();
         UserId = userId;
         HouseholdId = householdId;
+        MemberProfileId = memberProfileId;
         Bank = bank;
         Agency = agency;
         Number = number;
@@ -43,22 +49,29 @@ public class Account
        Bank bank,
        BankAgency agency,
        BankAccountNumber number,
-       Money initialBalance)
+       Money initialBalance,
+       Guid memberProfileId)
     {
-        return new Account(userId, householdId, bank, agency, number, initialBalance);
+        return new Account(userId, householdId, bank, agency, number, initialBalance, memberProfileId);
     }
 
     public void UpdateBankInfo(
         Bank bank,
         BankAgency agency,
-        BankAccountNumber number)
+        BankAccountNumber number,
+        Guid? memberProfileId = null)
     {
         if (!IsActive)
             throw new DomainException("Conta inativa não pode ser atualizada.");
+        if (memberProfileId == Guid.Empty)
+            throw new DomainException("A conta deve estar vinculada a um membro da família.");
 
         Bank = bank;
         Agency = agency;
         Number = number;
+
+        if (memberProfileId.HasValue)
+            MemberProfileId = memberProfileId.Value;
     }
 
     public void Deactivate()

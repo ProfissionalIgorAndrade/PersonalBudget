@@ -15,8 +15,12 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(a => a.HouseholdId)
             .IsRequired();
 
+        builder.Property(a => a.MemberProfileId)
+            .HasColumnName("member_profile_id");
+
         builder.HasIndex(a => a.UserId);
         builder.HasIndex(a => a.HouseholdId);
+        builder.HasIndex(a => a.MemberProfileId);
 
         // 🔹 Bank enum
         builder.Property(a => a.Bank)
