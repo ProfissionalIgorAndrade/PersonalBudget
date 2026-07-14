@@ -35,7 +35,8 @@ public class AccountsController : ControllerBase
             request.Bank,
             request.Agency,
             request.AccountNumber,
-            request.InitialBalance
+            request.InitialBalance,
+            request.MemberId
         );
 
         var id = await _service.CreateAsync(command);
@@ -106,7 +107,8 @@ public class AccountsController : ControllerBase
             accountId,
             request.Bank,
             request.Agency,
-            request.AccountNumber
+            request.AccountNumber,
+            request.MemberId
         );
 
         await _service.UpdateAsync(command);

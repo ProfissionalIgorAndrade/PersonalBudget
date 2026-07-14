@@ -4,5 +4,6 @@ public record UpdateAccountCommand(
     Guid AccountId,
     Bank Bank,
     string Agency,
-    string AccountNumber
+    string AccountNumber,
+    Guid? MemberId
 );

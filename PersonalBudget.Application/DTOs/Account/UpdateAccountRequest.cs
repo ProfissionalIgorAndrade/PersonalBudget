@@ -1,5 +1,6 @@
 public record UpdateAccountRequest(
     Bank Bank,
     string Agency,
-    string AccountNumber
+    string AccountNumber,
+    Guid? MemberId
 );
