@@ -9,6 +9,8 @@ public class CreditCard
     public int ClosingDay { get; private set; }
     public int DueDay { get; private set; }
     public bool IsActive { get; private set; }
+    /// <summary>CSS hex color, e.g. "#818cf8". Optional display hint for UI rendering.</summary>
+    public string? Color { get; private set; }
     private readonly List<CreditCardStatement> _statements = new();
     public IReadOnlyCollection<CreditCardStatement> Statements => _statements.AsReadOnly();
 
@@ -19,7 +21,8 @@ public class CreditCard
         string name,
         decimal limit,
         int closingDay,
-        int dueDay)
+        int dueDay,
+        string? color = null)
     {
         if (limit <= 0)
             throw new DomainException("O limite do cartão de crédito deve ser maior que zero.");
@@ -35,6 +38,7 @@ public class CreditCard
         ClosingDay = closingDay;
         DueDay = dueDay;
         IsActive = true;
+        Color = color;
     }
 
     protected CreditCard() { }
@@ -46,10 +50,11 @@ public class CreditCard
         string name,
         decimal limit,
         int closingDay,
-        int dueDay)
-        => new(userId, householdId, accountId, name, limit, closingDay, dueDay);
+        int dueDay,
+        string? color = null)
+        => new(userId, householdId, accountId, name, limit, closingDay, dueDay, color);
 
-    public void Update(string name, decimal limit, int closingDay, int dueDay)
+    public void Update(string name, decimal limit, int closingDay, int dueDay, string? color = null)
     {
         if (!IsActive)
             throw new DomainException("Cartão de crédito inativo não pode ser atualizado.");
@@ -58,6 +63,7 @@ public class CreditCard
         Limit = limit;
         ClosingDay = closingDay;
         DueDay = dueDay;
+        Color = color;
     }
 
     public void Deactivate()

@@ -7,6 +7,10 @@ public class HouseholdMemberProfile
     /// <summary>Preenchido quando <see cref="Kind"/> é <see cref="HouseholdMemberProfileKind.LinkedUser"/>.</summary>
     public Guid? UserId { get; private set; }
     public int SortOrder { get; private set; }
+    /// <summary>CSS hex color, e.g. "#2dd4bf". Optional display hint for UI rendering.</summary>
+    public string? Color { get; private set; }
+    /// <summary>Emoji, e.g. "👤". Optional display hint for UI rendering.</summary>
+    public string? Emoji { get; private set; }
 
     protected HouseholdMemberProfile() { }
 
@@ -15,7 +19,9 @@ public class HouseholdMemberProfile
         HouseholdMemberProfileKind kind,
         string displayName,
         Guid? userId,
-        int sortOrder)
+        int sortOrder,
+        string? color = null,
+        string? emoji = null)
     {
         if (householdId == Guid.Empty)
             throw new DomainException("Lar é obrigatório.");
@@ -33,17 +39,31 @@ public class HouseholdMemberProfile
         DisplayName = displayName.Trim();
         UserId = userId;
         SortOrder = sortOrder;
+        Color = color;
+        Emoji = emoji;
     }
 
     public static HouseholdMemberProfile CreateLinkedUser(
         Guid householdId,
         Guid userId,
         string displayName,
-        int sortOrder = 0)
-        => new(householdId, HouseholdMemberProfileKind.LinkedUser, displayName, userId, sortOrder);
+        int sortOrder = 0,
+        string? color = null,
+        string? emoji = null)
+        => new(householdId, HouseholdMemberProfileKind.LinkedUser, displayName, userId, sortOrder, color, emoji);
 
-    public static HouseholdMemberProfile CreateJoint(string displayName, Guid householdId, int sortOrder = 0)
-        => new(householdId, HouseholdMemberProfileKind.Joint, displayName, null, sortOrder);
+    public static HouseholdMemberProfile CreateJoint(string displayName, Guid householdId, int sortOrder = 0, string? color = null, string? emoji = null)
+        => new(householdId, HouseholdMemberProfileKind.Joint, displayName, null, sortOrder, color, emoji);
+
+    public void Update(string displayName, string? color, string? emoji)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            throw new DomainException("Nome de exibição do correspondente é obrigatório.");
+
+        DisplayName = displayName.Trim();
+        Color = color;
+        Emoji = emoji;
+    }
 
     /// <summary>Move perfil compartilhado para outro lar (mantém o mesmo Id para referências de transações).</summary>
     public void RelocateToHousehold(Guid newHouseholdId, int newSortOrder)

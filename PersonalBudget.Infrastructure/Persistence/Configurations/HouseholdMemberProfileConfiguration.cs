@@ -18,6 +18,12 @@ public class HouseholdMemberProfileConfiguration : IEntityTypeConfiguration<Hous
             .HasMaxLength(120);
         builder.Property(p => p.SortOrder).IsRequired();
 
+        builder.Property(p => p.Color)
+            .HasMaxLength(20);
+
+        builder.Property(p => p.Emoji)
+            .HasMaxLength(50);
+
         builder.HasIndex(p => p.HouseholdId);
     }
 }
