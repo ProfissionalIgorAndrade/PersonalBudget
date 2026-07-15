@@ -2,5 +2,6 @@ public record UpdateCreditCardRequest(
     string Name,
     decimal Limit,
     int ClosingDay,
-    int DueDay
+    int DueDay,
+    string? Color = null
 );

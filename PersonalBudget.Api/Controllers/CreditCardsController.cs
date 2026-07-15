@@ -72,7 +72,8 @@ public class CreditCardsController : ControllerBase
             request.Name,
             request.Limit,
             request.ClosingDay,
-            request.DueDay
+            request.DueDay,
+            request.Color
         );
 
         var creditCardId = await _service.CreateAsync(command);
@@ -159,7 +160,8 @@ public class CreditCardsController : ControllerBase
             request.Name,
             request.Limit,
             request.ClosingDay,
-            request.DueDay
+            request.DueDay,
+            request.Color
         );
 
         await _service.UpdateAsync(command);

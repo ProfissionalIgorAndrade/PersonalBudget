@@ -25,7 +25,8 @@ public class CreditCardService : ICreditCardService
             command.Name,
             command.Limit,
             command.ClosingDay,
-            command.DueDay
+            command.DueDay,
+            command.Color
         );
 
         await _repository.AddAsync(creditCard);
@@ -48,7 +49,8 @@ public class CreditCardService : ICreditCardService
             command.Name,
             command.Limit,
             command.ClosingDay,
-            command.DueDay
+            command.DueDay,
+            command.Color
         );
 
         await _repository.UpdateAsync(creditCard);
