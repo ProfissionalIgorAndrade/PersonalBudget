@@ -57,10 +57,12 @@ public class HouseholdService : IHouseholdService
             p.Id,
             p.DisplayName,
             p.Kind.ToString(),
-            p.UserId)).ToList();
+            p.UserId,
+            p.Emoji,
+            p.Color)).ToList();
     }
 
-    public async Task<HouseholdMemberProfileResponseDto> CreateJointProfileAsync(Guid userId, Guid householdId, string displayName)
+    public async Task<HouseholdMemberProfileResponseDto> CreateJointProfileAsync(Guid userId, Guid householdId, string displayName, string? emoji = null, string? color = null)
     {
         if (!await _memberships.IsMemberAsync(userId, householdId))
             throw new DomainException("Lar não encontrado ou sem permissão.");
@@ -71,14 +73,37 @@ public class HouseholdService : IHouseholdService
         var existing = await _profiles.GetByHouseholdAsync(householdId);
         var sortOrder = existing.Count == 0 ? 0 : existing.Max(p => p.SortOrder) + 1;
 
-        var profile = HouseholdMemberProfile.CreateJoint(displayName.Trim(), householdId, sortOrder);
+        var profile = HouseholdMemberProfile.CreateJoint(displayName.Trim(), householdId, sortOrder, color, emoji);
         await _profiles.AddAsync(profile);
 
         return new HouseholdMemberProfileResponseDto(
             profile.Id,
             profile.DisplayName,
             profile.Kind.ToString(),
-            profile.UserId);
+            profile.UserId,
+            profile.Emoji,
+            profile.Color);
+    }
+
+    public async Task<HouseholdMemberProfileResponseDto> UpdateProfileAsync(Guid userId, Guid householdId, Guid profileId, string displayName, string? emoji, string? color)
+    {
+        if (!await _memberships.IsMemberAsync(userId, householdId))
+            throw new DomainException("Lar não encontrado ou sem permissão.");
+
+        var profile = await _profiles.GetByIdAsync(profileId);
+        if (profile is null || profile.HouseholdId != householdId)
+            throw new DomainException("Perfil não encontrado.");
+
+        profile.Update(displayName, color, emoji);
+        await _profiles.SaveChangesAsync();
+
+        return new HouseholdMemberProfileResponseDto(
+            profile.Id,
+            profile.DisplayName,
+            profile.Kind.ToString(),
+            profile.UserId,
+            profile.Emoji,
+            profile.Color);
     }
 
     public async Task DeleteProfileAndMergeAsync(

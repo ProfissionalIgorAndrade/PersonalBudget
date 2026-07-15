@@ -4,4 +4,6 @@ public record HouseholdMemberProfileResponseDto(
     Guid Id,
     string DisplayName,
     string Kind,
-    Guid? UserId);
+    Guid? UserId,
+    string? Emoji,
+    string? Color);

@@ -66,9 +66,18 @@ public class HouseholdsController : ControllerBase
     public async Task<IActionResult> CreateProfile(Guid householdId, [FromBody] CreateHouseholdMemberProfileRequest request)
     {
         var userId = UserContext.GetUserId(User);
-        var created = await _householdService.CreateJointProfileAsync(userId, householdId, request.DisplayName);
+        var created = await _householdService.CreateJointProfileAsync(userId, householdId, request.DisplayName, request.Emoji, request.Color);
         return CreatedAtAction(nameof(GetProfiles), new { householdId },
             ApiResponse<object>.Ok(created, "Perfil de correspondente criado."));
+    }
+
+    /// <summary>Atualiza nome e aparência (emoji, cor) de um perfil de correspondente.</summary>
+    [HttpPut("{householdId:guid}/profiles/{profileId:guid}")]
+    public async Task<IActionResult> UpdateProfile(Guid householdId, Guid profileId, [FromBody] UpdateHouseholdMemberProfileRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var updated = await _householdService.UpdateProfileAsync(userId, householdId, profileId, request.DisplayName, request.Emoji, request.Color);
+        return Ok(ApiResponse<object>.Ok(updated));
     }
 
     /// <summary>

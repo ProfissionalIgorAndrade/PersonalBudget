@@ -35,6 +35,9 @@ public class CreditCardConfiguration : IEntityTypeConfiguration<CreditCard>
         builder.Property(c => c.IsActive)
             .IsRequired();
 
+        builder.Property(c => c.Color)
+            .HasMaxLength(20);
+
         builder.HasIndex(c => c.UserId);
         builder.HasIndex(c => c.HouseholdId);
         
