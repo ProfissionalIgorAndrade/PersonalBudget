@@ -54,8 +54,37 @@ public class CreditCardStatementService : ICreditCardStatementService
         if (statement is null)
             return null;
 
-        var transactions = await _transactionQueryRepository.GetTransactionDetailsByStatementAsync(creditCardId, statement.PeriodEnd);
-        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(creditCardId, statement.PeriodEnd);
+        var transactions = await _transactionQueryRepository.GetTransactionDetailsByStatementAsync(statement.Id);
+        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
+        var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
+
+        return new StatementWithTransactionsResponse(
+            statement.Id,
+            card.Id,
+            card.Name,
+            card.Limit,
+            statement.PeriodStart,
+            statement.PeriodEnd,
+            statement.ClosingDate,
+            dueDate,
+            statement.Status.ToString(),
+            netTotal,
+            transactions
+        );
+    }
+
+    public async Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsByIdAsync(Guid householdId, Guid creditCardId, Guid statementId)
+    {
+        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
+        if (card is null || card.HouseholdId != householdId)
+            return null;
+
+        var statement = await _statementRepository.GetByIdAsync(statementId);
+        if (statement is null || statement.CreditCardId != creditCardId)
+            return null;
+
+        var transactions = await _transactionQueryRepository.GetTransactionDetailsByStatementAsync(statement.Id);
+        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
         var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
 
         return new StatementWithTransactionsResponse(
@@ -88,8 +117,45 @@ public class CreditCardStatementService : ICreditCardStatementService
             return null;
 
         var (transactions, totalCount) = await _transactionQueryRepository.GetTransactionDetailsByStatementPagedAsync(
-            creditCardId, statement.PeriodEnd, page, pageSize);
-        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(creditCardId, statement.PeriodEnd);
+            statement.Id, page, pageSize);
+        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
+        var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
+
+        return new PaginatedStatementWithTransactionsResponse(
+            statement.Id,
+            card.Id,
+            card.Name,
+            card.Limit,
+            statement.PeriodStart,
+            statement.PeriodEnd,
+            statement.ClosingDate,
+            dueDate,
+            statement.Status.ToString(),
+            netTotal,
+            transactions,
+            page,
+            pageSize,
+            totalCount
+        );
+    }
+
+    public async Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsByIdPagedAsync(
+        Guid householdId, Guid creditCardId, Guid statementId, int page, int pageSize)
+    {
+        if (page < 1)
+            throw new DomainException("Page must be at least 1.");
+
+        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
+        if (card is null || card.HouseholdId != householdId)
+            return null;
+
+        var statement = await _statementRepository.GetByIdAsync(statementId);
+        if (statement is null || statement.CreditCardId != creditCardId)
+            return null;
+
+        var (transactions, totalCount) = await _transactionQueryRepository.GetTransactionDetailsByStatementPagedAsync(
+            statement.Id, page, pageSize);
+        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
         var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
 
         return new PaginatedStatementWithTransactionsResponse(

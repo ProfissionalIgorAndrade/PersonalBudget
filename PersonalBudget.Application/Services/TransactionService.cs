@@ -317,7 +317,9 @@ public class TransactionService : ITransactionService
             || command.CategoryId is not null
             || command.DueDate is not null
             || command.ExpirationDate is not null
-            || command.AttributionProfileId is not null;
+            || command.AttributionProfileId is not null
+            || command.StatementMonth is not null
+            || command.StatementYear is not null;
 
         if (!hasAny)
             throw new DomainException("Informe ao menos um campo para atualizar.");
@@ -339,6 +341,13 @@ public class TransactionService : ITransactionService
                 throw new DomainException("Correspondente inválido para este lar.");
         }
 
+        if (command.StatementMonth.HasValue && (command.StatementMonth < 1 || command.StatementMonth > 12))
+            throw new DomainException("StatementMonth deve estar entre 1 e 12.");
+
+        // StatementMonth e StatementYear devem ser informados juntos
+        if (command.StatementMonth.HasValue != command.StatementYear.HasValue)
+            throw new DomainException("StatementMonth e StatementYear devem ser informados juntos.");
+
         var newAmount = command.Amount ?? transaction.Amount.Amount;
         var newDateVo = command.Date is null
             ? transaction.Date
@@ -355,7 +364,7 @@ public class TransactionService : ITransactionService
             throw new DomainException("ExpirationDate só é permitido com TransactionFrequency.Fixed.");
 
         if (isCreditCard)
-            await ApplyCreditCardStatementAdjustmentsAsync(transaction, command.HouseholdId, newAmount, newDateVo);
+            await ApplyCreditCardStatementAdjustmentsAsync(transaction, command.HouseholdId, newAmount, command.StatementMonth, command.StatementYear);
 
         transaction.UpdateDetails(
             new Money(newAmount),
@@ -519,7 +528,8 @@ public class TransactionService : ITransactionService
         Transaction transaction,
         Guid householdId,
         decimal newAmount,
-        TransactionDate newDateVo)
+        int? statementMonth,
+        int? statementYear)
     {
         var creditCard = await _creditCardRepository.GetByIdAsync(transaction.CreditCardId!.Value);
         if (creditCard is null || creditCard.HouseholdId != householdId)
@@ -533,23 +543,33 @@ public class TransactionService : ITransactionService
             throw new DomainException("Não é possível editar transações de cartão em fatura fechada ou paga.");
 
         var newMoney = new Money(newAmount);
-        var targetDate = newDateVo.Value;
 
-        var targetOpen = await _creditCardStatementRepository.GetOpenStatementForDateAsync(creditCard.Id, targetDate);
+        // Se mês/ano de fatura não foram informados, mantém na mesma fatura
+        if (statementMonth is null || statementYear is null)
+        {
+            if (transaction.Amount.Amount != newAmount)
+            {
+                oldStatement.ReplaceTransactionContribution(transaction.Amount, newMoney, transaction.Type);
+                await _creditCardStatementRepository.UpdateAsync(oldStatement);
+            }
+            return;
+        }
+
         CreditCardStatement targetStatement;
         var createdNewStatement = false;
 
-        if (targetOpen is not null)
+        var existing = await _creditCardStatementRepository.GetByCreditCardAndClosingMonthYearAsync(
+            creditCard.Id, statementMonth.Value, statementYear.Value);
+
+        if (existing is not null)
         {
-            targetStatement = targetOpen;
+            targetStatement = existing;
         }
         else
         {
-            var covering = await _creditCardStatementRepository.GetByCreditCardAndContainingDateAsync(creditCard.Id, targetDate);
-            if (covering is not null)
-                throw new DomainException("Não é possível alterar para esta data: a fatura deste período não está aberta.");
-
-            targetStatement = CreditCardStatement.CreateForDate(creditCard.Id, targetDate, creditCard.ClosingDay, creditCard.DueDay);
+            targetStatement = CreditCardStatement.CreateForMonth(
+                creditCard.Id, statementMonth.Value, statementYear.Value,
+                creditCard.ClosingDay, creditCard.DueDay);
             targetStatement.AddTransaction(newMoney, transaction.Type);
             await _creditCardStatementRepository.AddAsync(targetStatement);
             createdNewStatement = true;
@@ -616,6 +636,142 @@ public class TransactionService : ITransactionService
             return DateTime.SpecifyKind(parsedBr, DateTimeKind.Utc);
 
         throw new DomainException("Data inválida. Use dd/MM/yyyy (ex: 08/04/2026) ou ISO.");
+    }
+
+    public async Task UpdateInstallmentStatementAsync(UpdateInstallmentStatementCommand command)
+    {
+        if (command.StatementMonth < 1 || command.StatementMonth > 12)
+            throw new DomainException("StatementMonth deve estar entre 1 e 12.");
+
+        var pivot = await _transactionRepository.GetByIdAsync(command.TransactionId);
+        if (pivot is null || pivot.HouseholdId != command.HouseholdId)
+            throw new DomainException("Transação não encontrada.");
+
+        if (pivot.Frequency != TransactionFrequency.Installments)
+            throw new DomainException("Esta operação só é permitida para transações parceladas.");
+
+        if (pivot.RecurrenceId is null)
+            throw new DomainException("Transação parcelada sem grupo de parcelas associado.");
+
+        if (pivot.CreditCardId is null || pivot.StatementId is null)
+            throw new DomainException("Transação sem dados de cartão/fatura associados.");
+
+        var creditCard = await _creditCardRepository.GetByIdAsync(pivot.CreditCardId.Value);
+        if (creditCard is null || creditCard.HouseholdId != command.HouseholdId)
+            throw new DomainException("Cartão de crédito não encontrado.");
+
+        var pivotStatement = await _creditCardStatementRepository.GetByIdAsync(pivot.StatementId.Value);
+        if (pivotStatement is null)
+            throw new DomainException("Fatura atual da parcela não encontrada.");
+
+        // Calcula o delta em meses entre a fatura atual do pivô e a nova fatura desejada
+        var pivotMonths = pivotStatement.ClosingYear * 12 + (pivotStatement.ClosingMonth - 1);
+        var targetMonths = command.StatementYear * 12 + (command.StatementMonth - 1);
+        var monthDelta = targetMonths - pivotMonths;
+
+        if (monthDelta == 0)
+            return;
+
+        var allInSeries = await _transactionRepository.GetByRecurrenceIdAsync(pivot.RecurrenceId.Value, command.HouseholdId);
+        var orderedSeries = allInSeries.OrderBy(t => t.Date.Value).ToList();
+
+        var targets = command.EditMode switch
+        {
+            InstallmentEditMode.All => orderedSeries,
+            InstallmentEditMode.ThisAndFuture => orderedSeries.Where(t => t.Date.Value >= pivot.Date.Value).ToList(),
+            _ => throw new DomainException("InstallmentEditMode inválido.")
+        };
+
+        foreach (var t in targets)
+        {
+            if (t.Status == TransactionStatus.Completed)
+                throw new DomainException("Não é possível mover parcelas já concluídas.");
+            if (t.StatementId is null)
+                throw new DomainException("Parcela sem fatura associada.");
+        }
+
+        // Carrega todas as faturas atuais e valida que estão abertas
+        // O cache unificado por (mês, ano) evita dupla contagem quando uma fatura é
+        // ao mesmo tempo origem de uma parcela e destino de outra (e.g. delta negativo)
+        var statementByMonthYear = new Dictionary<(int Month, int Year), CreditCardStatement>();
+        var statementsById = new Dictionary<Guid, CreditCardStatement>();
+
+        foreach (var id in targets.Select(t => t.StatementId!.Value).Distinct())
+        {
+            var s = await _creditCardStatementRepository.GetByIdAsync(id);
+            if (s is null)
+                throw new DomainException("Fatura não encontrada.");
+            if (s.Status != BillStatus.Open)
+                throw new DomainException("Não é possível mover parcelas em fatura fechada ou paga.");
+            statementsById[id] = s;
+            statementByMonthYear[(s.ClosingMonth, s.ClosingYear)] = s;
+        }
+
+        var statementsToUpdate = new Dictionary<Guid, CreditCardStatement>();
+        var modifiedTransactions = new List<Transaction>();
+
+        foreach (var t in targets)
+        {
+            var oldStatement = statementsById[t.StatementId!.Value];
+
+            var oldMonths = oldStatement.ClosingYear * 12 + (oldStatement.ClosingMonth - 1);
+            var newTotalMonths = oldMonths + monthDelta;
+
+            // Aritmética de meses segura para deltas negativos
+            var newYear = newTotalMonths / 12;
+            var newMonthRemainder = newTotalMonths % 12;
+            if (newMonthRemainder < 0)
+            {
+                newMonthRemainder += 12;
+                newYear--;
+            }
+            var newMonth = newMonthRemainder + 1; // volta para base 1
+
+            var cacheKey = (newMonth, newYear);
+            if (!statementByMonthYear.TryGetValue(cacheKey, out var targetStatement))
+            {
+                var existing = await _creditCardStatementRepository.GetByCreditCardAndClosingMonthYearAsync(
+                    creditCard.Id, newMonth, newYear);
+
+                if (existing is not null)
+                {
+                    if (existing.Status != BillStatus.Open)
+                        throw new DomainException($"A fatura de destino {newMonth}/{newYear} está fechada ou paga.");
+                    targetStatement = existing;
+                }
+                else
+                {
+                    targetStatement = CreditCardStatement.CreateForMonth(
+                        creditCard.Id, newMonth, newYear,
+                        creditCard.ClosingDay, creditCard.DueDay);
+                    await _creditCardStatementRepository.AddAsync(targetStatement);
+                }
+
+                statementByMonthYear[cacheKey] = targetStatement;
+                statementsById[targetStatement.Id] = targetStatement;
+            }
+
+            if (targetStatement.Id == oldStatement.Id)
+                continue;
+
+            oldStatement.RemoveTransactionContribution(t.Amount, t.Type);
+            targetStatement.AddTransaction(t.Amount, t.Type);
+            t.ChangeCreditCardStatement(targetStatement.Id);
+
+            // Desloca a data da transação pelo mesmo delta para manter a coerência visual
+            var newDate = DateTime.SpecifyKind(t.Date.Value.AddMonths(monthDelta), DateTimeKind.Utc);
+            t.UpdateDetails(t.Amount, new TransactionDate(newDate), t.Description, t.CategoryId, t.ExpirationDate, t.DueDate);
+
+            statementsToUpdate[oldStatement.Id] = oldStatement;
+            statementsToUpdate[targetStatement.Id] = targetStatement;
+            modifiedTransactions.Add(t);
+        }
+
+        foreach (var s in statementsToUpdate.Values)
+            await _creditCardStatementRepository.UpdateAsync(s);
+
+        if (modifiedTransactions.Count > 0)
+            await _transactionRepository.BulkUpdateAsync(modifiedTransactions);
     }
 
     public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)

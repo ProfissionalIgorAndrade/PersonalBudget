@@ -7,4 +7,6 @@ public record UpdateTransactionCommand(
     Guid? CategoryId,
     string? DueDate,
     string? ExpirationDate,
-    Guid? AttributionProfileId);
+    Guid? AttributionProfileId,
+    int? StatementMonth = null,
+    int? StatementYear = null);

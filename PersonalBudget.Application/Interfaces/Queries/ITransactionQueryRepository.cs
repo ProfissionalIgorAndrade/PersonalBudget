@@ -13,15 +13,12 @@ public interface ITransactionQueryRepository
     Task<(IReadOnlyList<GetAllTransactionByUserResponse> Items, int TotalCount)> GetByAccountAndMonthPagedAsync(
         Guid householdId, Guid accountId, int month, int year, int page, int pageSize, TransactionFrequency? frequency = null);
     Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetAllTransactionByCreditCardStatementAndMonthYearQuery(Guid householdId, Guid creditCardId, int month, int year);
-    /// <summary>
-    /// Retorna os lançamentos da fatura cujo período é [periodEnd.AddMonths(-1), periodEnd).
-    /// O dia de fechamento (periodEnd) é exclusivo: lançamentos nesse dia vão para a próxima fatura.
-    /// </summary>
-    Task<IReadOnlyList<StatementTransactionItemDto>> GetTransactionDetailsByStatementAsync(Guid creditCardId, DateTime periodEnd);
+    /// <summary>Retorna os lançamentos da fatura pelo StatementId.</summary>
+    Task<IReadOnlyList<StatementTransactionItemDto>> GetTransactionDetailsByStatementAsync(Guid statementId);
     Task<(IReadOnlyList<StatementTransactionItemDto> Items, int TotalCount)> GetTransactionDetailsByStatementPagedAsync(
-        Guid creditCardId, DateTime periodEnd, int page, int pageSize);
-    /// <summary>Total líquido da fatura: soma de despesas menos receitas (reembolsos/estornos). Usa a mesma faixa de datas exclusiva do periodEnd.</summary>
-    Task<decimal> GetStatementNetTotalAsync(Guid creditCardId, DateTime periodEnd);
+        Guid statementId, int page, int pageSize);
+    /// <summary>Total líquido da fatura: soma de despesas menos receitas (reembolsos/estornos), filtrado pelo StatementId.</summary>
+    Task<decimal> GetStatementNetTotalAsync(Guid statementId);
 
     /// <summary>Resumo por correspondente: todos os perfis do lar; totais 0 quando não há lançamentos no mês.</summary>
     Task<IReadOnlyList<HouseholdProfileSummaryRow>> GetHouseholdSummaryByProfileAsync(Guid householdId, int month, int year);

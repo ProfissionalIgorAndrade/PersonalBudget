@@ -71,6 +71,25 @@ public class CreditCardStatement
     }
 
     /// <summary>
+    /// Creates a new open statement for an explicit billing month/year.
+    /// PeriodEnd = closing day of that month; PeriodStart = one month before + 1 day.
+    /// </summary>
+    public static CreditCardStatement CreateForMonth(
+        Guid creditCardId,
+        int month,
+        int year,
+        int closingDay,
+        int dueDay)
+    {
+        var day = Math.Min(closingDay, DateTime.DaysInMonth(year, month));
+        var periodEnd = DateTime.SpecifyKind(new DateTime(year, month, day), DateTimeKind.Utc);
+        var periodStart = periodEnd.AddMonths(-1).AddDays(1);
+        var closingDate = periodEnd;
+        var dueDateValue = closingDate.AddDays(dueDay);
+        return Open(creditCardId, periodStart, periodEnd, closingDate, dueDateValue);
+    }
+
+    /// <summary>
     /// Creates a new open statement for the period that contains the given date.
     /// Period logic matches CreditCard: closingDay defines period end.
     /// </summary>

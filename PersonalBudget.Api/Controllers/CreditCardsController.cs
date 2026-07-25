@@ -125,6 +125,39 @@ public class CreditCardsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(pagedStatement));
     }
 
+    [HttpGet("{creditCardId}/statement/{statementId:guid}")]
+    public async Task<IActionResult> GetStatementById(
+        Guid creditCardId,
+        Guid statementId,
+        [FromQuery] int? page = null)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        if (page is null)
+        {
+            var statement = await _statementService.GetStatementWithTransactionsByIdAsync(householdId, creditCardId, statementId);
+            if (statement is null)
+                return NotFound(ApiResponse<object?>.Fail("Fatura não encontrada."));
+            return Ok(ApiResponse<object>.Ok(statement));
+        }
+
+        if (page < 1)
+            return BadRequest(ApiResponse<object?>.Fail("Page must be at least 1."));
+
+        var pagedStatement = await _statementService.GetStatementWithTransactionsByIdPagedAsync(
+            householdId,
+            creditCardId,
+            statementId,
+            page.Value,
+            15);
+
+        if (pagedStatement is null)
+            return NotFound(ApiResponse<object?>.Fail("Fatura não encontrada."));
+
+        return Ok(ApiResponse<object>.Ok(pagedStatement));
+    }
+
     [HttpPatch("{creditCardId}/statements/{statementId}/status")]
     public async Task<IActionResult> UpdateStatementStatus(
         Guid creditCardId,

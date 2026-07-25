@@ -24,5 +24,9 @@ public record CreateTransactionCommand(
     int? DueDay = null,
     int? RepeatCount = null,
     /// <summary>When set, overrides default status (including AutoComplete for Account).</summary>
-    TransactionStatus? Status = null
+    TransactionStatus? Status = null,
+    /// <summary>Mês da fatura (1-12). Obrigatório para PaymentMethod.CreditCard.</summary>
+    int? StatementMonth = null,
+    /// <summary>Ano da fatura. Obrigatório para PaymentMethod.CreditCard.</summary>
+    int? StatementYear = null
 );

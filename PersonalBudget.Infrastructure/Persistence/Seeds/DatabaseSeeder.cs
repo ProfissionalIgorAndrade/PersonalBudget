@@ -2,10 +2,15 @@ namespace PersonalBudget.Infrastructure.Persistence.Seed;
 
 public static class DatabaseSeeder
 {
-    public static async Task<Guid> SeedAsync(AppDbContext context)
+    /// <param name="isDevelopment">Deve ser <c>true</c> apenas quando <c>IHostEnvironment.IsDevelopment()</c> for verdadeiro.
+    /// O parâmetro é obrigatório e explícito para evitar execução acidental em produção.</param>
+    public static async Task<Guid> SeedAsync(AppDbContext context, bool isDevelopment)
     {
-        if (context.Users.Any())
-            return Guid.Empty;
+        if (!isDevelopment)
+            throw new InvalidOperationException(
+                "DatabaseSeeder não pode ser executado fora do ambiente Development. " +
+                "Nunca chame este método em produção.");
+
 
         var igorName = "Igor";
         var igorEmail = "email@email.com";

@@ -8,4 +8,8 @@ public record UpdateTransactionRequest(
     string? DueDate = null,
     /// <summary>Expiration date for fixed recurrence. Empty string clears.</summary>
     string? ExpirationDate = null,
-    Guid? AttributionProfileId = null);
+    Guid? AttributionProfileId = null,
+    /// <summary>Mês da fatura destino (1-12). Para mover uma transação de cartão para outra fatura.</summary>
+    int? StatementMonth = null,
+    /// <summary>Ano da fatura destino. Para mover uma transação de cartão para outra fatura.</summary>
+    int? StatementYear = null);

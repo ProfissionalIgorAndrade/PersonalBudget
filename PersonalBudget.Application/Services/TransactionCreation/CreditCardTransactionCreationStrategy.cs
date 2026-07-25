@@ -21,6 +21,12 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         if (command.CreditCardId is null)
             throw new DomainException("CreditCardId é obrigatório para pagamentos com cartão de crédito.");
 
+        if (command.StatementMonth is null || command.StatementYear is null)
+            throw new DomainException("StatementMonth e StatementYear são obrigatórios para pagamentos com cartão de crédito.");
+
+        if (command.StatementMonth < 1 || command.StatementMonth > 12)
+            throw new DomainException("StatementMonth deve estar entre 1 e 12.");
+
         var date = ParseDate(command.Date);
 
         var creditCard = await _creditCardRepository.GetByIdAsync(command.CreditCardId.Value);
@@ -32,9 +38,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             throw new DomainException("Parcelado exige TotalAmount quando InstallmentCount é maior que 1.");
 
         if (isInstallment)
-        {
             return await CreateInstallmentsAsync(command, creditCard, date);
-        }
 
         return await CreateSingleAsync(command, creditCard, date);
     }
@@ -44,7 +48,9 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         CreditCard creditCard,
         DateTime date)
     {
-        var statement = await GetOrCreateStatementAsync(creditCard, date, new Money(command.Amount), command.Type);
+        var statement = await GetOrCreateStatementForMonthAsync(
+            creditCard, command.StatementMonth!.Value, command.StatementYear!.Value,
+            new Money(command.Amount), command.Type);
 
         var dueDate = ParseOptionalDueDate(command.DueDate);
         var initialStatus = command.Status ?? TransactionStatus.Pending;
@@ -85,15 +91,25 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         var recurrenceId = Guid.NewGuid();
         Guid firstTransactionId = default;
 
+        var firstMonth = command.StatementMonth!.Value;
+        var firstYear = command.StatementYear!.Value;
+
         for (var i = 0; i < count; i++)
         {
+            // Avança mês/ano mantendo lógica calendárica correta
+            var totalMonths = (firstYear * 12 + firstMonth - 1) + i;
+            var installmentMonth = (totalMonths % 12) + 1;
+            var installmentYear = totalMonths / 12;
+
             var installmentDate = firstDate.AddMonths(i);
             var isLast = i == count - 1;
             var installmentAmount = isLast
                 ? totalAmount - (amountPerInstallment * (count - 1))
                 : amountPerInstallment;
 
-            var statement = await GetOrCreateStatementAsync(creditCard, installmentDate, new Money(installmentAmount), command.Type);
+            var statement = await GetOrCreateStatementForMonthAsync(
+                creditCard, installmentMonth, installmentYear,
+                new Money(installmentAmount), command.Type);
 
             var description = $"{displayName} ({i + 1}/{count})";
 
@@ -131,26 +147,24 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         return firstTransactionId;
     }
 
-    private async Task<CreditCardStatement> GetOrCreateStatementAsync(
+    private async Task<CreditCardStatement> GetOrCreateStatementForMonthAsync(
         CreditCard creditCard,
-        DateTime date,
+        int month,
+        int year,
         Money amount,
         TransactionType transactionType)
     {
-        var statement = await _creditCardStatementRepository.GetOpenStatementForDateAsync(creditCard.Id, date);
+        var statement = await _creditCardStatementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCard.Id, month, year);
 
         if (statement is null)
         {
-            var covering = await _creditCardStatementRepository.GetByCreditCardAndContainingDateAsync(creditCard.Id, date);
-            if (covering is not null && covering.Status != BillStatus.Open)
-                throw new DomainException("Não é possível lançar transações em fatura fechada ou já paga.");
-
-            statement = CreditCardStatement.CreateForDate(creditCard.Id, date, creditCard.ClosingDay, creditCard.DueDay);
+            statement = CreditCardStatement.CreateForMonth(creditCard.Id, month, year, creditCard.ClosingDay, creditCard.DueDay);
             statement.AddTransaction(amount, transactionType);
             await _creditCardStatementRepository.AddAsync(statement);
         }
         else
         {
+            // AddTransaction já lança exceção se a fatura não estiver Open
             statement.AddTransaction(amount, transactionType);
             await _creditCardStatementRepository.UpdateAsync(statement);
         }
