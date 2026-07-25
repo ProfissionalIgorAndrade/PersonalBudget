@@ -51,7 +51,9 @@ public class TransactionsController : ControllerBase
             DueDate: request.DueDate,
             DueDay: request.DueDay,
             RepeatCount: request.RepeatCount,
-            Status: request.Status
+            Status: request.Status,
+            StatementMonth: request.StatementMonth,
+            StatementYear: request.StatementYear
         );
 
         var transactionId = await _transactionService.CreateAsync(command);
@@ -77,11 +79,33 @@ public class TransactionsController : ControllerBase
             request.CategoryId,
             request.DueDate,
             request.ExpirationDate,
-            request.AttributionProfileId);
+            request.AttributionProfileId,
+            request.StatementMonth,
+            request.StatementYear);
 
         await _transactionService.UpdateAsync(command);
 
         return Ok(ApiResponse<object?>.Ok(null, "Transação atualizada."));
+    }
+
+    [HttpPatch("{transactionId:guid}/installment-statement")]
+    public async Task<IActionResult> UpdateInstallmentStatement(
+        Guid transactionId,
+        [FromBody] UpdateInstallmentStatementRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var command = new UpdateInstallmentStatementCommand(
+            householdId,
+            transactionId,
+            request.StatementMonth,
+            request.StatementYear,
+            request.EditMode);
+
+        await _transactionService.UpdateInstallmentStatementAsync(command);
+
+        return Ok(ApiResponse<object?>.Ok(null, "Parcelas atualizadas."));
     }
 
     [HttpPatch("{transactionId:guid}/recurring")]

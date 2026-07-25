@@ -15,6 +15,7 @@ public interface ITransactionService
     Task UpdateStatusAsync(UpdateTransactionStatusCommand command);
     Task UpdateAsync(UpdateTransactionCommand command);
     Task UpdateRecurringAsync(UpdateRecurringTransactionCommand command);
+    Task UpdateInstallmentStatementAsync(UpdateInstallmentStatementCommand command);
     Task<DeleteTransactionsResult> DeleteAsync(DeleteTransactionCommand command);
     Task<DeleteTransactionsResult> DeleteManyAsync(DeleteTransactionsCommand command);
     Task<DeleteTransactionsResult> DeleteRecurringAsync(DeleteRecurringTransactionCommand command);
