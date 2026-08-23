@@ -19,7 +19,21 @@
       "Bash(git pull:*)",
       "Bash(grep -r \"axios\\\\|fetch\\\\|XMLHttpRequest\" /c/Users/igorw/dev/personal/PersonalBudget --include=*.ts --include=*.tsx --include=*.js --include=*.jsx)",
       "Bash(xargs grep:*)",
-      "Bash(grep -v \"//\")"
+      "Bash(grep -v \"//\")",
+      "Bash(grep -r \"saldo\\\\|balance\\\\|Subtract\\\\|Debit\\\\|insufficient\" /c/Users/igorw/dev/personal/PersonalBudget/PersonalBudget.Domain -r --include=*.cs)",
+      "Bash(find \"C:\\\\Users\\\\igorw\\\\dev\\\\personal\\\\PersonalBudget\" -name \"*.cs\" -type f -exec grep -l \"Migration\\\\|DbContext\" {})",
+      "Bash(grep -r \"GetByRecurrenceId\\\\|FindByRecurrenceId\" /c/Users/igorw/dev/personal/PersonalBudget --include=*.cs)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(grep -A 20 \"protected override void Up\" PersonalBudget.Infrastructure/Migrations/*AddRefundTransaction*.cs)",
+      "Bash(cd:*)",
+      "Bash(grep -A 10 \"protected override void Up\" PersonalBudget.Infrastructure/Migrations/*AddRefundTransaction*.cs)",
+      "Bash(find /c/Users/igorw/dev/personal/PersonalBudget/PersonalBudget.Domain -type f -name *.cs)",
+      "Bash(find /c/Users/igorw/dev/personal/PersonalBudget/PersonalBudget.Application/DTOs -type f -name *HouseholdMemberProfile* -o -type f -path *Household* -name *.cs)",
+      "Bash(grep -E \"\\\\.cs$\")",
+      "Bash(__NEW_LINE_8134877ad3d83d52__ git:*)",
+      "Bash(__NEW_LINE_a50770b1a87c8dae__ git:*)",
+      "Bash(__NEW_LINE_566154e1420c4d38__ git:*)",
+      "Bash(find /c/Users/igorw/dev/personal/PersonalBudget -name *Migration* -o -name *migration*)"
     ]
   }
 }
