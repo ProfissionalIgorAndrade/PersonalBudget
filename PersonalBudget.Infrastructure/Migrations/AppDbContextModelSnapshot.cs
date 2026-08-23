@@ -364,6 +364,11 @@ namespace PersonalBudget.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Observations")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("observations");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AccountId");
