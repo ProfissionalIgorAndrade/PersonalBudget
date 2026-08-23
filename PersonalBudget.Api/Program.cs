@@ -51,7 +51,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services
-    .AddDatabase(builder.Configuration)
+    .AddDatabase(builder.Configuration, builder.Environment)
     .AddApplicationDependencies()
     .AddJwtAuthentication(builder.Configuration)
     .AddCorsPolicy();
@@ -66,11 +66,14 @@ var app = builder.Build();
 using var scope = app.Services.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-await context.Database.MigrateAsync();
+if (context.Database.IsInMemory())
+    await context.Database.EnsureCreatedAsync();
+else
+    await context.Database.MigrateAsync();
 
 if (app.Environment.IsDevelopment())
 {
-    //DevUser.Id = await DatabaseSeeder.SeedAsync(context, isDevelopment: true);
+    DevUser.Id = await DatabaseSeeder.SeedAsync(context, isDevelopment: true);
     app.UseSwagger();
     app.UseSwaggerUI();
 }
