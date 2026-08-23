@@ -12,4 +12,6 @@ public record UpdateTransactionRequest(
     /// <summary>Mês da fatura destino (1-12). Para mover uma transação de cartão para outra fatura.</summary>
     int? StatementMonth = null,
     /// <summary>Ano da fatura destino. Para mover uma transação de cartão para outra fatura.</summary>
-    int? StatementYear = null);
+    int? StatementYear = null,
+    /// <summary>Observações opcionais. String vazia limpa o campo.</summary>
+    string? Observations = null);

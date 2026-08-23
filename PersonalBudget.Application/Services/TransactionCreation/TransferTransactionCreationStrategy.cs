@@ -2,12 +2,16 @@ namespace PersonalBudget.Application.Services.TransactionCreation;
 
 public class TransferTransactionCreationStrategy : TransactionCreationStrategyBase
 {
+    private readonly ICategoryRepository _categoryRepository;
+
     public TransferTransactionCreationStrategy(
         ITransactionRepository transactionRepository,
         IAccountRepository accountRepository,
-        ICreditCardRepository creditCardRepository)
+        ICreditCardRepository creditCardRepository,
+        ICategoryRepository categoryRepository)
         : base(transactionRepository, accountRepository, creditCardRepository)
     {
+        _categoryRepository = categoryRepository;
     }
 
     public override PaymentMethod PaymentMethod => PaymentMethod.Transfer;
@@ -29,6 +33,7 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
         var date = ParseDate(command.Date);
         var dueDate = ParseOptionalDueDate(command.DueDate);
         var transferId = Guid.NewGuid();
+        var transferCategoryId = await GetOrCreateTransferCategoryIdAsync(command.HouseholdId);
 
         var outTx = Transaction.Create(
             command.UserId,
@@ -40,12 +45,13 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
             PaymentMethod.Transfer,
             date,
             command.Description,
-            categoryId: null,
+            categoryId: transferCategoryId,
             creditCardId: null,
             transferId: transferId,
             frequency: TransactionFrequency.Variable,
             expirationDate: null,
-            dueDate: dueDate);
+            dueDate: dueDate,
+            observations: command.Observations);
 
         var inTx = Transaction.Create(
             command.UserId,
@@ -57,12 +63,13 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
             PaymentMethod.Transfer,
             date,
             command.Description,
-            categoryId: null,
+            categoryId: transferCategoryId,
             creditCardId: null,
             transferId: transferId,
             frequency: TransactionFrequency.Variable,
             expirationDate: null,
-            dueDate: dueDate);
+            dueDate: dueDate,
+            observations: command.Observations);
 
         outTx.Complete();
         inTx.Complete();
@@ -75,5 +82,17 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
         await _accountRepository.UpdateAsync(toAccount);
 
         return transferId;
+    }
+
+    private async Task<Guid> GetOrCreateTransferCategoryIdAsync(Guid householdId)
+    {
+        var categories = await _categoryRepository.GetByHouseholdAsync(householdId);
+        var existing = categories.FirstOrDefault(c => c.IsSystem && c.Name == "Transferência");
+        if (existing is not null)
+            return existing.Id;
+
+        var newCategory = new Category(householdId, "Transferência", isSystem: true, CategoryType.Expense);
+        await _categoryRepository.AddAsync(newCategory);
+        return newCategory.Id;
     }
 }

@@ -80,6 +80,11 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
                 .IsRequired();
         });
 
+        builder.Property(t => t.Observations)
+            .HasColumnName("observations")
+            .HasMaxLength(500)
+            .IsRequired(false);
+
         builder.HasIndex(t => t.UserId);
         builder.HasIndex(t => t.HouseholdId);
         builder.HasIndex(t => t.AttributionProfileId);

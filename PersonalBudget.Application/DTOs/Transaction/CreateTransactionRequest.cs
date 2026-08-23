@@ -26,5 +26,7 @@ public record CreateTransactionRequest(
     /// <summary>Mês da fatura (1-12). Obrigatório para PaymentMethod.CreditCard.</summary>
     int? StatementMonth = null,
     /// <summary>Ano da fatura. Obrigatório para PaymentMethod.CreditCard.</summary>
-    int? StatementYear = null
+    int? StatementYear = null,
+    /// <summary>Observações opcionais sobre o lançamento.</summary>
+    string? Observations = null
 );

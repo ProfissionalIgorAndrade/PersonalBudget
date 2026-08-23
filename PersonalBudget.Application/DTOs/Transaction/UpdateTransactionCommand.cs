@@ -9,4 +9,6 @@ public record UpdateTransactionCommand(
     string? ExpirationDate,
     Guid? AttributionProfileId,
     int? StatementMonth = null,
-    int? StatementYear = null);
+    int? StatementYear = null,
+    /// <summary>Observações opcionais. Null = não alterar; string vazia = limpar.</summary>
+    string? Observations = null);

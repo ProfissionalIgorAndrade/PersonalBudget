@@ -25,6 +25,8 @@ public class Transaction
     public Money Amount { get; private set; }
     public TransactionDate Date { get; private set; }
     public TransactionDescription Description { get; private set; }
+    /// <summary>Observações opcionais sobre o lançamento.</summary>
+    public string? Observations { get; private set; }
 
     private Transaction(
         Guid userId,
@@ -43,7 +45,8 @@ public class Transaction
         TransactionFrequency frequency,
         DateTime? expirationDate,
         DateTime? dueDate,
-        TransactionStatus initialStatus)
+        TransactionStatus initialStatus,
+        string? observations = null)
     {
         if (userId == Guid.Empty)
             throw new DomainException("A transação deve pertencer a um usuário.");
@@ -79,6 +82,7 @@ public class Transaction
         ExpirationDate = expirationDate.HasValue ? DateTime.SpecifyKind(expirationDate.Value.Date, DateTimeKind.Utc) : null;
         DueDate = dueDate.HasValue ? DateTime.SpecifyKind(dueDate.Value.Date, DateTimeKind.Utc) : null;
         Status = initialStatus;
+        Observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
     }
 
     protected Transaction() { }
@@ -100,7 +104,8 @@ public class Transaction
         TransactionFrequency frequency = TransactionFrequency.Variable,
         DateTime? expirationDate = null,
         DateTime? dueDate = null,
-        TransactionStatus initialStatus = TransactionStatus.Pending)
+        TransactionStatus initialStatus = TransactionStatus.Pending,
+        string? observations = null)
     {
         return new Transaction(
             userId,
@@ -119,7 +124,8 @@ public class Transaction
             frequency,
             expirationDate,
             dueDate,
-            initialStatus
+            initialStatus,
+            observations
         );
     }
 
@@ -130,7 +136,9 @@ public class Transaction
         TransactionDescription newDescription,
         Guid? categoryId,
         DateTime? expirationDate,
-        DateTime? dueDate)
+        DateTime? dueDate,
+        string? observations = null,
+        bool updateObservations = false)
     {
         if (Status == TransactionStatus.Completed)
             throw new DomainException("Transações concluídas não podem ser editadas.");
@@ -141,6 +149,8 @@ public class Transaction
         CategoryId = categoryId;
         ExpirationDate = expirationDate.HasValue ? DateTime.SpecifyKind(expirationDate.Value.Date, DateTimeKind.Utc) : null;
         DueDate = dueDate.HasValue ? DateTime.SpecifyKind(dueDate.Value.Date, DateTimeKind.Utc) : null;
+        if (updateObservations)
+            Observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
     }
 
     /// <summary>Altera o correspondente (perfil). Não permitido para transações concluídas.</summary>
