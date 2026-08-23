@@ -70,7 +70,7 @@ await context.Database.MigrateAsync();
 
 if (app.Environment.IsDevelopment())
 {
-    DevUser.Id = await DatabaseSeeder.SeedAsync(context, isDevelopment: true);
+    //DevUser.Id = await DatabaseSeeder.SeedAsync(context, isDevelopment: true);
     app.UseSwagger();
     app.UseSwaggerUI();
 }

@@ -42,7 +42,44 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Amount.Amount, t.Date.Value, t.Description.Value,
                 p.Id, p.DisplayName, t.RecurrenceId,
                 s != null ? s.ClosingMonth : (int?)null,
-                s != null ? s.ClosingYear : (int?)null);
+                s != null ? s.ClosingYear : (int?)null,
+                t.Observations);
+    }
+
+    // ─── month-filtered query (filter applied at entity level before projection) ─
+
+    private IQueryable<GetAllTransactionByUserResponse> BuildFullTransactionQueryForMonth(
+        Guid householdId, int month, int year)
+    {
+        return
+            from t in _context.Transactions
+            join a in _context.Accounts on t.AccountId equals a.Id
+            join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
+            from c in _context.Categories
+                .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
+                .DefaultIfEmpty()
+            from cc in _context.CreditCards
+                .Where(cc => t.CreditCardId != null && cc.Id == t.CreditCardId)
+                .DefaultIfEmpty()
+            from s in _context.CreditCardStatements
+                .Where(s => t.StatementId != null && s.Id == t.StatementId)
+                .DefaultIfEmpty()
+            where t.HouseholdId == householdId
+               && ((t.CreditCardId == null && t.Date.Value.Month == month && t.Date.Value.Year == year)
+                || (t.CreditCardId != null && s != null && s.ClosingMonth == month && s.ClosingYear == year))
+            orderby t.Date.Value descending
+            select new GetAllTransactionByUserResponse(
+                t.Id, t.AccountId, a.Agency.Value,
+                t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
+                t.CreditCardId, cc != null ? cc.Name : null,
+                t.TransferId, t.Type.ToString(), t.Status.ToString(),
+                t.PaymentMethod.ToString(), t.Frequency.ToString(),
+                t.ExpirationDate, t.DueDate,
+                t.Amount.Amount, t.Date.Value, t.Description.Value,
+                p.Id, p.DisplayName, t.RecurrenceId,
+                s != null ? s.ClosingMonth : (int?)null,
+                s != null ? s.ClosingYear : (int?)null,
+                t.Observations);
     }
 
     // ─── existing methods ───────────────────────────────────────────────────────
@@ -76,7 +113,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  t.ExpirationDate, t.DueDate,
                  t.Amount.Amount, t.Date.Value, t.Description.Value,
                  p.Id, p.DisplayName, t.RecurrenceId,
-                 s.ClosingMonth, s.ClosingYear))
+                 s.ClosingMonth, s.ClosingYear,
+                 t.Observations))
             .AsNoTracking()
             .ToListAsync();
     }
@@ -140,9 +178,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByHouseholdAndMonthAsync(
         Guid householdId, int month, int year, TransactionFrequency? frequency = null)
     {
-        var query = BuildFullTransactionQuery(householdId)
-            .Where(t => (t.CreditCardId == null && t.Date.Month == month && t.Date.Year == year)
-                     || (t.CreditCardId != null && t.StatementMonth == month && t.StatementYear == year));
+        var query = BuildFullTransactionQueryForMonth(householdId, month, year);
 
         if (frequency.HasValue)
             query = query.Where(t => t.Frequency == frequency.Value.ToString());
@@ -155,9 +191,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     public async Task<(IReadOnlyList<GetAllTransactionByUserResponse> Items, int TotalCount, decimal PeriodTotalIncome, decimal PeriodTotalExpense)> GetByHouseholdAndMonthPagedAsync(
         Guid householdId, int month, int year, int page, int pageSize, TransactionFrequency? frequency = null)
     {
-        var query = BuildFullTransactionQuery(householdId)
-            .Where(t => (t.CreditCardId == null && t.Date.Month == month && t.Date.Year == year)
-                     || (t.CreditCardId != null && t.StatementMonth == month && t.StatementYear == year));
+        var query = BuildFullTransactionQueryForMonth(householdId, month, year);
 
         if (frequency.HasValue)
             query = query.Where(t => t.Frequency == frequency.Value.ToString());
@@ -231,7 +265,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                    t.ExpirationDate, t.DueDate,
                    t.Amount.Amount, t.Date.Value, t.Description.Value,
                    p.Id, p.DisplayName, t.RecurrenceId,
-                   null, null);
+                   null, null,
+                   t.Observations);
     }
 
     public async Task<IReadOnlyList<HouseholdProfileSummaryRow>> GetHouseholdSummaryByProfileAsync(

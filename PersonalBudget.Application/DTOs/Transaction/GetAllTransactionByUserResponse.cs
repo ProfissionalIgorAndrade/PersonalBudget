@@ -21,4 +21,5 @@ public record GetAllTransactionByUserResponse(
     string CorrespondentDisplayName,
     Guid? RecurrenceId = null,
     int? StatementMonth = null,
-    int? StatementYear = null);
+    int? StatementYear = null,
+    string? Observations = null);

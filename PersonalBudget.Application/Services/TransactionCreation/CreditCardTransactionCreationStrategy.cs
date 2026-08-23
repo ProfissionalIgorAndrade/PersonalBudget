@@ -71,7 +71,8 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             frequency: command.Frequency,
             expirationDate: null,
             dueDate: dueDate,
-            initialStatus: initialStatus
+            initialStatus: initialStatus,
+            observations: command.Observations
         );
 
         await _transactionRepository.AddAsync(transaction);
@@ -135,7 +136,8 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 frequency: TransactionFrequency.Installments,
                 expirationDate: null,
                 dueDate: dueForInstallment,
-                initialStatus: installmentInitialStatus
+                initialStatus: installmentInitialStatus,
+                observations: command.Observations
             );
 
             transaction.AssignRecurrenceId(recurrenceId);

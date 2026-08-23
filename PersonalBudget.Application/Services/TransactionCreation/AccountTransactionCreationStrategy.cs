@@ -43,7 +43,8 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
             frequency: command.Frequency,
             expirationDate: expiration,
             dueDate: dueDate,
-            initialStatus: initialStatus
+            initialStatus: initialStatus,
+            observations: command.Observations
         );
 
         if (initialStatus == TransactionStatus.Completed)

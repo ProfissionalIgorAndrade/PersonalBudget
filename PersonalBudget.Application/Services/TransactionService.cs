@@ -39,6 +39,7 @@ public class TransactionService : ITransactionService
         var withProfile = command with { AttributionProfileId = resolvedProfile };
 
         ValidateTransactionFrequency(withProfile);
+        ValidateCategoryId(withProfile);
 
         if (!_creationStrategies.TryGetValue(withProfile.PaymentMethod, out var strategy))
             throw new DomainException($"Método de pagamento não suportado: {withProfile.PaymentMethod}");
@@ -72,6 +73,12 @@ public class TransactionService : ITransactionService
             throw new DomainException("Não há perfil de correspondente vinculado ao seu usuário neste lar.");
 
         return linked.Id;
+    }
+
+    private static void ValidateCategoryId(CreateTransactionCommand command)
+    {
+        if (command.PaymentMethod != PaymentMethod.Transfer && command.CategoryId is null)
+            throw new DomainException("Categoria é obrigatória.");
     }
 
     private static void ValidateTransactionFrequency(CreateTransactionCommand command)
@@ -319,7 +326,8 @@ public class TransactionService : ITransactionService
             || command.ExpirationDate is not null
             || command.AttributionProfileId is not null
             || command.StatementMonth is not null
-            || command.StatementYear is not null;
+            || command.StatementYear is not null
+            || command.Observations is not null;
 
         if (!hasAny)
             throw new DomainException("Informe ao menos um campo para atualizar.");
@@ -372,7 +380,9 @@ public class TransactionService : ITransactionService
             newDescription,
             newCategoryId,
             newExpiration,
-            newDue);
+            newDue,
+            observations: command.Observations,
+            updateObservations: command.Observations is not null);
 
         if (command.AttributionProfileId is { } apid && apid != Guid.Empty && apid != transaction.AttributionProfileId)
             transaction.UpdateAttributionProfileId(apid);

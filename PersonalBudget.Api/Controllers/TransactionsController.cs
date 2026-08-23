@@ -53,7 +53,8 @@ public class TransactionsController : ControllerBase
             RepeatCount: request.RepeatCount,
             Status: request.Status,
             StatementMonth: request.StatementMonth,
-            StatementYear: request.StatementYear
+            StatementYear: request.StatementYear,
+            Observations: request.Observations
         );
 
         var transactionId = await _transactionService.CreateAsync(command);
@@ -81,7 +82,8 @@ public class TransactionsController : ControllerBase
             request.ExpirationDate,
             request.AttributionProfileId,
             request.StatementMonth,
-            request.StatementYear);
+            request.StatementYear,
+            request.Observations);
 
         await _transactionService.UpdateAsync(command);
 

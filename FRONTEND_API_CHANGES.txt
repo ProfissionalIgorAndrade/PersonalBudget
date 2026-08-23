@@ -260,5 +260,74 @@ NOTES
   endpoint is at month/{month}/year/{year}/grouped-by-category.
 
 ============================================================
+  BACKEND API — CHANGELOG (2026-08-23)
+============================================================
+
+------------------------------------------------------------
+12. FIX — Transaction month filter now respects statement month
+------------------------------------------------------------
+GET /api/transactions/month/{month}/year/{year} (and paged variant)
+now correctly filters credit card transactions by their STATEMENT
+month/year (fatura), not by the transaction date.
+
+Previously, a credit card transaction dated 14/08/2026 with a
+September fatura would incorrectly appear in the August listing.
+After this fix it appears only in September.
+
+No request changes needed — behavior is now correct.
+
+
+------------------------------------------------------------
+13. NEW FIELD — observations on Transaction
+------------------------------------------------------------
+All transaction endpoints now support an optional "observations"
+field (max 500 characters). Null means not provided; empty string
+clears the field on update.
+
+POST /api/transactions — new optional body field:
+{
+  ...existing fields...
+  "observations": "string | null"
+}
+
+PATCH /api/transactions/{id} — new optional body field:
+{
+  ...existing fields...
+  "observations": "string | null"   // null = leave unchanged; "" = clear
+}
+
+GET /api/transactions/month/{month}/year/{year} — each item now includes:
+{
+  ...existing fields...
+  "observations": "string | null"
+}
+
+Same applies to all other GET endpoints that return the full
+transaction shape (account transactions, credit card statements, etc.).
+
+NOTE: Database migration 20260823000000_AddObservationsToTransaction
+adds the "observations" column (nullable varchar 500) to the
+transactions table. The column is applied automatically on startup.
+
+------------------------------------------------------------
+14. BREAKING — categoryId now required on POST /api/transactions
+------------------------------------------------------------
+`categoryId` is now mandatory for all transaction types EXCEPT
+transfers (PaymentMethod = "Transfer").
+
+For transfers: the backend automatically assigns a system category
+named "Transferência" to both legs of the transfer. The frontend
+does NOT need to send categoryId for transfers.
+
+For all other payment methods (Account, CreditCard, Cash):
+omitting `categoryId` or sending `null` now returns 400 Bad Request:
+  { "message": "Categoria é obrigatória." }
+
+Frontend action required:
+- Ensure the category selector is mandatory in the create/edit form
+  for non-transfer transactions.
+- For transfers, continue omitting categoryId (backend handles it).
+
+============================================================
 END OF DOCUMENT
 ============================================================
