@@ -12,7 +12,5 @@ public record StatementTransactionItemDto(
     string Status,
     string Frequency,
     Guid AttributionProfileId,
-    string CorrespondentDisplayName,
-    /// <summary>Free-text notes on the transaction. Null when none were recorded.</summary>
-    string? Observations = null
+    string CorrespondentDisplayName
 );
