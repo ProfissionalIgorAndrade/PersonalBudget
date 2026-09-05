@@ -132,7 +132,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Id, t.Date.Value, t.DueDate, t.Description.Value, t.Amount.Amount,
                 t.CategoryId, c != null ? c.Name : null,
                 t.Type.ToString(), t.Status.ToString(), t.Frequency.ToString(),
-                p.Id, p.DisplayName);
+                p.Id, p.DisplayName, t.Observations);
 
         return await query.AsNoTracking().ToListAsync();
     }
@@ -151,7 +151,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Id, t.Date.Value, t.DueDate, t.Description.Value, t.Amount.Amount,
                 t.CategoryId, c != null ? c.Name : null,
                 t.Type.ToString(), t.Status.ToString(), t.Frequency.ToString(),
-                p.Id, p.DisplayName);
+                p.Id, p.DisplayName, t.Observations);
 
         var totalCount = await query.AsNoTracking().CountAsync();
         var items = await query.AsNoTracking().Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
