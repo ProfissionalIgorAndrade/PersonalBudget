@@ -2,6 +2,8 @@ using PersonalBudget.Application.Interfaces;
 
 public class UserService : IUserService
 {
+    private const int MinimumPasswordLength = 8;
+
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IHouseholdProvisioningService _householdProvisioning;
@@ -48,5 +50,29 @@ public class UserService : IUserService
             throw new ApplicationException("Invalid password");
 
         return user.Id;
+    }
+
+    public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest command)
+    {
+        var user = await _userRepository.GetByIdAsync(userId)
+            ?? throw new ApplicationException("Usuário não encontrado.");
+
+        var currentHash = _passwordHasher.Hash(command.CurrentPassword ?? string.Empty);
+        if (!user.CanAuthenticate(currentHash))
+            throw new ApplicationException("Senha atual incorreta.");
+
+        var newPassword = command.NewPassword ?? string.Empty;
+
+        if (newPassword.Length < MinimumPasswordLength)
+            throw new ApplicationException($"A nova senha deve ter ao menos {MinimumPasswordLength} caracteres.");
+
+        var newHash = _passwordHasher.Hash(newPassword);
+
+        if (user.CanAuthenticate(newHash))
+            throw new ApplicationException("A nova senha deve ser diferente da atual.");
+
+        user.ChangePassword(newHash);
+
+        await _userRepository.SaveChangesAsync();
     }
 }
