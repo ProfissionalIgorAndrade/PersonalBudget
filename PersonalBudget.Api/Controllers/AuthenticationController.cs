@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonalBudget.Api.Contracts;
+using PersonalBudget.Application.DTOs.Users;
 
 namespace PersonalBudget.Api.Controllers;
 
@@ -38,5 +40,19 @@ public class AuthenticationController : ControllerBase
         var token = _jwtTokenGenerator.Generate(userId);
 
         return Ok(ApiResponse<object>.Ok(LoginUserResponse.Ok(userId, token)));
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+
+        await _userService.ChangePasswordAsync(userId, request);
+
+        return Ok(ApiResponse<object?>.Ok(null, "Senha alterada com sucesso."));
     }
 }
