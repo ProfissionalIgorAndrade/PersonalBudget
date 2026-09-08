@@ -679,7 +679,13 @@ public class TransactionService : ITransactionService
         var targetMonths = command.StatementYear * 12 + (command.StatementMonth - 1);
         var monthDelta = targetMonths - pivotMonths;
 
-        if (monthDelta == 0)
+        var hasFieldUpdates = command.CategoryId is not null
+            || command.AttributionProfileId is not null
+            || command.Observations is not null;
+
+        // Sair cedo aqui descartava silenciosamente qualquer campo editado sempre
+        // que a fatura não mudava, e a UI ainda assim reportava sucesso.
+        if (monthDelta == 0 && !hasFieldUpdates)
             return;
 
         var allInSeries = await _transactionRepository.GetByRecurrenceIdAsync(pivot.RecurrenceId.Value, command.HouseholdId);
@@ -691,6 +697,40 @@ public class TransactionService : ITransactionService
             InstallmentEditMode.ThisAndFuture => orderedSeries.Where(t => t.Date.Value >= pivot.Date.Value).ToList(),
             _ => throw new DomainException("InstallmentEditMode inválido.")
         };
+
+        if (command.AttributionProfileId is { } instPid && instPid != Guid.Empty)
+        {
+            var p = await _profileRepository.GetByIdAsync(instPid);
+            if (p is null || p.HouseholdId != command.HouseholdId)
+                throw new DomainException("Correspondente inválido para este lar.");
+        }
+
+        if (hasFieldUpdates)
+        {
+            foreach (var t in targets)
+            {
+                if (t.Status == TransactionStatus.Completed)
+                    throw new DomainException("Parcelas já concluídas não podem ser editadas.");
+
+                t.UpdateDetails(
+                    t.Amount,
+                    t.Date,
+                    t.Description,
+                    command.CategoryId ?? t.CategoryId,
+                    t.ExpirationDate,
+                    t.DueDate,
+                    observations: command.Observations,
+                    updateObservations: command.Observations is not null);
+
+                if (command.AttributionProfileId is { } apid && apid != Guid.Empty)
+                    t.UpdateAttributionProfileId(apid);
+            }
+
+            await _transactionRepository.BulkUpdateAsync(targets);
+        }
+
+        if (monthDelta == 0)
+            return;
 
         foreach (var t in targets)
         {
