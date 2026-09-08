@@ -11,4 +11,10 @@ public record UpdateInstallmentStatementRequest(
     /// <summary>Ano da nova fatura para a parcela selecionada.</summary>
     int StatementYear,
     /// <summary>Define quais parcelas serão deslocadas: todas ou esta e as seguintes.</summary>
-    InstallmentEditMode EditMode);
+    InstallmentEditMode EditMode,
+    /// <summary>Categoria aplicada às parcelas afetadas. Null não altera.</summary>
+    Guid? CategoryId = null,
+    /// <summary>Correspondente aplicado às parcelas afetadas. Null não altera.</summary>
+    Guid? AttributionProfileId = null,
+    /// <summary>Observações aplicadas às parcelas afetadas. Null não altera; string vazia limpa.</summary>
+    string? Observations = null);

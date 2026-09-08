@@ -103,7 +103,10 @@ public class TransactionsController : ControllerBase
             transactionId,
             request.StatementMonth,
             request.StatementYear,
-            request.EditMode);
+            request.EditMode,
+            request.CategoryId,
+            request.AttributionProfileId,
+            request.Observations);
 
         await _transactionService.UpdateInstallmentStatementAsync(command);
 
