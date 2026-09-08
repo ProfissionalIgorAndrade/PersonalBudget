@@ -320,6 +320,18 @@ public class CreditCardStatementService : ICreditCardStatementService
 
             case BillStatus.Paid:
                 {
+                    // Temporariamente desabilitado. Pagar a fatura debita a conta,
+                    // mas os lançamentos da fatura seguem contando como despesa,
+                    // então o mesmo gasto é somado duas vezes e os totais nunca
+                    // fecham. Reabilitar só depois de decidir como a fatura paga
+                    // deve se comportar nos agregados.
+                    //
+                    // O estorno (Paid → Closed/Open) continua permitido de
+                    // propósito, para quem já pagou conseguir desfazer.
+                    throw new DomainException(
+                        "O pagamento de fatura está temporariamente desabilitado enquanto corrigimos a duplicidade de valores. A fatura pode ser fechada normalmente.");
+
+#pragma warning disable CS0162 // Unreachable code — bloco preservado para a reativação
                     var statement = await _statementRepository.GetByIdAsync(command.StatementId);
                     if (statement is null)
                         throw new ApplicationException("Fatura não encontrada.");
@@ -386,6 +398,7 @@ public class CreditCardStatementService : ICreditCardStatementService
                     // ── 4. Insere o lançamento de pagamento isoladamente ──────────────────
                     await _transactionRepository.AddAsync(paymentTransaction);
                     break;
+#pragma warning restore CS0162
                 }
 
             default:
