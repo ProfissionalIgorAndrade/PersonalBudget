@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonalBudget.Api.Contracts;
-using PersonalBudget.Application.DTOs.Users;
 
 namespace PersonalBudget.Api.Controllers;
 
