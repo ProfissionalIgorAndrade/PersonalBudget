@@ -41,6 +41,17 @@ public class UserRepository : IUserRepository
             .ToListAsync();
     }
 
+    /// <summary>
+    /// Reads are AsNoTracking, so mutating a User and calling SaveChangesAsync
+    /// persists nothing - the change tracker never saw the entity. Anything
+    /// that modifies a User has to come through here.
+    /// </summary>
+    public async Task UpdateAsync(User user)
+    {
+        _context.Users.Update(user);
+        await SaveChangesAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
