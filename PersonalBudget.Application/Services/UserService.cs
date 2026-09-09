@@ -73,6 +73,8 @@ public class UserService : IUserService
 
         user.ChangePassword(newHash);
 
-        await _userRepository.SaveChangesAsync();
+        // GetByIdAsync is AsNoTracking, so SaveChangesAsync alone would be a
+        // silent no-op: the request succeeds and the password never changes.
+        await _userRepository.UpdateAsync(user);
     }
 }
