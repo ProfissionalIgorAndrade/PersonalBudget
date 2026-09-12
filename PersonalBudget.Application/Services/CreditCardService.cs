@@ -50,7 +50,8 @@ public class CreditCardService : ICreditCardService
             command.Limit,
             command.ClosingDay,
             command.DueDay,
-            command.Color
+            command.Color,
+            command.AccountId
         );
 
         await _repository.UpdateAsync(creditCard);

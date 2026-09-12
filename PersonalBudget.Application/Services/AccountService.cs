@@ -106,6 +106,13 @@ public class AccountService : IAccountService
         account.Deactivate();
 
         await _repository.UpdateAsync(account);
-        await _creditCardRepository.DeactivateByAccountIdAsync(command.AccountId);
+
+        // Desativar a conta não desativa mais os cartões dela. Antes, excluir
+        // uma conta sem lançamentos fazia os cartões associados sumirem da
+        // interface, e não havia como recuperá-los - a fatura e o histórico
+        // continuavam no banco, invisíveis.
+        //
+        // O cartão permanece ativo apontando para uma conta inativa, e a conta
+        // base pode ser trocada pela edição do cartão.
     }
 }

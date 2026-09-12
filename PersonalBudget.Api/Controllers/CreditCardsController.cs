@@ -194,7 +194,8 @@ public class CreditCardsController : ControllerBase
             request.Limit,
             request.ClosingDay,
             request.DueDay,
-            request.Color
+            request.Color,
+            request.AccountId
         );
 
         await _service.UpdateAsync(command);
