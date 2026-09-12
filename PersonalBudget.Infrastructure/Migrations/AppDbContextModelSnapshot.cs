@@ -116,6 +116,10 @@ namespace PersonalBudget.Infrastructure.Migrations
                     b.Property<decimal>("Limit")
                         .HasColumnType("numeric");
 
+                    b.Property<Guid?>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
