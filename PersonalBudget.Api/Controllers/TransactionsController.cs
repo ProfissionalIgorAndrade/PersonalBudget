@@ -83,7 +83,8 @@ public class TransactionsController : ControllerBase
             request.AttributionProfileId,
             request.StatementMonth,
             request.StatementYear,
-            request.Observations);
+            request.Observations,
+            request.Type);
 
         await _transactionService.UpdateAsync(command);
 

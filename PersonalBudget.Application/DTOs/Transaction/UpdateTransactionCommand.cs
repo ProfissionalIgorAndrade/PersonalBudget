@@ -11,4 +11,6 @@ public record UpdateTransactionCommand(
     int? StatementMonth = null,
     int? StatementYear = null,
     /// <summary>Observações opcionais. Null = não alterar; string vazia = limpar.</summary>
-    string? Observations = null);
+    string? Observations = null,
+    /// <summary>Reclassifica receita/despesa. Null mantém o tipo atual.</summary>
+    TransactionType? Type = null);

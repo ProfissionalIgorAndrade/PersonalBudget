@@ -327,7 +327,8 @@ public class TransactionService : ITransactionService
             || command.AttributionProfileId is not null
             || command.StatementMonth is not null
             || command.StatementYear is not null
-            || command.Observations is not null;
+            || command.Observations is not null
+            || command.Type is not null;
 
         if (!hasAny)
             throw new DomainException("Informe ao menos um campo para atualizar.");
@@ -373,6 +374,25 @@ public class TransactionService : ITransactionService
 
         if (isCreditCard)
             await ApplyCreditCardStatementAdjustmentsAsync(transaction, command.HouseholdId, newAmount, command.StatementMonth, command.StatementYear);
+
+            // A troca de tipo é aplicada depois do ajuste de valor e fatura,
+            // para o remove usar o tipo antigo e o add o novo. O total da
+            // fatura é acumulado: sem isto, reclassificar um estorno deixaria
+            // o total errado pelo dobro do valor.
+            if (command.Type is { } newTypeForCard && newTypeForCard != transaction.Type)
+            {
+                var statement = await _creditCardStatementRepository.GetByIdAsync(transaction.StatementId!.Value);
+                if (statement is not null)
+                {
+                    var money = new Money(newAmount);
+                    statement.RemoveTransactionContribution(money, transaction.Type);
+                    statement.AddTransaction(money, newTypeForCard);
+                    await _creditCardStatementRepository.UpdateAsync(statement);
+                }
+            }
+
+        if (command.Type is { } newType && newType != transaction.Type)
+            transaction.ChangeType(newType);
 
         transaction.UpdateDetails(
             new Money(newAmount),
