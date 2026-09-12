@@ -19,6 +19,9 @@ public class CreditCardConfiguration : IEntityTypeConfiguration<CreditCard>
         builder.Property(c => c.AccountId)
             .IsRequired();
 
+        builder.Property(c => c.MemberId)
+            .HasColumnName("member_id");
+
         builder.Property(c => c.Name)
             .IsRequired()
             .HasMaxLength(150);

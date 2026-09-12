@@ -4,6 +4,15 @@ public class CreditCard
     public Guid UserId { get; private set; }
     public Guid HouseholdId { get; private set; }
     public Guid AccountId { get; private set; }
+
+    /// <summary>
+    /// Perfil de membro do lar a quem o cartão pertence.
+    ///
+    /// Distinto de UserId, que identifica quem criou. Um cartão da Andreza
+    /// cadastrado pelo Igor tem UserId do Igor, e resolver o dono por ali
+    /// mostrava o nome errado. Nullable para os cartões já existentes.
+    /// </summary>
+    public Guid? MemberId { get; private set; }
     public string Name { get; private set; }
     public decimal Limit { get; private set; }
     public int ClosingDay { get; private set; }
@@ -22,7 +31,8 @@ public class CreditCard
         decimal limit,
         int closingDay,
         int dueDay,
-        string? color = null)
+        string? color = null,
+        Guid? memberId = null)
     {
         if (limit <= 0)
             throw new DomainException("O limite do cartão de crédito deve ser maior que zero.");
@@ -39,6 +49,7 @@ public class CreditCard
         DueDay = dueDay;
         IsActive = true;
         Color = color;
+        MemberId = memberId;
     }
 
     protected CreditCard() { }
@@ -51,8 +62,9 @@ public class CreditCard
         decimal limit,
         int closingDay,
         int dueDay,
-        string? color = null)
-        => new(userId, householdId, accountId, name, limit, closingDay, dueDay, color);
+        string? color = null,
+        Guid? memberId = null)
+        => new(userId, householdId, accountId, name, limit, closingDay, dueDay, color, memberId);
 
     /// <summary>
     /// Atualiza os dados do cartão. <paramref name="accountId"/> nulo mantém a
@@ -60,7 +72,7 @@ public class CreditCard
     /// desativada, já que AccountId é obrigatório e o cartão ficaria preso a
     /// uma conta que não existe mais na interface.
     /// </summary>
-    public void Update(string name, decimal limit, int closingDay, int dueDay, string? color = null, Guid? accountId = null)
+    public void Update(string name, decimal limit, int closingDay, int dueDay, string? color = null, Guid? accountId = null, Guid? memberId = null)
     {
         if (!IsActive)
             throw new DomainException("Cartão de crédito inativo não pode ser atualizado.");
@@ -73,6 +85,9 @@ public class CreditCard
 
         if (accountId is { } id && id != Guid.Empty)
             AccountId = id;
+
+        if (memberId is { } mid && mid != Guid.Empty)
+            MemberId = mid;
     }
 
     public void Deactivate()
