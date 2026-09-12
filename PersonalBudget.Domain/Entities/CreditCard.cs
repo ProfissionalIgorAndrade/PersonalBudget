@@ -54,7 +54,13 @@ public class CreditCard
         string? color = null)
         => new(userId, householdId, accountId, name, limit, closingDay, dueDay, color);
 
-    public void Update(string name, decimal limit, int closingDay, int dueDay, string? color = null)
+    /// <summary>
+    /// Atualiza os dados do cartão. <paramref name="accountId"/> nulo mantém a
+    /// conta atual - necessário para trocar a conta base quando a original foi
+    /// desativada, já que AccountId é obrigatório e o cartão ficaria preso a
+    /// uma conta que não existe mais na interface.
+    /// </summary>
+    public void Update(string name, decimal limit, int closingDay, int dueDay, string? color = null, Guid? accountId = null)
     {
         if (!IsActive)
             throw new DomainException("Cartão de crédito inativo não pode ser atualizado.");
@@ -64,6 +70,9 @@ public class CreditCard
         ClosingDay = closingDay;
         DueDay = dueDay;
         Color = color;
+
+        if (accountId is { } id && id != Guid.Empty)
+            AccountId = id;
     }
 
     public void Deactivate()

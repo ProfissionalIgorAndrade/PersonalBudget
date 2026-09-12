@@ -6,5 +6,7 @@ public record UpdateCreditCardCommand(
     decimal Limit,
     int ClosingDay,
     int DueDay,
-    string? Color = null
+    string? Color = null,
+    /// <summary>Nova conta base. Null mantém a atual.</summary>
+    Guid? AccountId = null
 );
