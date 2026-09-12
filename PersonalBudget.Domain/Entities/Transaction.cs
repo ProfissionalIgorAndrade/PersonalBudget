@@ -154,6 +154,23 @@ public class Transaction
     }
 
     /// <summary>Altera o correspondente (perfil). Não permitido para transações concluídas.</summary>
+    /// <summary>
+    /// Reclassifica despesa como receita e vice-versa.
+    ///
+    /// Um estorno de cartão é receita: ele reduz a fatura em vez de aumentá-la.
+    /// Sem isto, um lançamento cadastrado com o tipo errado ficava assim para
+    /// sempre - a edição não expunha o campo e não havia como corrigir.
+    ///
+    /// Quem chama é responsável por ajustar o total da fatura, que é acumulado.
+    /// </summary>
+    public void ChangeType(TransactionType newType)
+    {
+        if (Status == TransactionStatus.Completed)
+            throw new DomainException("Transações concluídas não podem ser reclassificadas.");
+
+        Type = newType;
+    }
+
     public void UpdateAttributionProfileId(Guid attributionProfileId)
     {
         if (Status == TransactionStatus.Completed)

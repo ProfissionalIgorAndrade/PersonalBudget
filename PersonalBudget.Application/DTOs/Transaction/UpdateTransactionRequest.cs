@@ -14,4 +14,6 @@ public record UpdateTransactionRequest(
     /// <summary>Ano da fatura destino. Para mover uma transação de cartão para outra fatura.</summary>
     int? StatementYear = null,
     /// <summary>Observações opcionais. String vazia limpa o campo.</summary>
-    string? Observations = null);
+    string? Observations = null,
+    /// <summary>Reclassifica receita/despesa. Null mantém o tipo atual.</summary>
+    TransactionType? Type = null);
