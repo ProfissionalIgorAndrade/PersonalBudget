@@ -84,3 +84,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.MapControllers();
 
 app.Run();
+
+// Exposes the implicit Program class so WebApplicationFactory<Program>
+// can reference it from the integration test project.
+public partial class Program { }
