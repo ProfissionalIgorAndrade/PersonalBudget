@@ -348,7 +348,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     public async Task<IReadOnlyList<MonthlyTrendResponse>> GetTransactionTrendsAsync(
         Guid householdId, int months, int endMonth, int endYear)
     {
-        var endDate   = new DateTime(endYear, endMonth, 1);
+        var endDate   = new DateTime(endYear, endMonth, 1, 0, 0, 0, DateTimeKind.Utc);
         var startDate = endDate.AddMonths(-(months - 1));
 
         // Para transações de cartão usamos o mês/ano da fatura (statement);
