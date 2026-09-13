@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersonalBudget.Integration.Tests", "PersonalBudget.Integration.Tests\PersonalBudget.Integration.Tests.csproj", "{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -92,15 +94,27 @@ Global
 		{58702CB5-BA83-4876-97D8-4D9D31B13F9C}.Release|x64.Build.0 = Release|Any CPU
 		{58702CB5-BA83-4876-97D8-4D9D31B13F9C}.Release|x86.ActiveCfg = Release|Any CPU
 		{58702CB5-BA83-4876-97D8-4D9D31B13F9C}.Release|x86.Build.0 = Release|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Debug|x64.Build.0 = Debug|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Debug|x86.Build.0 = Debug|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Release|x64.ActiveCfg = Release|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Release|x64.Build.0 = Release|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Release|x86.ActiveCfg = Release|Any CPU
+		{9A3F1A64-2067-47AA-9BA0-ABF7153885A7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{58702CB5-BA83-4876-97D8-4D9D31B13F9C} = {6193B35A-26FE-4B7A-8CAE-AA78D1E41A73}
 		{FF480DF1-0526-4D2F-BE20-5E0D4438E5AC} = {6193B35A-26FE-4B7A-8CAE-AA78D1E41A73}
 		{EAA1FF3E-90DB-4631-B8DB-527CBB6D5BC2} = {6193B35A-26FE-4B7A-8CAE-AA78D1E41A73}
 		{9E4BC1EE-5ADE-46EE-A7A0-50AF2810FD7F} = {6193B35A-26FE-4B7A-8CAE-AA78D1E41A73}
 		{31FE49A7-DABA-4324-849A-8ECE01C5E2AC} = {2C09029B-2D78-4F60-A02F-CC330F9A41A8}
+		{58702CB5-BA83-4876-97D8-4D9D31B13F9C} = {6193B35A-26FE-4B7A-8CAE-AA78D1E41A73}
 	EndGlobalSection
 EndGlobal
