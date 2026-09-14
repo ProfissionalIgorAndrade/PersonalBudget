@@ -222,40 +222,6 @@ public class Transaction
         Status = TransactionStatus.Cancelled;
     }
 
-    /// <summary>
-    /// Altera o status da transação. Não permitido para transações de cartão de crédito.
-    /// Transições: Pending→Completed, Pending→Cancelled, Cancelled→Pending, Completed→Pending.
-    /// </summary>
-    public void SetStatus(TransactionStatus newStatus)
-    {
-        if (PaymentMethod == PaymentMethod.CreditCard || CreditCardId is not null)
-            throw new DomainException("Transações de cartão de crédito não podem ter o status alterado por esta operação.");
-
-        if (Status == newStatus)
-            return;
-
-        switch (newStatus)
-        {
-            case TransactionStatus.Pending:
-                if (Status != TransactionStatus.Cancelled && Status != TransactionStatus.Completed)
-                    throw new DomainException("Apenas transações canceladas ou concluídas podem voltar para pendente.");
-                Status = TransactionStatus.Pending;
-                break;
-            case TransactionStatus.Completed:
-                if (Status != TransactionStatus.Pending)
-                    throw new DomainException("Apenas transações pendentes podem ser concluídas.");
-                Status = TransactionStatus.Completed;
-                break;
-            case TransactionStatus.Cancelled:
-                if (Status == TransactionStatus.Completed)
-                    throw new DomainException("Transações concluídas não podem ser canceladas.");
-                Status = TransactionStatus.Cancelled;
-                break;
-            default:
-                throw new DomainException($"O status {newStatus} não é permitido para esta operação.");
-        }
-    }
-
     /// <summary>Vincula esta transação a um grupo de recorrência. Chamado uma vez após a criação em lote.</summary>
     public void AssignRecurrenceId(Guid recurrenceId)
     {

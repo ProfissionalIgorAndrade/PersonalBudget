@@ -186,18 +186,6 @@ public class TransactionsController : ControllerBase
         }, message));
     }
 
-    [HttpPatch("{transactionId:guid}/status")]
-    public async Task<IActionResult> UpdateStatus(Guid transactionId, [FromBody] UpdateTransactionStatusRequest request)
-    {
-        var userId = UserContext.GetUserId(User);
-        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-
-        var command = new UpdateTransactionStatusCommand(householdId, transactionId, request.Status);
-        await _transactionService.UpdateStatusAsync(command);
-
-        return Ok(ApiResponse<object?>.Ok(null, "Status atualizado."));
-    }
-
     [HttpDelete("batch")]
     public async Task<IActionResult> DeleteMany([FromBody] DeleteTransactionsRequest request)
     {

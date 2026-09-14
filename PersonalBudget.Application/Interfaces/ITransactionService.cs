@@ -12,7 +12,6 @@ public interface ITransactionService
     Task<IEnumerable<GetAllTransactionByUserResponse>> GetTransactionByCreditCardStatementAndMonthQuery(GetAllTransactionByCreditCardStatementAndMonthYearQuery query);
     Task<TransactionsCategoryGroupResponse> GetGroupedByCategoryForMonthAsync(Guid householdId, int month, int year);
     Task<IReadOnlyList<ActiveInstallmentGroupDto>> GetActiveInstallmentsAsync(Guid householdId, DateTime upTo);
-    Task UpdateStatusAsync(UpdateTransactionStatusCommand command);
     Task UpdateAsync(UpdateTransactionCommand command);
     Task UpdateRecurringAsync(UpdateRecurringTransactionCommand command);
     Task UpdateInstallmentStatementAsync(UpdateInstallmentStatementCommand command);
