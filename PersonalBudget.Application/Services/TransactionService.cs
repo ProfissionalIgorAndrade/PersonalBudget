@@ -804,43 +804,6 @@ public class TransactionService : ITransactionService
             await _transactionRepository.BulkUpdateAsync(modifiedTransactions);
     }
 
-    public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)
-    {
-        var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
-
-        if (transaction is null || transaction.HouseholdId != command.HouseholdId)
-            throw new DomainException("Transação não encontrada.");
-
-        await EnsureCreditCardStatementIsOpenForMutationAsync(transaction, "alterar o status de");
-
-        var previousStatus = transaction.Status;
-
-        if (command.Status == TransactionStatus.Pending && previousStatus == TransactionStatus.Completed)
-        {
-            var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
-            if (account is null)
-                throw new DomainException("Conta não encontrada.");
-            TransactionApplier.Revert(account, transaction);
-            transaction.SetStatus(command.Status);
-            await _accountRepository.UpdateAsync(account);
-        }
-        else
-        {
-            transaction.SetStatus(command.Status);
-
-            if (command.Status == TransactionStatus.Completed && previousStatus != TransactionStatus.Completed)
-            {
-                var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
-                if (account is null)
-                    throw new DomainException("Conta não encontrada.");
-                TransactionApplier.Apply(account, transaction);
-                await _accountRepository.UpdateAsync(account);
-            }
-        }
-
-        await _transactionRepository.UpdateAsync(transaction);
-    }
-
     public async Task<DeleteTransactionsResult> DeleteManyAsync(DeleteTransactionsCommand command)
     {
         if (command.TransactionIds.Count == 0)
