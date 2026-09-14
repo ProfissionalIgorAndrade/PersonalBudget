@@ -159,26 +159,6 @@ public class CreditCardsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(pagedStatement));
     }
 
-    [HttpPatch("{creditCardId}/statements/{statementId}/status")]
-    public async Task<IActionResult> UpdateStatementStatus(
-        Guid creditCardId,
-        Guid statementId,
-        [FromBody] UpdateStatementStatusRequest request)
-    {
-        var userId = UserContext.GetUserId(User);
-        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-        var command = new UpdateStatementStatusCommand(userId, householdId, creditCardId, statementId, request.Status, request.AccountId);
-        try
-        {
-            await _statementService.UpdateStatusAsync(command);
-        }
-        catch (DomainException ex)
-        {
-            return UnprocessableEntity(ApiResponse<object?>.Fail(ex.Message));
-        }
-        return Ok(ApiResponse<object?>.Ok(DateTime.Now, "Status da fatura atualizado com sucesso."));
-    }
-
     [HttpPut("{creditCardId}")]
     public async Task<IActionResult> Update(
         Guid creditCardId,

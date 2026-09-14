@@ -173,44 +173,4 @@ public class CreditCardStatement
         AddTransaction(newAmount, transactionType);
     }
 
-    public void Close()
-    {
-        if (Status != BillStatus.Open)
-            throw new DomainException("A fatura já está fechada.");
-
-        Status = BillStatus.Closed;
-    }
-
-    public void Reopen()
-    {
-        if (Status != BillStatus.Closed)
-            throw new DomainException("Apenas faturas fechadas podem ser reabertas.");
-
-        Status = BillStatus.Open;
-    }
-
-    public void ReversePayment()
-    {
-        if (Status != BillStatus.Paid)
-            throw new DomainException("Apenas faturas pagas podem ter o pagamento estornado.");
-
-        PaidFromAccountId = null;
-        Status = BillStatus.Closed;
-    }
-
-    public void SetRefundTransactionId(Guid transactionId) => RefundTransactionId = transactionId;
-
-    public void ClearRefundTransactionId() => RefundTransactionId = null;
-
-    public void MarkAsPaid(Guid accountId)
-    {
-        if (Status == BillStatus.Paid)
-            throw new DomainException("A fatura já foi paga.");
-
-        if (Status == BillStatus.Open)
-            Close();
-
-        PaidFromAccountId = accountId;
-        Status = BillStatus.Paid;
-    }
 }
