@@ -13,5 +13,4 @@ public interface ICreditCardStatementService
     Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsByIdPagedAsync(
         Guid householdId, Guid creditCardId, Guid statementId, int page, int pageSize);
 
-    Task UpdateStatusAsync(UpdateStatementStatusCommand command);
 }
