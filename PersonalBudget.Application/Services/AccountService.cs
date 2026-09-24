@@ -41,8 +41,13 @@ public class AccountService : IAccountService
         return accounts.Select(a =>
         {
             string? memberName = a.MemberProfileId.HasValue && profileMap.TryGetValue(a.MemberProfileId.Value, out var n) ? n : null;
-            var displayName = $"{a.Bank} - {a.Agency.Value}";
-            if (memberName is not null) displayName += $" - {memberName}";
+            // Caixinha se apresenta pelo próprio nome; o banco e a agência são
+            // da conta pai e repeti-los não distingue uma caixinha da outra.
+            var displayName = a.Kind == AccountKind.Savings
+                ? (a.Name ?? "Caixinha")
+                : $"{a.Bank} - {a.Agency.Value}";
+            if (memberName is not null && a.Kind != AccountKind.Savings)
+                displayName += $" - {memberName}";
             return new AccountResponse(
                 a.Id,
                 a.Bank.ToString(),
@@ -53,7 +58,10 @@ public class AccountService : IAccountService
                 memberName,
                 displayName,
                 a.IsActive,
-                a.CreatedAt
+                a.CreatedAt,
+                a.Kind.ToString(),
+                a.ParentAccountId,
+                a.Name
             );
         });
     }
@@ -76,6 +84,32 @@ public class AccountService : IAccountService
             })
             .ToList();
         return new AccountsSummaryResponse(totalBalance, items);
+    }
+
+    public async Task<Guid> CreateSavingsBoxAsync(CreateSavingsBoxCommand command)
+    {
+        var parent = await _repository.GetByIdAsync(command.ParentAccountId)
+            ?? throw new DomainException("Conta de origem não encontrada.");
+
+        if (parent.HouseholdId != command.HouseholdId)
+            throw new DomainException("Conta de origem não pertence a este lar.");
+
+        var box = Account.CreateSavingsBox(parent, command.Name);
+
+        await _repository.AddAsync(box);
+        return box.Id;
+    }
+
+    public async Task RenameSavingsBoxAsync(RenameSavingsBoxCommand command)
+    {
+        var box = await _repository.GetByIdAsync(command.AccountId)
+            ?? throw new DomainException("Caixinha não encontrada.");
+
+        if (box.HouseholdId != command.HouseholdId)
+            throw new DomainException("Caixinha não pertence a este lar.");
+
+        box.RenameSavingsBox(command.Name);
+        await _repository.UpdateAsync(box);
     }
 
     public async Task UpdateAsync(UpdateAccountCommand command)

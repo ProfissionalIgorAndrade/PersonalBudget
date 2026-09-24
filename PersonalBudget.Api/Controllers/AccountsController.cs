@@ -43,6 +43,30 @@ public class AccountsController : ControllerBase
         return CreatedAtAction(nameof(GetAll), new { id }, ApiResponse<object>.Ok(new { Id = id }, "Conta criada."));
     }
 
+    /// <summary>Cria uma caixinha vinculada a uma conta corrente.</summary>
+    [HttpPost("savings-boxes")]
+    public async Task<IActionResult> CreateSavingsBox(CreateSavingsBoxRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var id = await _service.CreateSavingsBoxAsync(
+            new CreateSavingsBoxCommand(householdId, request.ParentAccountId, request.Name));
+
+        return CreatedAtAction(nameof(GetAll), new { id }, ApiResponse<object>.Ok(new { Id = id }, "Caixinha criada."));
+    }
+
+    /// <summary>Renomeia uma caixinha.</summary>
+    [HttpPatch("savings-boxes/{accountId:guid}")]
+    public async Task<IActionResult> RenameSavingsBox(Guid accountId, RenameSavingsBoxRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        await _service.RenameSavingsBoxAsync(new RenameSavingsBoxCommand(householdId, accountId, request.Name));
+        return Ok(ApiResponse<object?>.Ok(null, "Caixinha atualizada."));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {

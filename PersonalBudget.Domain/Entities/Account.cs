@@ -14,6 +14,16 @@ public class Account
     public DateTime CreatedAt { get; private set; }
     public bool IsActive { get; private set; } = true;
 
+    public AccountKind Kind { get; private set; } = AccountKind.Checking;
+
+    /// <summary>
+    /// Conta corrente à qual a caixinha pertence. Null para conta corrente.
+    /// </summary>
+    public Guid? ParentAccountId { get; private set; }
+
+    /// <summary>Nome da caixinha ("Viagem", "Reserva"). Null para conta corrente.</summary>
+    public string? Name { get; private set; }
+
     public Account(
         Guid userId,
         Guid householdId,
@@ -39,6 +49,43 @@ public class Account
         Number = number;
         Balance = initialBalance;
         CreatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Cria uma caixinha vinculada a uma conta corrente.
+    ///
+    /// Herda banco, agência, número e membro da conta pai: uma caixinha não
+    /// tem identidade bancária própria, é uma divisão do mesmo dinheiro.
+    /// Nasce zerada — o saldo só entra por transferência, o que mantém o
+    /// histórico completo.
+    /// </summary>
+    public static Account CreateSavingsBox(Account parent, string name)
+    {
+        if (parent is null)
+            throw new DomainException("Caixinha precisa de uma conta de origem.");
+        if (parent.Kind == AccountKind.Savings)
+            throw new DomainException("Uma caixinha não pode pertencer a outra caixinha.");
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("A caixinha precisa de um nome.");
+
+        return new Account(parent.UserId, parent.HouseholdId, parent.Bank, parent.Agency,
+                           parent.Number, new Money(0), parent.MemberProfileId!.Value)
+        {
+            Kind = AccountKind.Savings,
+            ParentAccountId = parent.Id,
+            Name = name.Trim(),
+        };
+    }
+
+    /// <summary>Renomeia a caixinha. Não se aplica a conta corrente.</summary>
+    public void RenameSavingsBox(string name)
+    {
+        if (Kind != AccountKind.Savings)
+            throw new DomainException("Apenas caixinhas têm nome.");
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("A caixinha precisa de um nome.");
+
+        Name = name.Trim();
     }
 
     protected Account() { }

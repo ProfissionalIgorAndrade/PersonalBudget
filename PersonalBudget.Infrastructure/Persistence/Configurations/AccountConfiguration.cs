@@ -58,5 +58,20 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.Property(a => a.IsActive)
             .IsRequired();
+
+        builder.Property(a => a.Kind)
+            .HasColumnName("kind")
+            .HasConversion<int>()
+            .HasDefaultValue(AccountKind.Checking);
+
+        builder.Property(a => a.ParentAccountId)
+            .HasColumnName("parent_account_id");
+
+        builder.Property(a => a.Name)
+            .HasColumnName("name")
+            .HasMaxLength(80);
+
+        // Caixinhas de uma conta são buscadas juntas o tempo todo.
+        builder.HasIndex(a => a.ParentAccountId);
     }
 }
