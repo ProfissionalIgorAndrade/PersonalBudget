@@ -112,6 +112,30 @@ public class AccountService : IAccountService
         await _repository.UpdateAsync(box);
     }
 
+    public async Task DepositToSavingsBoxAsync(DepositToSavingsBoxCommand command)
+    {
+        var box = await _repository.GetByIdAsync(command.AccountId)
+            ?? throw new DomainException("Caixinha não encontrada.");
+
+        if (box.HouseholdId != command.HouseholdId)
+            throw new DomainException("Caixinha não pertence a este lar.");
+
+        box.DepositToSavingsBox(new Money(command.Amount));
+        await _repository.UpdateAsync(box);
+    }
+
+    public async Task WithdrawFromSavingsBoxAsync(WithdrawFromSavingsBoxCommand command)
+    {
+        var box = await _repository.GetByIdAsync(command.AccountId)
+            ?? throw new DomainException("Caixinha não encontrada.");
+
+        if (box.HouseholdId != command.HouseholdId)
+            throw new DomainException("Caixinha não pertence a este lar.");
+
+        box.WithdrawFromSavingsBox(new Money(command.Amount));
+        await _repository.UpdateAsync(box);
+    }
+
     public async Task UpdateAsync(UpdateAccountCommand command)
     {
         var account = await _repository.GetByIdAsync(command.AccountId);

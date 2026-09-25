@@ -7,6 +7,8 @@ public interface IAccountService
     Task<AccountsSummaryResponse> GetSummaryAsync(Guid householdId);
     Task<Guid> CreateSavingsBoxAsync(CreateSavingsBoxCommand command);
     Task RenameSavingsBoxAsync(RenameSavingsBoxCommand command);
+    Task DepositToSavingsBoxAsync(DepositToSavingsBoxCommand command);
+    Task WithdrawFromSavingsBoxAsync(WithdrawFromSavingsBoxCommand command);
     Task UpdateAsync(UpdateAccountCommand command);
     Task DeleteAsync(DeleteAccountCommand command);
 }

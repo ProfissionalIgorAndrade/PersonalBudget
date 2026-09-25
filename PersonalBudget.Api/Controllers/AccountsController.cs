@@ -67,6 +67,28 @@ public class AccountsController : ControllerBase
         return Ok(ApiResponse<object?>.Ok(null, "Caixinha atualizada."));
     }
 
+    /// <summary>Deposita dinheiro diretamente na caixinha.</summary>
+    [HttpPost("savings-boxes/{accountId:guid}/deposit")]
+    public async Task<IActionResult> DepositToSavingsBox(Guid accountId, DepositToSavingsBoxRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        await _service.DepositToSavingsBoxAsync(new DepositToSavingsBoxCommand(householdId, accountId, request.Amount));
+        return Ok(ApiResponse<object?>.Ok(null, "Depósito realizado."));
+    }
+
+    /// <summary>Saca dinheiro diretamente da caixinha.</summary>
+    [HttpPost("savings-boxes/{accountId:guid}/withdraw")]
+    public async Task<IActionResult> WithdrawFromSavingsBox(Guid accountId, WithdrawFromSavingsBoxRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        await _service.WithdrawFromSavingsBoxAsync(new WithdrawFromSavingsBoxCommand(householdId, accountId, request.Amount));
+        return Ok(ApiResponse<object?>.Ok(null, "Saque realizado."));
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
