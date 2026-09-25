@@ -21,7 +21,11 @@ namespace PersonalBudget.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(@"UPDATE credit_card_statements SET ""Status"" = 1 WHERE ""Status"" <> 1;");
+            // A coluna é texto, não inteiro: CreditCardStatementConfiguration usa
+            // HasConversion<string>(), então o enum é gravado pelo nome. Comparar
+            // com 1 produz "operator does not exist: text <> integer" e derruba o
+            // MigrateAsync inteiro no startup.
+            migrationBuilder.Sql(@"UPDATE credit_card_statements SET ""Status"" = 'Open' WHERE ""Status"" <> 'Open';");
         }
 
         /// <inheritdoc />
