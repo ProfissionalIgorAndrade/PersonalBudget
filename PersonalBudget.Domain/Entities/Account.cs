@@ -68,8 +68,10 @@ public class Account
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("A caixinha precisa de um nome.");
 
-        return new Account(parent.UserId, parent.HouseholdId, parent.Bank, parent.Agency,
-                           parent.Number, new Money(0), parent.MemberProfileId!.Value)
+        return new Account(parent.UserId, parent.HouseholdId, parent.Bank,
+                           new BankAgency(parent.Agency.Value),
+                           new BankAccountNumber(parent.Number.Value),
+                           new Money(0), parent.MemberProfileId!.Value)
         {
             Kind = AccountKind.Savings,
             ParentAccountId = parent.Id,
