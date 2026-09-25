@@ -10,5 +10,11 @@ public record AccountResponse(
     string? MemberName,
     string DisplayName,
     bool IsActive,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    /// <summary>"Checking" ou "Savings".</summary>
+    string Kind = "Checking",
+    /// <summary>Conta corrente da caixinha. Null para conta corrente.</summary>
+    Guid? ParentAccountId = null,
+    /// <summary>Nome da caixinha. Null para conta corrente.</summary>
+    string? Name = null
 );

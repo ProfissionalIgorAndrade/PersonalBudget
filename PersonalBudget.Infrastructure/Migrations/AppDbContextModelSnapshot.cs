@@ -39,9 +39,24 @@ namespace PersonalBudget.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("Kind")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("kind");
+
                     b.Property<Guid?>("MemberProfileId")
                         .HasColumnType("uuid")
                         .HasColumnName("member_profile_id");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("ParentAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_account_id");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -51,6 +66,8 @@ namespace PersonalBudget.Infrastructure.Migrations
                     b.HasIndex("HouseholdId");
 
                     b.HasIndex("MemberProfileId");
+
+                    b.HasIndex("ParentAccountId");
 
                     b.HasIndex("UserId");
 
