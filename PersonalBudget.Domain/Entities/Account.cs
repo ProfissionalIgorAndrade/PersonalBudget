@@ -79,6 +79,24 @@ public class Account
         };
     }
 
+    /// <summary>Deposita dinheiro diretamente na caixinha, sem transferência.</summary>
+    public void DepositToSavingsBox(Money amount)
+    {
+        if (Kind != AccountKind.Savings)
+            throw new DomainException("Esta operação é exclusiva para caixinhas.");
+
+        Credit(amount);
+    }
+
+    /// <summary>Saca dinheiro diretamente da caixinha, sem transferência.</summary>
+    public void WithdrawFromSavingsBox(Money amount)
+    {
+        if (Kind != AccountKind.Savings)
+            throw new DomainException("Esta operação é exclusiva para caixinhas.");
+
+        Debit(amount);
+    }
+
     /// <summary>Renomeia a caixinha. Não se aplica a conta corrente.</summary>
     public void RenameSavingsBox(string name)
     {
