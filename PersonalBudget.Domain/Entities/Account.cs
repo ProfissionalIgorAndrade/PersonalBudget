@@ -100,6 +100,13 @@ public class Account
         if (Kind != AccountKind.Savings)
             throw new DomainException("Esta operação é exclusiva para caixinhas.");
 
+        // Caixinha não fica negativa: ela representa dinheiro que existe e foi
+        // separado, então sacar mais do que há não descreve nada real. A regra
+        // fica aqui e não só na tela, porque uma regra que vive apenas no
+        // cliente é o que produziu o bug do teto de depósito.
+        if (amount.Amount > Balance.Amount)
+            throw new DomainException("Não é possível resgatar mais do que há na caixinha.");
+
         Debit(amount);
     }
 
