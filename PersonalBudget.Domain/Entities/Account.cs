@@ -24,6 +24,12 @@ public class Account
     /// <summary>Nome da caixinha ("Viagem", "Reserva"). Null para conta corrente.</summary>
     public string? Name { get; private set; }
 
+    /// <summary>
+    /// Meta de quanto se quer acumular na caixinha. Null quando não há meta —
+    /// nem toda caixinha precisa de uma, e zero significaria meta batida.
+    /// </summary>
+    public decimal? SavingsGoal { get; private set; }
+
     public Account(
         Guid userId,
         Guid householdId,
@@ -98,6 +104,17 @@ public class Account
     }
 
     /// <summary>Renomeia a caixinha. Não se aplica a conta corrente.</summary>
+    /// <summary>Define ou remove a meta da caixinha. Null remove.</summary>
+    public void SetSavingsGoal(decimal? goal)
+    {
+        if (Kind != AccountKind.Savings)
+            throw new DomainException("Apenas caixinhas têm meta.");
+        if (goal is { } g && g <= 0)
+            throw new DomainException("A meta deve ser maior que zero.");
+
+        SavingsGoal = goal;
+    }
+
     public void RenameSavingsBox(string name)
     {
         if (Kind != AccountKind.Savings)

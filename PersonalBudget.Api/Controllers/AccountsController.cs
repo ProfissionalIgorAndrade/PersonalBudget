@@ -68,6 +68,17 @@ public class AccountsController : ControllerBase
     }
 
     /// <summary>Deposita dinheiro diretamente na caixinha.</summary>
+    /// <summary>Define ou remove a meta da caixinha.</summary>
+    [HttpPatch("savings-boxes/{accountId:guid}/goal")]
+    public async Task<IActionResult> SetSavingsGoal(Guid accountId, SetSavingsGoalRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        await _service.SetSavingsGoalAsync(new SetSavingsGoalCommand(householdId, accountId, request.Goal));
+        return Ok(ApiResponse<object?>.Ok(null, "Meta atualizada."));
+    }
+
     [HttpPost("savings-boxes/{accountId:guid}/deposit")]
     public async Task<IActionResult> DepositToSavingsBox(Guid accountId, DepositToSavingsBoxRequest request)
     {
