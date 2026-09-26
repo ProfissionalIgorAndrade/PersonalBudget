@@ -5,15 +5,47 @@ public class AccountService : IAccountService
     private readonly IAccountRepository _repository;
     private readonly ICreditCardRepository _creditCardRepository;
     private readonly IHouseholdMemberProfileRepository _profileRepository;
+    private readonly ITransactionRepository _transactionRepository;
 
     public AccountService(
         IAccountRepository repository,
         ICreditCardRepository creditCardRepository,
-        IHouseholdMemberProfileRepository profileRepository)
+        IHouseholdMemberProfileRepository profileRepository,
+        ITransactionRepository transactionRepository)
     {
         _repository = repository;
         _creditCardRepository = creditCardRepository;
         _profileRepository = profileRepository;
+        _transactionRepository = transactionRepository;
+    }
+
+    /// <summary>
+    /// Grava o movimento da caixinha como lançamento.
+    ///
+    /// Sem isto o saldo mudava e nada registrava quando, quanto ou em que
+    /// sentido — não havia extrato nem como desenhar evolução.
+    ///
+    /// PaymentMethod.Savings mantém o lançamento fora dos totais de receita e
+    /// despesa, pelo mesmo caminho que já exclui transferência.
+    /// </summary>
+    private async Task RecordSavingsMovementAsync(Account box, decimal amount, bool isDeposit)
+    {
+        var profile = box.MemberProfileId;
+        if (profile is null) return;
+
+        var tx = Transaction.Create(
+            userId: box.UserId,
+            householdId: box.HouseholdId,
+            attributionProfileId: profile.Value,
+            accountId: box.Id,
+            amount: new Money(amount),
+            type: isDeposit ? TransactionType.Income : TransactionType.Expense,
+            paymentMethod: PaymentMethod.Savings,
+            date: DateTime.UtcNow.Date,
+            description: isDeposit ? $"Depósito em {box.Name}" : $"Resgate de {box.Name}",
+            initialStatus: TransactionStatus.Completed);
+
+        await _transactionRepository.AddAsync(tx);
     }
 
     public async Task<Guid> CreateAsync(CreateAccountCommand command)
@@ -61,7 +93,8 @@ public class AccountService : IAccountService
                 a.CreatedAt,
                 a.Kind.ToString(),
                 a.ParentAccountId,
-                a.Name
+                a.Name,
+                a.SavingsGoal
             );
         });
     }
@@ -112,6 +145,18 @@ public class AccountService : IAccountService
         await _repository.UpdateAsync(box);
     }
 
+    public async Task SetSavingsGoalAsync(SetSavingsGoalCommand command)
+    {
+        var box = await _repository.GetByIdAsync(command.AccountId)
+            ?? throw new DomainException("Caixinha não encontrada.");
+
+        if (box.HouseholdId != command.HouseholdId)
+            throw new DomainException("Caixinha não pertence a este lar.");
+
+        box.SetSavingsGoal(command.Goal);
+        await _repository.UpdateAsync(box);
+    }
+
     public async Task DepositToSavingsBoxAsync(DepositToSavingsBoxCommand command)
     {
         var box = await _repository.GetByIdAsync(command.AccountId)
@@ -122,6 +167,7 @@ public class AccountService : IAccountService
 
         box.DepositToSavingsBox(new Money(command.Amount));
         await _repository.UpdateAsync(box);
+        await RecordSavingsMovementAsync(box, command.Amount, isDeposit: true);
     }
 
     public async Task WithdrawFromSavingsBoxAsync(WithdrawFromSavingsBoxCommand command)
@@ -134,6 +180,7 @@ public class AccountService : IAccountService
 
         box.WithdrawFromSavingsBox(new Money(command.Amount));
         await _repository.UpdateAsync(box);
+        await RecordSavingsMovementAsync(box, command.Amount, isDeposit: false);
     }
 
     public async Task UpdateAsync(UpdateAccountCommand command)

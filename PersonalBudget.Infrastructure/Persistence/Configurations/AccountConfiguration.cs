@@ -71,6 +71,10 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .HasColumnName("name")
             .HasMaxLength(80);
 
+        builder.Property(a => a.SavingsGoal)
+            .HasColumnName("savings_goal")
+            .HasColumnType("numeric");
+
         // Caixinhas de uma conta são buscadas juntas o tempo todo.
         builder.HasIndex(a => a.ParentAccountId);
     }

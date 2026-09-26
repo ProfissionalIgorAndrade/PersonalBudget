@@ -16,5 +16,7 @@ public record AccountResponse(
     /// <summary>Conta corrente da caixinha. Null para conta corrente.</summary>
     Guid? ParentAccountId = null,
     /// <summary>Nome da caixinha. Null para conta corrente.</summary>
-    string? Name = null
+    string? Name = null,
+    /// <summary>Meta da caixinha. Null quando não há meta.</summary>
+    decimal? SavingsGoal = null
 );
