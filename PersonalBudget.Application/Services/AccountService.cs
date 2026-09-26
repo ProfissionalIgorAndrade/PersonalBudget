@@ -105,7 +105,10 @@ public class AccountService : IAccountService
         var profiles = await _profileRepository.GetByHouseholdAsync(householdId);
         var profileMap = profiles.ToDictionary(p => p.Id, p => p.DisplayName);
 
-        var active = accounts.Where(a => a.IsActive).ToList();
+        // Caixinha é conta no banco mas não é conta corrente: somá-la aqui
+        // fazia o dinheiro guardado inflar o total de saldo em contas, que é
+        // exatamente a influência que o cofrinho não deve ter.
+        var active = accounts.Where(a => a.IsActive && a.Kind != AccountKind.Savings).ToList();
         var totalBalance = active.Sum(a => a.Balance.Amount);
         var items = active
             .Select(a =>
