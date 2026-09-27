@@ -84,14 +84,34 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
         return transferId;
     }
 
+    private const string TransferCategoryName = "Transferência";
+
+    /// <summary>
+    /// Resolves the household's single transfer category, creating it only the
+    /// first time.
+    ///
+    /// The match is by name alone. It used to also require IsSystem, but that
+    /// property is not persisted - it has no column and does not appear in the
+    /// model - so it read back as false for every row loaded from the database
+    /// and the lookup never matched. Every transfer therefore created another
+    /// "Transferência" category.
+    ///
+    /// Comparison is case-insensitive so a differently-cased row, however it
+    /// got there, is reused rather than duplicated.
+    /// </summary>
     private async Task<Guid> GetOrCreateTransferCategoryIdAsync(Guid householdId)
     {
         var categories = await _categoryRepository.GetByHouseholdAsync(householdId);
-        var existing = categories.FirstOrDefault(c => c.IsSystem && c.Name == "Transferência");
+
+        var existing = categories
+            .Where(c => string.Equals(c.Name, TransferCategoryName, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(c => c.Id)
+            .FirstOrDefault();
+
         if (existing is not null)
             return existing.Id;
 
-        var newCategory = new Category(householdId, "Transferência", isSystem: true, CategoryType.Expense);
+        var newCategory = new Category(householdId, TransferCategoryName, isSystem: true, CategoryType.Expense);
         await _categoryRepository.AddAsync(newCategory);
         return newCategory.Id;
     }
