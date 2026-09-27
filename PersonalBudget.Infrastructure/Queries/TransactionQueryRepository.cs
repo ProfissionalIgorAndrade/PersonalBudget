@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PersonalBudget.Application.DTOs.CreditCard;
 using PersonalBudget.Application.DTOs.Dashboard;
+using PersonalBudget.Application.DTOs.FinancialCalendar;
 using PersonalBudget.Application.DTOs.Household;
 using PersonalBudget.Application.DTOs.Transaction;
 
@@ -456,6 +457,70 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             .ToListAsync();
 
         return results.OrderBy(t => t.Date).ToList();
+    }
+
+    // ─── financial calendar queries ─────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByHouseholdAndDateRangeAsync(
+        Guid householdId, DateTime from, DateTime to)
+    {
+        var fromUtc = DateTime.SpecifyKind(from.Date, DateTimeKind.Utc);
+        var toUtc   = DateTime.SpecifyKind(to.Date,   DateTimeKind.Utc);
+
+        return await (
+            from t in _context.Transactions
+            join a in _context.Accounts on t.AccountId equals a.Id
+            join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
+            from c in _context.Categories
+                .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
+                .DefaultIfEmpty()
+            from cc in _context.CreditCards
+                .Where(cc => t.CreditCardId != null && cc.Id == t.CreditCardId)
+                .DefaultIfEmpty()
+            from s in _context.CreditCardStatements
+                .Where(s => t.StatementId != null && s.Id == t.StatementId)
+                .DefaultIfEmpty()
+            where t.HouseholdId == householdId
+               && t.Status != TransactionStatus.Cancelled
+               && t.Date.Value >= fromUtc
+               && t.Date.Value <= toUtc
+            orderby t.Date.Value ascending
+            select new GetAllTransactionByUserResponse(
+                t.Id, t.AccountId, a.Agency.Value,
+                t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
+                t.CreditCardId, cc != null ? cc.Name : null,
+                t.TransferId, t.Type.ToString(), t.Status.ToString(),
+                t.PaymentMethod.ToString(), t.Frequency.ToString(),
+                t.ExpirationDate, t.DueDate,
+                t.Amount.Amount, t.Date.Value, t.Description.Value,
+                p.Id, p.DisplayName, t.RecurrenceId,
+                s != null ? s.ClosingMonth : (int?)null,
+                s != null ? s.ClosingYear  : (int?)null,
+                t.Observations)
+        ).AsNoTracking().ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<FinancialCalendarStatementDto>> GetStatementsByHouseholdAndDueDateRangeAsync(
+        Guid householdId, DateTime from, DateTime to)
+    {
+        var fromUtc = DateTime.SpecifyKind(from.Date, DateTimeKind.Utc);
+        var toUtc   = DateTime.SpecifyKind(to.Date,   DateTimeKind.Utc);
+
+        return await (
+            from s in _context.CreditCardStatements
+            join cc in _context.CreditCards on s.CreditCardId equals cc.Id
+            where cc.HouseholdId == householdId
+               && s.DueDate >= fromUtc
+               && s.DueDate <= toUtc
+            orderby s.DueDate ascending
+            select new FinancialCalendarStatementDto(
+                s.Id,
+                s.CreditCardId,
+                cc.Name,
+                s.DueDate,
+                s.TotalAmount.Amount,
+                s.Status.ToString())
+        ).AsNoTracking().ToListAsync();
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────────

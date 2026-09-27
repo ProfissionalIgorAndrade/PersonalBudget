@@ -1,5 +1,6 @@
 using PersonalBudget.Application.DTOs.CreditCard;
 using PersonalBudget.Application.DTOs.Dashboard;
+using PersonalBudget.Application.DTOs.FinancialCalendar;
 using PersonalBudget.Application.DTOs.Household;
 using PersonalBudget.Application.DTOs.Transaction;
 
@@ -34,4 +35,18 @@ public interface ITransactionQueryRepository
 
     /// <summary>Todos os parcelamentos ativos (não cancelados) do lar para cálculo de grupos.</summary>
     Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetInstallmentTransactionsAsync(Guid householdId);
+
+    /// <summary>
+    /// Lançamentos do lar no intervalo [from, to] (inclusive), excluindo cancelados.
+    /// Ordenados por data ascendente para facilitar o cálculo de saldo projetado diário.
+    /// Transações de cartão aparecem pela data da transação (não da fatura).
+    /// </summary>
+    Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetByHouseholdAndDateRangeAsync(
+        Guid householdId, DateTime from, DateTime to);
+
+    /// <summary>
+    /// Faturas de cartão do lar cujo DueDate cai no intervalo [from, to] (inclusive).
+    /// </summary>
+    Task<IReadOnlyList<FinancialCalendarStatementDto>> GetStatementsByHouseholdAndDueDateRangeAsync(
+        Guid householdId, DateTime from, DateTime to);
 }
