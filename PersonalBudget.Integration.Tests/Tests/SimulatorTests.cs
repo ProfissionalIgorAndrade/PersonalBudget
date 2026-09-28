@@ -174,8 +174,8 @@ public class SimulatorTests(IntegrationTestFactory factory)
         var token = await AuthHelper.SignInAsync(_client);
         _client.SetBearer(token);
 
-        // Start from the first projected month so all 3 months are within window
-        var startDate = DateTime.UtcNow.AddMonths(1).ToString("yyyy-MM-01");
+        // Start from the current month (index 0) so all 3 installments fall within the 3-month window
+        var startDate = DateTime.UtcNow.ToString("yyyy-MM-01");
         var response  = await _client.PostAsJsonAsync("/api/simulator/calculate?months=3",
             InstallmentExpense(startDate, 3));
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -198,7 +198,7 @@ public class SimulatorTests(IntegrationTestFactory factory)
         var token = await AuthHelper.SignInAsync(_client);
         _client.SetBearer(token);
 
-        var startDate = DateTime.UtcNow.AddMonths(1).ToString("yyyy-MM-01");
+        var startDate = DateTime.UtcNow.ToString("yyyy-MM-01");
         var response  = await _client.PostAsJsonAsync("/api/simulator/calculate?months=3",
             MonthlyExpense(startDate));
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -220,7 +220,7 @@ public class SimulatorTests(IntegrationTestFactory factory)
         var token = await AuthHelper.SignInAsync(_client);
         _client.SetBearer(token);
 
-        var startDate = DateTime.UtcNow.AddMonths(1).ToString("yyyy-MM-01");
+        var startDate = DateTime.UtcNow.ToString("yyyy-MM-01");
         var response  = await _client.PostAsJsonAsync("/api/simulator/calculate?months=3",
             OneTimeIncome(startDate));
         response.StatusCode.Should().Be(HttpStatusCode.OK);
