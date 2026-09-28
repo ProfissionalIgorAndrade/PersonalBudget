@@ -228,8 +228,11 @@ public class SimulatorTests(IntegrationTestFactory factory)
         var body   = await response.Content.ReadFromJsonAsync<JsonElement>();
         var months = body.GetProperty("data").GetProperty("months").EnumerateArray().ToList();
 
+        // balanceDelta is cumulative — the +10k surplus carries through all subsequent months
+        months[0].GetProperty("simulatedIncome").GetDecimal().Should().Be(10000m);
         months[0].GetProperty("balanceDelta").GetDecimal().Should().Be(10000m);
-        months[1].GetProperty("balanceDelta").GetDecimal().Should().Be(0m);
+        // Single mode: income does not repeat in month 1
+        months[1].GetProperty("simulatedIncome").GetDecimal().Should().Be(0m);
     }
 
     // ─── Negative scenario ────────────────────────────────────────────────────
