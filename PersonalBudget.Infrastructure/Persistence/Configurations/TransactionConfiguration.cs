@@ -40,10 +40,6 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired()
             .HasConversion<int>();
 
-        builder.Property(t => t.Status)
-            .IsRequired()
-            .HasConversion<int>();
-
         builder.Property(t => t.Frequency)
             .IsRequired()
             .HasColumnName("frequency")
@@ -91,7 +87,6 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.HasIndex(t => t.AccountId);
         builder.HasIndex(t => t.CreditCardId);
         builder.HasIndex(t => t.TransferId);
-        builder.HasIndex(t => t.Status);
         builder.HasIndex(t => t.RecurrenceId);
     }
 }
