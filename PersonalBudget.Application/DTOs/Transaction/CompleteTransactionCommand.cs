@@ -1,5 +1,0 @@
-public record CompleteTransactionCommand(
-    Guid UserId,
-    Guid TransactionId,
-    TransactionStatus Status
-);
