@@ -414,7 +414,8 @@ public class TransactionService : ITransactionService
             || command.CategoryId is not null
             || command.DueDate is not null
             || command.ExpirationDate is not null
-            || command.AttributionProfileId is not null;
+            || command.AttributionProfileId is not null
+            || command.Observations is not null;
 
         if (!hasAny)
             throw new DomainException("Informe ao menos um campo para atualizar.");
@@ -434,7 +435,8 @@ public class TransactionService : ITransactionService
                 command.CategoryId,
                 command.DueDate,
                 command.ExpirationDate,
-                command.AttributionProfileId);
+                command.AttributionProfileId,
+                Observations: command.Observations);
             await UpdateAsync(singleCommand);
             return;
         }
@@ -486,7 +488,9 @@ public class TransactionService : ITransactionService
             var newDue = ResolveOptionalDateField(command.DueDate, t.DueDate);
             var newExp = ResolveOptionalDateField(command.ExpirationDate, t.ExpirationDate);
 
-            t.UpdateDetails(new Money(newAmount), newDateVo, newDescription, newCategoryId, newExp, newDue);
+            t.UpdateDetails(new Money(newAmount), newDateVo, newDescription, newCategoryId, newExp, newDue,
+                observations: command.Observations,
+                updateObservations: command.Observations is not null);
 
             if (command.AttributionProfileId is { } apid && apid != Guid.Empty && apid != t.AttributionProfileId)
                 t.UpdateAttributionProfileId(apid);

@@ -12,4 +12,5 @@ public record UpdateRecurringTransactionRequest(
     string? DueDate = null,
     string? ExpirationDate = null,
     Guid? AttributionProfileId = null,
-    RecurrenceEditMode RecurrenceEditMode = RecurrenceEditMode.OnlyThis);
+    RecurrenceEditMode RecurrenceEditMode = RecurrenceEditMode.OnlyThis,
+    string? Observations = null);

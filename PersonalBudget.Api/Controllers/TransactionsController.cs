@@ -130,7 +130,8 @@ public class TransactionsController : ControllerBase
             request.DueDate,
             request.ExpirationDate,
             request.AttributionProfileId,
-            request.RecurrenceEditMode);
+            request.RecurrenceEditMode,
+            request.Observations);
 
         await _transactionService.UpdateRecurringAsync(command);
 
