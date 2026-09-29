@@ -28,7 +28,7 @@ public class AccountService : IAccountService
     /// PaymentMethod.Savings mantém o lançamento fora dos totais de receita e
     /// despesa, pelo mesmo caminho que já exclui transferência.
     /// </summary>
-    private async Task RecordSavingsMovementAsync(Account box, decimal amount, bool isDeposit)
+    private async Task RecordSavingsMovementAsync(Account box, decimal amount, bool isDeposit, string? reason)
     {
         var profile = box.MemberProfileId;
         if (profile is null) return;
@@ -43,7 +43,10 @@ public class AccountService : IAccountService
             paymentMethod: PaymentMethod.Savings,
             date: DateTime.UtcNow.Date,
             description: isDeposit ? $"Depósito em {box.Name}" : $"Resgate de {box.Name}",
-            initialStatus: TransactionStatus.Completed);
+            initialStatus: TransactionStatus.Completed,
+            // A razão vira a observação do lançamento. Transaction já tem o
+            // campo e a coluna, então não é preciso schema novo para isto.
+            observations: string.IsNullOrWhiteSpace(reason) ? null : reason.Trim());
 
         await _transactionRepository.AddAsync(tx);
     }
@@ -167,7 +170,7 @@ public class AccountService : IAccountService
 
         box.DepositToSavingsBox(new Money(command.Amount));
         await _repository.UpdateAsync(box);
-        await RecordSavingsMovementAsync(box, command.Amount, isDeposit: true);
+        await RecordSavingsMovementAsync(box, command.Amount, isDeposit: true, command.Reason);
     }
 
     public async Task WithdrawFromSavingsBoxAsync(WithdrawFromSavingsBoxCommand command)
@@ -180,7 +183,7 @@ public class AccountService : IAccountService
 
         box.WithdrawFromSavingsBox(new Money(command.Amount));
         await _repository.UpdateAsync(box);
-        await RecordSavingsMovementAsync(box, command.Amount, isDeposit: false);
+        await RecordSavingsMovementAsync(box, command.Amount, isDeposit: false, command.Reason);
     }
 
     public async Task UpdateAsync(UpdateAccountCommand command)
