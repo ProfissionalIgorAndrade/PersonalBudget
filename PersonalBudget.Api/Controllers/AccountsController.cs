@@ -85,7 +85,7 @@ public class AccountsController : ControllerBase
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
-        await _service.DepositToSavingsBoxAsync(new DepositToSavingsBoxCommand(householdId, accountId, request.Amount));
+        await _service.DepositToSavingsBoxAsync(new DepositToSavingsBoxCommand(householdId, accountId, request.Amount, request.Reason));
         return Ok(ApiResponse<object?>.Ok(null, "Depósito realizado."));
     }
 
@@ -96,7 +96,7 @@ public class AccountsController : ControllerBase
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
-        await _service.WithdrawFromSavingsBoxAsync(new WithdrawFromSavingsBoxCommand(householdId, accountId, request.Amount));
+        await _service.WithdrawFromSavingsBoxAsync(new WithdrawFromSavingsBoxCommand(householdId, accountId, request.Amount, request.Reason));
         return Ok(ApiResponse<object?>.Ok(null, "Saque realizado."));
     }
 
