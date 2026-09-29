@@ -10,4 +10,5 @@ public record UpdateRecurringTransactionCommand(
     string? DueDate,
     string? ExpirationDate,
     Guid? AttributionProfileId,
-    RecurrenceEditMode RecurrenceEditMode);
+    RecurrenceEditMode RecurrenceEditMode,
+    string? Observations = null);
