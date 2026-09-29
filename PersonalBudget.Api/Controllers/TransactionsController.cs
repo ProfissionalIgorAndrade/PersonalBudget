@@ -43,7 +43,6 @@ public class TransactionsController : ControllerBase
             Amount: request.Amount,
             Date: request.Date,
             Description: request.Description,
-            AutoComplete: request.AutoComplete,
             InstallmentCount: request.InstallmentCount,
             TotalAmount: request.TotalAmount,
             Title: request.Title,
@@ -51,7 +50,6 @@ public class TransactionsController : ControllerBase
             DueDate: request.DueDate,
             DueDay: request.DueDay,
             RepeatCount: request.RepeatCount,
-            Status: request.Status,
             StatementMonth: request.StatementMonth,
             StatementYear: request.StatementYear,
             Observations: request.Observations
@@ -187,18 +185,6 @@ public class TransactionsController : ControllerBase
             result.SkippedCount,
             result.SkippedIds
         }, message));
-    }
-
-    [HttpPatch("{transactionId:guid}/status")]
-    public async Task<IActionResult> UpdateStatus(Guid transactionId, [FromBody] UpdateTransactionStatusRequest request)
-    {
-        var userId = UserContext.GetUserId(User);
-        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
-
-        var command = new UpdateTransactionStatusCommand(householdId, transactionId, request.Status);
-        await _transactionService.UpdateStatusAsync(command);
-
-        return Ok(ApiResponse<object?>.Ok(null, "Status atualizado."));
     }
 
     [HttpDelete("batch")]

@@ -35,7 +35,6 @@ public class AccountsController : ControllerBase
             request.Bank,
             request.Agency,
             request.AccountNumber,
-            request.InitialBalance,
             request.MemberId
         );
 
