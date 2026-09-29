@@ -9,7 +9,6 @@ public record StatementTransactionItemDto(
     Guid? CategoryId,
     string? CategoryName,
     string TransactionType,
-    string Status,
     string Frequency,
     Guid AttributionProfileId,
     string CorrespondentDisplayName,

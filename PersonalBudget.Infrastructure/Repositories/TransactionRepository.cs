@@ -110,4 +110,23 @@ public class TransactionRepository : ITransactionRepository
             .OrderBy(t => t.Date.Value)
             .ToListAsync();
     }
+
+    public async Task<Dictionary<Guid, decimal>> GetBalancesByAccountIdsAsync(IEnumerable<Guid> accountIds)
+    {
+        var ids = accountIds.ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, decimal>();
+
+        return await _context.Transactions
+            .Where(t => ids.Contains(t.AccountId))
+            .GroupBy(t => t.AccountId)
+            .Select(g => new
+            {
+                AccountId = g.Key,
+                Balance = g.Sum(t => t.Type == TransactionType.Income
+                    ? (decimal)t.Amount.Amount
+                    : -(decimal)t.Amount.Amount)
+            })
+            .ToDictionaryAsync(x => x.AccountId, x => x.Balance);
+    }
 }

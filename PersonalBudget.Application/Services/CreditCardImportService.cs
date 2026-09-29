@@ -49,9 +49,8 @@ public class CreditCardImportService : ICreditCardImportService
                 }
 
                 var categoryId = await ResolveOrCreateCategoryAsync(row.Categoria, command.HouseholdId, categories);
-                var status = MapStatus(row.Status);
 
-                await CreateTransactionsAsync(command, row, profileId.Value, categoryId, status);
+                await CreateTransactionsAsync(command, row, profileId.Value, categoryId);
                 imported++;
             }
             catch (Exception ex)
@@ -68,8 +67,7 @@ public class CreditCardImportService : ICreditCardImportService
         ImportCreditCardCsvCommand command,
         CsvRow row,
         Guid profileId,
-        Guid? categoryId,
-        TransactionStatus status)
+        Guid? categoryId)
     {
         var type = row.ValorParcela < 0 ? TransactionType.Income : TransactionType.Expense;
         var amount = Math.Abs(row.ValorParcela);
@@ -96,11 +94,10 @@ public class CreditCardImportService : ICreditCardImportService
             Amount: amount,
             Date: date,
             Description: description,
-            AutoComplete: false,
             InstallmentCount: null,
             TotalAmount: null,
             Title: null,
-            Status: status
+            Observations: string.IsNullOrWhiteSpace(row.Observacoes) ? null : row.Observacoes
         );
         await _transactionService.CreateAsync(cmd);
     }
@@ -135,14 +132,6 @@ public class CreditCardImportService : ICreditCardImportService
         categories.Add(newCat);
         return newCat.Id;
     }
-
-    private static TransactionStatus MapStatus(string? rawStatus) =>
-        rawStatus?.Trim().ToLowerInvariant() switch
-        {
-            "pago" => TransactionStatus.Completed,
-            "estornado" => TransactionStatus.Cancelled,
-            _ => TransactionStatus.Pending
-        };
 
     // ── CSV parsing ──────────────────────────────────────────────────────────
 

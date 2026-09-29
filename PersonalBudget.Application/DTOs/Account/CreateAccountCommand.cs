@@ -4,6 +4,5 @@ public record CreateAccountCommand(
     Bank Bank,
     string Agency,
     string AccountNumber,
-    decimal InitialBalance,
     Guid MemberId
 );

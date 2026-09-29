@@ -132,7 +132,6 @@ public class TransactionService : ITransactionService
             var singleCommand = command with
             {
                 Date = dateString,
-                AutoComplete = false,
                 RepeatCount = null,
                 DueDay = null,
                 DueDate = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)
@@ -252,11 +251,9 @@ public class TransactionService : ITransactionService
         var result = new List<ActiveInstallmentGroupDto>();
         foreach (var (groupKey, items) in groups)
         {
-            // Only include groups that have at least one pending installment due <= upTo
+            // Only include groups that have at least one installment due <= upTo
             var pendingUpTo = items
-                .Where(t => t.Status != TransactionStatus.Completed.ToString()
-                         && t.Status != TransactionStatus.Cancelled.ToString()
-                         && t.Date <= upTo)
+                .Where(t => t.Date <= upTo)
                 .ToList();
 
             if (pendingUpTo.Count == 0)
@@ -265,9 +262,8 @@ public class TransactionService : ITransactionService
             var first = items[0];
             var (baseDesc, _, total) = ParseInstallmentDescription(first.Description);
             var installmentsTotal = total > 0 ? total : items.Count;
-            var installmentsPaid = items.Count(t => t.Status == TransactionStatus.Completed.ToString());
-            var pendingItems = items.Where(t => t.Status != TransactionStatus.Completed.ToString()
-                                             && t.Status != TransactionStatus.Cancelled.ToString()).ToList();
+            var installmentsPaid = 0;
+            var pendingItems = items;
             var remainingAmount = pendingItems.Sum(t => t.Amount);
             var nextDue = pendingItems.OrderBy(t => t.Date).FirstOrDefault();
             var installmentAmount = items.OrderBy(t => t.Date).First().Amount;
@@ -529,9 +525,6 @@ public class TransactionService : ITransactionService
 
     private static void EnsureEditableForDetails(Transaction transaction)
     {
-        if (transaction.Status == TransactionStatus.Completed)
-            throw new DomainException("Transações concluídas não podem ser editadas.");
-
         if (transaction.TransferId is not null || transaction.PaymentMethod == PaymentMethod.Transfer)
             throw new DomainException("Transferências não podem ser editadas por esta operação.");
     }
@@ -729,9 +722,6 @@ public class TransactionService : ITransactionService
         {
             foreach (var t in targets)
             {
-                if (t.Status == TransactionStatus.Completed)
-                    throw new DomainException("Parcelas já concluídas não podem ser editadas.");
-
                 t.UpdateDetails(
                     t.Amount,
                     t.Date,
@@ -754,8 +744,6 @@ public class TransactionService : ITransactionService
 
         foreach (var t in targets)
         {
-            if (t.Status == TransactionStatus.Completed)
-                throw new DomainException("Não é possível mover parcelas já concluídas.");
             if (t.StatementId is null)
                 throw new DomainException("Parcela sem fatura associada.");
         }
@@ -844,43 +832,6 @@ public class TransactionService : ITransactionService
             await _transactionRepository.BulkUpdateAsync(modifiedTransactions);
     }
 
-    public async Task UpdateStatusAsync(UpdateTransactionStatusCommand command)
-    {
-        var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
-
-        if (transaction is null || transaction.HouseholdId != command.HouseholdId)
-            throw new DomainException("Transação não encontrada.");
-
-        await EnsureCreditCardStatementIsOpenForMutationAsync(transaction, "alterar o status de");
-
-        var previousStatus = transaction.Status;
-
-        if (command.Status == TransactionStatus.Pending && previousStatus == TransactionStatus.Completed)
-        {
-            var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
-            if (account is null)
-                throw new DomainException("Conta não encontrada.");
-            TransactionApplier.Revert(account, transaction);
-            transaction.SetStatus(command.Status);
-            await _accountRepository.UpdateAsync(account);
-        }
-        else
-        {
-            transaction.SetStatus(command.Status);
-
-            if (command.Status == TransactionStatus.Completed && previousStatus != TransactionStatus.Completed)
-            {
-                var account = await _accountRepository.GetByIdAsync(transaction.AccountId);
-                if (account is null)
-                    throw new DomainException("Conta não encontrada.");
-                TransactionApplier.Apply(account, transaction);
-                await _accountRepository.UpdateAsync(account);
-            }
-        }
-
-        await _transactionRepository.UpdateAsync(transaction);
-    }
-
     public async Task<DeleteTransactionsResult> DeleteManyAsync(DeleteTransactionsCommand command)
     {
         if (command.TransactionIds.Count == 0)
@@ -893,12 +844,6 @@ public class TransactionService : ITransactionService
         foreach (var transaction in transactions)
         {
             if (transaction.HouseholdId != command.HouseholdId)
-            {
-                skippedIds.Add(transaction.Id);
-                continue;
-            }
-
-            if (transaction.Status == TransactionStatus.Completed)
             {
                 skippedIds.Add(transaction.Id);
                 continue;

@@ -36,7 +36,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Id, t.AccountId, a.Agency.Value,
                 t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
                 t.CreditCardId, cc != null ? cc.Name : null,
-                t.TransferId, t.Type.ToString(), t.Status.ToString(),
+                t.TransferId, t.Type.ToString(),
                 t.PaymentMethod.ToString(), t.Frequency.ToString(),
                 t.ExpirationDate, t.DueDate,
                 t.Amount.Amount, t.Date.Value, t.Description.Value,
@@ -72,7 +72,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Id, t.AccountId, a.Agency.Value,
                 t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
                 t.CreditCardId, cc != null ? cc.Name : null,
-                t.TransferId, t.Type.ToString(), t.Status.ToString(),
+                t.TransferId, t.Type.ToString(),
                 t.PaymentMethod.ToString(), t.Frequency.ToString(),
                 t.ExpirationDate, t.DueDate,
                 t.Amount.Amount, t.Date.Value, t.Description.Value,
@@ -108,7 +108,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  t.Id, t.AccountId, a.Agency.Value,
                  t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
                  t.CreditCardId, cc != null ? cc.Name : null,
-                 t.TransferId, t.Type.ToString(), t.Status.ToString(),
+                 t.TransferId, t.Type.ToString(),
                  t.PaymentMethod.ToString(), t.Frequency.ToString(),
                  t.ExpirationDate, t.DueDate,
                  t.Amount.Amount, t.Date.Value, t.Description.Value,
@@ -131,7 +131,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             select new StatementTransactionItemDto(
                 t.Id, t.Date.Value, t.DueDate, t.Description.Value, t.Amount.Amount,
                 t.CategoryId, c != null ? c.Name : null,
-                t.Type.ToString(), t.Status.ToString(), t.Frequency.ToString(),
+                t.Type.ToString(), t.Frequency.ToString(),
                 p.Id, p.DisplayName, t.Observations);
 
         return await query.AsNoTracking().ToListAsync();
@@ -150,7 +150,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             select new StatementTransactionItemDto(
                 t.Id, t.Date.Value, t.DueDate, t.Description.Value, t.Amount.Amount,
                 t.CategoryId, c != null ? c.Name : null,
-                t.Type.ToString(), t.Status.ToString(), t.Frequency.ToString(),
+                t.Type.ToString(), t.Frequency.ToString(),
                 p.Id, p.DisplayName, t.Observations);
 
         var totalCount = await query.AsNoTracking().CountAsync();
@@ -260,7 +260,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                    t.Id, t.AccountId, a.Agency.Value,
                    t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
                    t.CreditCardId, cc != null ? cc.Name : null,
-                   t.TransferId, t.Type.ToString(), t.Status.ToString(),
+                   t.TransferId, t.Type.ToString(),
                    t.PaymentMethod.ToString(), t.Frequency.ToString(),
                    t.ExpirationDate, t.DueDate,
                    t.Amount.Amount, t.Date.Value, t.Description.Value,
@@ -450,8 +450,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     public async Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetInstallmentTransactionsAsync(Guid householdId)
     {
         var results = await BuildFullTransactionQuery(householdId)
-            .Where(t => t.Frequency == TransactionFrequency.Installments.ToString()
-                     && t.Status != TransactionStatus.Cancelled.ToString())
+            .Where(t => t.Frequency == TransactionFrequency.Installments.ToString())
             .AsNoTracking()
             .ToListAsync();
 

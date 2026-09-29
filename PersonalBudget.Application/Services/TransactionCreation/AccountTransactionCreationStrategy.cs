@@ -18,14 +18,9 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
         var accountId = command.AccountId
             ?? throw new DomainException("AccountId é obrigatório para o método de pagamento Conta.");
 
-        var account = await GetAccountOrThrowAsync(accountId, command.HouseholdId);
         var date = ParseDate(command.Date);
-
         var expiration = ParseOptionalExpirationDate(command.ExpirationDate);
         var dueDate = ParseOptionalDueDate(command.DueDate);
-
-        var initialStatus = command.Status
-            ?? (command.AutoComplete ? TransactionStatus.Completed : TransactionStatus.Pending);
 
         var transaction = Transaction.Create(
             command.UserId,
@@ -43,15 +38,8 @@ public class AccountTransactionCreationStrategy : TransactionCreationStrategyBas
             frequency: command.Frequency,
             expirationDate: expiration,
             dueDate: dueDate,
-            initialStatus: initialStatus,
             observations: command.Observations
         );
-
-        if (initialStatus == TransactionStatus.Completed)
-        {
-            TransactionApplier.Apply(account, transaction);
-            await _accountRepository.UpdateAsync(account);
-        }
 
         await _transactionRepository.AddAsync(transaction);
         return transaction.Id;

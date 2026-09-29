@@ -53,7 +53,6 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             new Money(command.Amount), command.Type);
 
         var dueDate = ParseOptionalDueDate(command.DueDate);
-        var initialStatus = command.Status ?? TransactionStatus.Pending;
         var transaction = Transaction.Create(
             command.UserId,
             command.HouseholdId,
@@ -71,7 +70,6 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             frequency: command.Frequency,
             expirationDate: null,
             dueDate: dueDate,
-            initialStatus: initialStatus,
             observations: command.Observations
         );
 
@@ -118,7 +116,6 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 ? DateTime.SpecifyKind(optionalFirstDue.Value.AddMonths(i).Date, DateTimeKind.Utc)
                 : null;
 
-            var installmentInitialStatus = command.Status ?? TransactionStatus.Pending;
             var transaction = Transaction.Create(
                 command.UserId,
                 command.HouseholdId,
@@ -136,7 +133,6 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 frequency: TransactionFrequency.Installments,
                 expirationDate: null,
                 dueDate: dueForInstallment,
-                initialStatus: installmentInitialStatus,
                 observations: command.Observations
             );
 

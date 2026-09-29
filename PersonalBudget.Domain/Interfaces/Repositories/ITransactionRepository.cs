@@ -13,5 +13,6 @@ public interface ITransactionRepository
         Guid attributionProfileId);
     Task<IEnumerable<Transaction>> GetByStatementIdAsync(Guid statementId);
     Task<IReadOnlyList<Transaction>> GetByRecurrenceIdAsync(Guid recurrenceId, Guid householdId);
+    Task<Dictionary<Guid, decimal>> GetBalancesByAccountIdsAsync(IEnumerable<Guid> accountIds);
     Task SaveChangesAsync();
 }

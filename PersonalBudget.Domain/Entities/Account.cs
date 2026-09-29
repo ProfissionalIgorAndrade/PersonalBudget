@@ -10,7 +10,6 @@ public class Account
     public Bank Bank { get; private set; }
     public BankAgency Agency { get; private set; } = null!;
     public BankAccountNumber Number { get; private set; } = null!;
-    public Money Balance { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
     public bool IsActive { get; private set; } = true;
 
@@ -36,7 +35,6 @@ public class Account
         Bank bank,
         BankAgency agency,
         BankAccountNumber number,
-        Money initialBalance,
         Guid memberProfileId)
     {
         if (userId == Guid.Empty)
@@ -53,7 +51,6 @@ public class Account
         Bank = bank;
         Agency = agency;
         Number = number;
-        Balance = initialBalance;
         CreatedAt = DateTime.UtcNow;
     }
 
@@ -62,8 +59,6 @@ public class Account
     ///
     /// Herda banco, agência, número e membro da conta pai: uma caixinha não
     /// tem identidade bancária própria, é uma divisão do mesmo dinheiro.
-    /// Nasce zerada — o saldo só entra por transferência, o que mantém o
-    /// histórico completo.
     /// </summary>
     public static Account CreateSavingsBox(Account parent, string name)
     {
@@ -77,7 +72,7 @@ public class Account
         return new Account(parent.UserId, parent.HouseholdId, parent.Bank,
                            new BankAgency(parent.Agency.Value),
                            new BankAccountNumber(parent.Number.Value),
-                           new Money(0), parent.MemberProfileId!.Value)
+                           parent.MemberProfileId!.Value)
         {
             Kind = AccountKind.Savings,
             ParentAccountId = parent.Id,
@@ -85,25 +80,6 @@ public class Account
         };
     }
 
-    /// <summary>Deposita dinheiro diretamente na caixinha, sem transferência.</summary>
-    public void DepositToSavingsBox(Money amount)
-    {
-        if (Kind != AccountKind.Savings)
-            throw new DomainException("Esta operação é exclusiva para caixinhas.");
-
-        Credit(amount);
-    }
-
-    /// <summary>Saca dinheiro diretamente da caixinha, sem transferência.</summary>
-    public void WithdrawFromSavingsBox(Money amount)
-    {
-        if (Kind != AccountKind.Savings)
-            throw new DomainException("Esta operação é exclusiva para caixinhas.");
-
-        Debit(amount);
-    }
-
-    /// <summary>Renomeia a caixinha. Não se aplica a conta corrente.</summary>
     /// <summary>Define ou remove a meta da caixinha. Null remove.</summary>
     public void SetSavingsGoal(decimal? goal)
     {
@@ -133,10 +109,9 @@ public class Account
        Bank bank,
        BankAgency agency,
        BankAccountNumber number,
-       Money initialBalance,
        Guid memberProfileId)
     {
-        return new Account(userId, householdId, bank, agency, number, initialBalance, memberProfileId);
+        return new Account(userId, householdId, bank, agency, number, memberProfileId);
     }
 
     public void UpdateBankInfo(
@@ -164,17 +139,6 @@ public class Account
             throw new DomainException("A conta já está inativa.");
 
         IsActive = false;
-    }
-
-
-    public void Credit(Money amount)
-    {
-        Balance = Balance.Add(amount);
-    }
-
-    public void Debit(Money amount)
-    {
-        Balance = Balance.Subtract(amount);
     }
 
     /// <summary>Transferência de titularidade da conta no mesmo lar (ex.: fusão de perfis vinculados).</summary>

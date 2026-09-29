@@ -56,7 +56,6 @@ public static class DatabaseSeeder
             bank: Bank.Nubank,
             agency: new BankAgency("0001"),
             number: new BankAccountNumber("123456-7"),
-            initialBalance: new Money(10000),
             memberProfileId: profileIgor.Id
         );
 
@@ -66,7 +65,6 @@ public static class DatabaseSeeder
             bank: Bank.Itau,
             agency: new BankAgency("1301"),
             number: new BankAccountNumber("889922-3"),
-            initialBalance: new Money(5000),
             memberProfileId: profileIgor.Id
         );
 
@@ -76,7 +74,6 @@ public static class DatabaseSeeder
             bank: Bank.Inter,
             agency: new BankAgency("0001"),
             number: new BankAccountNumber("98765-0"),
-            initialBalance: new Money(12000),
             memberProfileId: profileAndreza.Id
         );
 

@@ -377,9 +377,6 @@ namespace PersonalBudget.Infrastructure.Migrations
                     b.Property<Guid?>("StatementId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
                     b.Property<Guid?>("TransferId")
                         .HasColumnType("uuid");
 
@@ -405,8 +402,6 @@ namespace PersonalBudget.Infrastructure.Migrations
                     b.HasIndex("HouseholdId");
 
                     b.HasIndex("RecurrenceId");
-
-                    b.HasIndex("Status");
 
                     b.HasIndex("TransferId");
 
@@ -439,23 +434,6 @@ namespace PersonalBudget.Infrastructure.Migrations
 
             modelBuilder.Entity("Account", b =>
                 {
-                    b.OwnsOne("Money", "Balance", b1 =>
-                        {
-                            b1.Property<Guid>("AccountId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<decimal>("Amount")
-                                .HasColumnType("numeric")
-                                .HasColumnName("balance");
-
-                            b1.HasKey("AccountId");
-
-                            b1.ToTable("accounts");
-
-                            b1.WithOwner()
-                                .HasForeignKey("AccountId");
-                        });
-
                     b.OwnsOne("BankAccountNumber", "Number", b1 =>
                         {
                             b1.Property<Guid>("AccountId")
@@ -495,9 +473,6 @@ namespace PersonalBudget.Infrastructure.Migrations
                         });
 
                     b.Navigation("Agency")
-                        .IsRequired();
-
-                    b.Navigation("Balance")
                         .IsRequired();
 
                     b.Navigation("Number")
