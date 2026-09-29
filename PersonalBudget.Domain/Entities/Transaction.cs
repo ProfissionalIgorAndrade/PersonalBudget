@@ -16,7 +16,6 @@ public class Transaction
     public Guid? RecurrenceId { get; private set; }
     public TransactionType Type { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
-    public TransactionStatus Status { get; private set; }
     public TransactionFrequency Frequency { get; private set; }
     /// <summary>Data limite opcional para recorrência fixa (ex.: contrato até esta data).</summary>
     public DateTime? ExpirationDate { get; private set; }
@@ -45,7 +44,6 @@ public class Transaction
         TransactionFrequency frequency,
         DateTime? expirationDate,
         DateTime? dueDate,
-        TransactionStatus initialStatus,
         string? observations = null)
     {
         if (userId == Guid.Empty)
@@ -81,7 +79,6 @@ public class Transaction
         Frequency = frequency;
         ExpirationDate = expirationDate.HasValue ? DateTime.SpecifyKind(expirationDate.Value.Date, DateTimeKind.Utc) : null;
         DueDate = dueDate.HasValue ? DateTime.SpecifyKind(dueDate.Value.Date, DateTimeKind.Utc) : null;
-        Status = initialStatus;
         Observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
     }
 
@@ -104,7 +101,6 @@ public class Transaction
         TransactionFrequency frequency = TransactionFrequency.Variable,
         DateTime? expirationDate = null,
         DateTime? dueDate = null,
-        TransactionStatus initialStatus = TransactionStatus.Pending,
         string? observations = null)
     {
         return new Transaction(
@@ -124,12 +120,11 @@ public class Transaction
             frequency,
             expirationDate,
             dueDate,
-            initialStatus,
             observations
         );
     }
 
-    /// <summary>Atualiza dados editáveis. Não permitido para transações concluídas.</summary>
+    /// <summary>Atualiza dados editáveis.</summary>
     public void UpdateDetails(
         Money newAmount,
         TransactionDate newDate,
@@ -140,9 +135,6 @@ public class Transaction
         string? observations = null,
         bool updateObservations = false)
     {
-        if (Status == TransactionStatus.Completed)
-            throw new DomainException("Transações concluídas não podem ser editadas.");
-
         Amount = newAmount;
         Date = newDate;
         Description = newDescription;
@@ -153,7 +145,6 @@ public class Transaction
             Observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
     }
 
-    /// <summary>Altera o correspondente (perfil). Não permitido para transações concluídas.</summary>
     /// <summary>
     /// Reclassifica despesa como receita e vice-versa.
     ///
@@ -165,17 +156,11 @@ public class Transaction
     /// </summary>
     public void ChangeType(TransactionType newType)
     {
-        if (Status == TransactionStatus.Completed)
-            throw new DomainException("Transações concluídas não podem ser reclassificadas.");
-
         Type = newType;
     }
 
     public void UpdateAttributionProfileId(Guid attributionProfileId)
     {
-        if (Status == TransactionStatus.Completed)
-            throw new DomainException("Transações concluídas não podem ser editadas.");
-
         if (attributionProfileId == Guid.Empty)
             throw new DomainException("Correspondente inválido.");
 
@@ -194,68 +179,6 @@ public class Transaction
         StatementId = statementId;
     }
 
-    public void Complete()
-    {
-        if (Status != TransactionStatus.Pending)
-            throw new DomainException("Apenas transações pendentes podem ser concluídas.");
-
-        Status = TransactionStatus.Completed;
-    }
-
-    /// <summary>
-    /// Reverte uma transação concluída para pendente ao estornar o pagamento de uma fatura.
-    /// Operação restrita ao domínio de fatura — não exposta via SetStatus para evitar uso indevido.
-    /// </summary>
-    public void RevertToPending()
-    {
-        if (Status != TransactionStatus.Completed)
-            throw new DomainException("Apenas transações concluídas podem ser revertidas para pendente.");
-
-        Status = TransactionStatus.Pending;
-    }
-
-    public void Cancel()
-    {
-        if (Status == TransactionStatus.Completed)
-            throw new DomainException("Transações concluídas não podem ser canceladas.");
-
-        Status = TransactionStatus.Cancelled;
-    }
-
-    /// <summary>
-    /// Altera o status da transação. Não permitido para transações de cartão de crédito.
-    /// Transições: Pending→Completed, Pending→Cancelled, Cancelled→Pending, Completed→Pending.
-    /// </summary>
-    public void SetStatus(TransactionStatus newStatus)
-    {
-        if (PaymentMethod == PaymentMethod.CreditCard || CreditCardId is not null)
-            throw new DomainException("Transações de cartão de crédito não podem ter o status alterado por esta operação.");
-
-        if (Status == newStatus)
-            return;
-
-        switch (newStatus)
-        {
-            case TransactionStatus.Pending:
-                if (Status != TransactionStatus.Cancelled && Status != TransactionStatus.Completed)
-                    throw new DomainException("Apenas transações canceladas ou concluídas podem voltar para pendente.");
-                Status = TransactionStatus.Pending;
-                break;
-            case TransactionStatus.Completed:
-                if (Status != TransactionStatus.Pending)
-                    throw new DomainException("Apenas transações pendentes podem ser concluídas.");
-                Status = TransactionStatus.Completed;
-                break;
-            case TransactionStatus.Cancelled:
-                if (Status == TransactionStatus.Completed)
-                    throw new DomainException("Transações concluídas não podem ser canceladas.");
-                Status = TransactionStatus.Cancelled;
-                break;
-            default:
-                throw new DomainException($"O status {newStatus} não é permitido para esta operação.");
-        }
-    }
-
     /// <summary>Vincula esta transação a um grupo de recorrência. Chamado uma vez após a criação em lote.</summary>
     public void AssignRecurrenceId(Guid recurrenceId)
     {
@@ -265,7 +188,7 @@ public class Transaction
         RecurrenceId = recurrenceId;
     }
 
-    /// <summary>Reatribui correspondente ao fundir/excluir perfil no mesmo lar (inclui lançamentos concluídos).</summary>
+    /// <summary>Reatribui correspondente ao fundir/excluir perfil no mesmo lar.</summary>
     public void ReassignAttributionProfileForMerge(Guid newAttributionProfileId)
     {
         if (newAttributionProfileId == Guid.Empty)
@@ -276,7 +199,6 @@ public class Transaction
 
     /// <summary>
     /// Atualiza lar, correspondente e categoria ao migrar dados para o lar do convite.
-    /// Permite alterar lançamentos concluídos (regra normal de edição não se aplica).
     /// </summary>
     public void ApplyInviteAcceptanceMigration(
         Guid newHouseholdId,
