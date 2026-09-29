@@ -71,15 +71,8 @@ public class TransferTransactionCreationStrategy : TransactionCreationStrategyBa
             dueDate: dueDate,
             observations: command.Observations);
 
-        outTx.Complete();
-        inTx.Complete();
-        TransactionApplier.Apply(fromAccount, outTx);
-        TransactionApplier.Apply(toAccount, inTx);
-
         await _transactionRepository.AddAsync(outTx);
         await _transactionRepository.AddAsync(inTx);
-        await _accountRepository.UpdateAsync(fromAccount);
-        await _accountRepository.UpdateAsync(toAccount);
 
         return transferId;
     }

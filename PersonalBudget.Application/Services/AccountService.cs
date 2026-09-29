@@ -20,13 +20,8 @@ public class AccountService : IAccountService
     }
 
     /// <summary>
-    /// Grava o movimento da caixinha como lançamento.
-    ///
-    /// Sem isto o saldo mudava e nada registrava quando, quanto ou em que
-    /// sentido — não havia extrato nem como desenhar evolução.
-    ///
-    /// PaymentMethod.Savings mantém o lançamento fora dos totais de receita e
-    /// despesa, pelo mesmo caminho que já exclui transferência.
+    /// Grava o movimento da caixinha como lançamento para manter extrato completo.
+    /// PaymentMethod.Savings mantém o lançamento fora dos totais de receita e despesa.
     /// </summary>
     private async Task RecordSavingsMovementAsync(Account box, decimal amount, bool isDeposit, string? reason)
     {
@@ -43,9 +38,6 @@ public class AccountService : IAccountService
             paymentMethod: PaymentMethod.Savings,
             date: DateTime.UtcNow.Date,
             description: isDeposit ? $"Depósito em {box.Name}" : $"Resgate de {box.Name}",
-            initialStatus: TransactionStatus.Completed,
-            // A razão vira a observação do lançamento. Transaction já tem o
-            // campo e a coluna, então não é preciso schema novo para isto.
             observations: string.IsNullOrWhiteSpace(reason) ? null : reason.Trim());
 
         await _transactionRepository.AddAsync(tx);
@@ -59,7 +51,6 @@ public class AccountService : IAccountService
             command.Bank,
             new BankAgency(command.Agency),
             new BankAccountNumber(command.AccountNumber),
-            new Money(command.InitialBalance),
             command.MemberId
         );
 
@@ -73,22 +64,24 @@ public class AccountService : IAccountService
         var profiles = await _profileRepository.GetByHouseholdAsync(householdId);
         var profileMap = profiles.ToDictionary(p => p.Id, p => p.DisplayName);
 
+        var accountIds = accounts.Select(a => a.Id);
+        var balances = await _transactionRepository.GetBalancesByAccountIdsAsync(accountIds);
+
         return accounts.Select(a =>
         {
             string? memberName = a.MemberProfileId.HasValue && profileMap.TryGetValue(a.MemberProfileId.Value, out var n) ? n : null;
-            // Caixinha se apresenta pelo próprio nome; o banco e a agência são
-            // da conta pai e repeti-los não distingue uma caixinha da outra.
             var displayName = a.Kind == AccountKind.Savings
                 ? (a.Name ?? "Caixinha")
                 : $"{a.Bank} - {a.Agency.Value}";
             if (memberName is not null && a.Kind != AccountKind.Savings)
                 displayName += $" - {memberName}";
+            var balance = balances.GetValueOrDefault(a.Id, 0m);
             return new AccountResponse(
                 a.Id,
                 a.Bank.ToString(),
                 a.Agency.Value,
                 a.Number.Value,
-                a.Balance.Amount,
+                balance,
                 a.MemberProfileId,
                 memberName,
                 displayName,
@@ -109,14 +102,17 @@ public class AccountService : IAccountService
         var profileMap = profiles.ToDictionary(p => p.Id, p => p.DisplayName);
 
         var active = accounts.Where(a => a.IsActive).ToList();
-        var totalBalance = active.Sum(a => a.Balance.Amount);
+        var accountIds = active.Select(a => a.Id);
+        var balances = await _transactionRepository.GetBalancesByAccountIdsAsync(accountIds);
+
+        var totalBalance = active.Sum(a => balances.GetValueOrDefault(a.Id, 0m));
         var items = active
             .Select(a =>
             {
                 var name = $"{a.Bank} - {a.Agency.Value}";
                 if (a.MemberProfileId.HasValue && profileMap.TryGetValue(a.MemberProfileId.Value, out var memberName))
                     name += $" - {memberName}";
-                return new AccountSummaryItem(a.Id, name, a.Bank.ToString(), a.Balance.Amount);
+                return new AccountSummaryItem(a.Id, name, a.Bank.ToString(), balances.GetValueOrDefault(a.Id, 0m));
             })
             .ToList();
         return new AccountsSummaryResponse(totalBalance, items);
@@ -168,8 +164,9 @@ public class AccountService : IAccountService
         if (box.HouseholdId != command.HouseholdId)
             throw new DomainException("Caixinha não pertence a este lar.");
 
-        box.DepositToSavingsBox(new Money(command.Amount));
-        await _repository.UpdateAsync(box);
+        if (box.Kind != AccountKind.Savings)
+            throw new DomainException("Esta operação é exclusiva para caixinhas.");
+
         await RecordSavingsMovementAsync(box, command.Amount, isDeposit: true, command.Reason);
     }
 
@@ -181,8 +178,9 @@ public class AccountService : IAccountService
         if (box.HouseholdId != command.HouseholdId)
             throw new DomainException("Caixinha não pertence a este lar.");
 
-        box.WithdrawFromSavingsBox(new Money(command.Amount));
-        await _repository.UpdateAsync(box);
+        if (box.Kind != AccountKind.Savings)
+            throw new DomainException("Esta operação é exclusiva para caixinhas.");
+
         await RecordSavingsMovementAsync(box, command.Amount, isDeposit: false, command.Reason);
     }
 
@@ -200,7 +198,6 @@ public class AccountService : IAccountService
             command.MemberId
         );
 
-
         await _repository.UpdateAsync(account);
     }
 
@@ -214,13 +211,5 @@ public class AccountService : IAccountService
         account.Deactivate();
 
         await _repository.UpdateAsync(account);
-
-        // Desativar a conta não desativa mais os cartões dela. Antes, excluir
-        // uma conta sem lançamentos fazia os cartões associados sumirem da
-        // interface, e não havia como recuperá-los - a fatura e o histórico
-        // continuavam no banco, invisíveis.
-        //
-        // O cartão permanece ativo apontando para uma conta inativa, e a conta
-        // base pode ser trocada pela edição do cartão.
     }
 }

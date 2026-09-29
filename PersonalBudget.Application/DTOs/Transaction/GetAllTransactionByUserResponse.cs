@@ -9,7 +9,6 @@ public record GetAllTransactionByUserResponse(
     string? CreditCardName,
     Guid? TransferId,
     string Type,
-    string Status,
     string PaymentMethod,
     string Frequency,
     DateTime? ExpirationDate,

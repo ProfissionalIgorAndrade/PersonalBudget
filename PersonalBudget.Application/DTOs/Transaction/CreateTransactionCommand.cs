@@ -14,7 +14,6 @@ public record CreateTransactionCommand(
     decimal Amount,
     string Date,
     string Description,
-    bool AutoComplete,
     int? InstallmentCount,
     decimal? TotalAmount,
     string? Title,
@@ -23,8 +22,6 @@ public record CreateTransactionCommand(
     string? DueDate = null,
     int? DueDay = null,
     int? RepeatCount = null,
-    /// <summary>When set, overrides default status (including AutoComplete for Account).</summary>
-    TransactionStatus? Status = null,
     /// <summary>Mês da fatura (1-12). Obrigatório para PaymentMethod.CreditCard.</summary>
     int? StatementMonth = null,
     /// <summary>Ano da fatura. Obrigatório para PaymentMethod.CreditCard.</summary>

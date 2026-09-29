@@ -10,7 +10,6 @@ public record CreateTransactionRequest(
     decimal Amount,
     string Date,
     string Description,
-    bool AutoComplete,
     int? InstallmentCount,
     decimal? TotalAmount,
     string? Title,
@@ -21,8 +20,6 @@ public record CreateTransactionRequest(
     int? RepeatCount = null,
     /// <summary>Correspondente (perfil). Opcional: padrão = perfil vinculado ao usuário.</summary>
     Guid? AttributionProfileId = null,
-    /// <summary>Optional initial status; when omitted, behavior follows AutoComplete and payment method rules.</summary>
-    TransactionStatus? Status = null,
     /// <summary>Mês da fatura (1-12). Obrigatório para PaymentMethod.CreditCard.</summary>
     int? StatementMonth = null,
     /// <summary>Ano da fatura. Obrigatório para PaymentMethod.CreditCard.</summary>
