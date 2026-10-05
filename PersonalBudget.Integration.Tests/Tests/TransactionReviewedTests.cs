@@ -60,7 +60,8 @@ public class TransactionReviewedTests(IntegrationTestFactory factory)
     private static async Task<Guid> CreateAndGetIdAsync(HttpClient client, string url, object payload)
     {
         var response = await client.PostAsJsonAsync(url, payload);
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.Created,
+            $"POST {url} returned: {await response.Content.ReadAsStringAsync()}");
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         var data = body.GetProperty("data");
         return (data.TryGetProperty("id", out var id) ? id : data.GetProperty("transactionId")).GetGuid();
