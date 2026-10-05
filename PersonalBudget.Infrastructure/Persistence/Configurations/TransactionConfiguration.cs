@@ -81,6 +81,11 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .HasMaxLength(500)
             .IsRequired(false);
 
+        builder.Property(t => t.Reviewed)
+            .HasColumnName("reviewed")
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.HasIndex(t => t.UserId);
         builder.HasIndex(t => t.HouseholdId);
         builder.HasIndex(t => t.AttributionProfileId);

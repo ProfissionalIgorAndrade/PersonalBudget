@@ -159,6 +159,20 @@ public class CreditCardsController : ControllerBase
         return Ok(ApiResponse<object>.Ok(pagedStatement));
     }
 
+    [HttpPatch("{creditCardId}/statement/{statementId:guid}/reviewed")]
+    public async Task<IActionResult> SetStatementReviewed(
+        Guid creditCardId,
+        Guid statementId,
+        [FromBody] SetReviewedRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        await _statementService.SetReviewedAsync(householdId, creditCardId, statementId, request.Reviewed);
+
+        return Ok(ApiResponse<object?>.Ok(null, "Lançamentos da fatura atualizados."));
+    }
+
     [HttpPut("{creditCardId}")]
     public async Task<IActionResult> Update(
         Guid creditCardId,

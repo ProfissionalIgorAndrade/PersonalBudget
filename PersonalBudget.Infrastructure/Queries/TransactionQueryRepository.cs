@@ -43,7 +43,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 p.Id, p.DisplayName, t.RecurrenceId,
                 s != null ? s.ClosingMonth : (int?)null,
                 s != null ? s.ClosingYear : (int?)null,
-                t.Observations);
+                t.Observations, t.Reviewed);
     }
 
     // ─── month-filtered query (filter applied at entity level before projection) ─
@@ -79,7 +79,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 p.Id, p.DisplayName, t.RecurrenceId,
                 s != null ? s.ClosingMonth : (int?)null,
                 s != null ? s.ClosingYear : (int?)null,
-                t.Observations);
+                t.Observations, t.Reviewed);
     }
 
     // ─── existing methods ───────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  t.Amount.Amount, t.Date.Value, t.Description.Value,
                  p.Id, p.DisplayName, t.RecurrenceId,
                  s.ClosingMonth, s.ClosingYear,
-                 t.Observations))
+                 t.Observations, t.Reviewed))
             .AsNoTracking()
             .ToListAsync();
     }
@@ -132,7 +132,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Id, t.Date.Value, t.DueDate, t.Description.Value, t.Amount.Amount,
                 t.CategoryId, c != null ? c.Name : null,
                 t.Type.ToString(), t.Frequency.ToString(),
-                p.Id, p.DisplayName, t.Observations);
+                p.Id, p.DisplayName, t.Observations, t.Reviewed);
 
         return await query.AsNoTracking().ToListAsync();
     }
@@ -151,7 +151,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.Id, t.Date.Value, t.DueDate, t.Description.Value, t.Amount.Amount,
                 t.CategoryId, c != null ? c.Name : null,
                 t.Type.ToString(), t.Frequency.ToString(),
-                p.Id, p.DisplayName, t.Observations);
+                p.Id, p.DisplayName, t.Observations, t.Reviewed);
 
         var totalCount = await query.AsNoTracking().CountAsync();
         var items = await query.AsNoTracking().Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -266,7 +266,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                    t.Amount.Amount, t.Date.Value, t.Description.Value,
                    p.Id, p.DisplayName, t.RecurrenceId,
                    null, null,
-                   t.Observations);
+                   t.Observations, t.Reviewed);
     }
 
     public async Task<IReadOnlyList<HouseholdProfileSummaryRow>> GetHouseholdSummaryByProfileAsync(

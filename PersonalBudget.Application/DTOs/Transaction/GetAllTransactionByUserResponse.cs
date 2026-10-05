@@ -21,4 +21,5 @@ public record GetAllTransactionByUserResponse(
     Guid? RecurrenceId = null,
     int? StatementMonth = null,
     int? StatementYear = null,
-    string? Observations = null);
+    string? Observations = null,
+    bool Reviewed = false);
