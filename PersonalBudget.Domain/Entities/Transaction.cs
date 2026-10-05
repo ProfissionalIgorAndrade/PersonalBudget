@@ -26,6 +26,8 @@ public class Transaction
     public TransactionDescription Description { get; private set; }
     /// <summary>Observações opcionais sobre o lançamento.</summary>
     public string? Observations { get; private set; }
+    /// <summary>Indica que o usuário já conferiu o lançamento. Independe do status da fatura.</summary>
+    public bool Reviewed { get; private set; }
 
     private Transaction(
         Guid userId,
@@ -143,6 +145,12 @@ public class Transaction
         DueDate = dueDate.HasValue ? DateTime.SpecifyKind(dueDate.Value.Date, DateTimeKind.Utc) : null;
         if (updateObservations)
             Observations = string.IsNullOrWhiteSpace(observations) ? null : observations.Trim();
+    }
+
+    /// <summary>Marca/desmarca o lançamento como revisado. Não altera dados financeiros, então vale em qualquer status de fatura.</summary>
+    public void SetReviewed(bool reviewed)
+    {
+        Reviewed = reviewed;
     }
 
     /// <summary>
