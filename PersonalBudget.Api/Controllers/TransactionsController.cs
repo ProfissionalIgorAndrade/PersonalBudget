@@ -89,6 +89,19 @@ public class TransactionsController : ControllerBase
         return Ok(ApiResponse<object?>.Ok(null, "Transação atualizada."));
     }
 
+    [HttpPatch("{transactionId:guid}/reviewed")]
+    public async Task<IActionResult> SetReviewed(
+        Guid transactionId,
+        [FromBody] SetReviewedRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        await _transactionService.SetReviewedAsync(new SetReviewedCommand(householdId, transactionId, request.Reviewed));
+
+        return Ok(ApiResponse<object?>.Ok(null, "Lançamento atualizado."));
+    }
+
     [HttpPatch("{transactionId:guid}/installment-statement")]
     public async Task<IActionResult> UpdateInstallmentStatement(
         Guid transactionId,

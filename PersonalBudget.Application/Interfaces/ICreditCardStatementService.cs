@@ -12,5 +12,6 @@ public interface ICreditCardStatementService
         Guid householdId, Guid creditCardId, int month, int year, int page, int pageSize);
     Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsByIdPagedAsync(
         Guid householdId, Guid creditCardId, Guid statementId, int page, int pageSize);
-
+    /// <summary>Marca/desmarca como revisados todos os lançamentos da fatura, em qualquer status.</summary>
+    Task SetReviewedAsync(Guid householdId, Guid creditCardId, Guid statementId, bool reviewed);
 }

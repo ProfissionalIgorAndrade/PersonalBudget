@@ -406,6 +406,17 @@ public class TransactionService : ITransactionService
         await _transactionRepository.UpdateAsync(transaction);
     }
 
+    public async Task SetReviewedAsync(SetReviewedCommand command)
+    {
+        var transaction = await _transactionRepository.GetByIdAsync(command.TransactionId);
+        if (transaction is null || transaction.HouseholdId != command.HouseholdId)
+            throw new DomainException("Transação não encontrada.");
+
+        transaction.SetReviewed(command.Reviewed);
+
+        await _transactionRepository.UpdateAsync(transaction);
+    }
+
     public async Task UpdateRecurringAsync(UpdateRecurringTransactionCommand command)
     {
         var hasAny = command.Amount.HasValue

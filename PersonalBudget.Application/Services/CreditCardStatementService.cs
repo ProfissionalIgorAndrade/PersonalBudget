@@ -44,6 +44,23 @@ public class CreditCardStatementService : ICreditCardStatementService
         )).ToList();
     }
 
+    public async Task SetReviewedAsync(Guid householdId, Guid creditCardId, Guid statementId, bool reviewed)
+    {
+        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
+        if (card is null || card.HouseholdId != householdId)
+            throw new DomainException("Cartão não encontrado.");
+
+        var statement = await _statementRepository.GetByIdAsync(statementId);
+        if (statement is null || statement.CreditCardId != creditCardId)
+            throw new DomainException("Fatura não encontrada.");
+
+        var transactions = (await _transactionRepository.GetByStatementIdAsync(statement.Id)).ToList();
+        foreach (var transaction in transactions)
+            transaction.SetReviewed(reviewed);
+
+        await _transactionRepository.BulkUpdateAsync(transactions);
+    }
+
     public async Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsAsync(Guid householdId, Guid creditCardId, int month, int year)
     {
         var card = await _creditCardRepository.GetByIdAsync(creditCardId);

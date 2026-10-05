@@ -13,6 +13,7 @@ public interface ITransactionService
     Task<TransactionsCategoryGroupResponse> GetGroupedByCategoryForMonthAsync(Guid householdId, int month, int year);
     Task<IReadOnlyList<ActiveInstallmentGroupDto>> GetActiveInstallmentsAsync(Guid householdId, DateTime upTo);
     Task UpdateAsync(UpdateTransactionCommand command);
+    Task SetReviewedAsync(SetReviewedCommand command);
     Task UpdateRecurringAsync(UpdateRecurringTransactionCommand command);
     Task UpdateInstallmentStatementAsync(UpdateInstallmentStatementCommand command);
     Task<DeleteTransactionsResult> DeleteAsync(DeleteTransactionCommand command);

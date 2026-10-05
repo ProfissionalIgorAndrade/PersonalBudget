@@ -389,8 +389,26 @@ Fatura do cartão com lançamentos para o mês/ano.
 | `frequency` | string |
 | `attributionProfileId` | guid |
 | `correspondentDisplayName` | string |
+| `observations` | string \| null |
+| `reviewed` | bool — lançamento marcado como revisado |
 
 **Com paginação:** `PaginatedStatementWithTransactionsResponse` — mesmos campos da fatura + `page`, `pageSize`, `totalCount`, `totalPages`.
+
+---
+
+### `PATCH /api/credit-cards/{creditCardId}/statement/{statementId}/reviewed`
+
+Marca ou desmarca como revisados **todos** os lançamentos da fatura. Permitido em qualquer status da fatura (Aberta, Fechada ou Paga).
+
+**Body:**
+
+| Campo | Tipo |
+|-------|------|
+| `reviewed` | bool |
+
+- **400** se o cartão não pertencer ao lar ativo ou a fatura não pertencer ao cartão.
+
+**Resposta `data`:** `null`.
 
 ---
 
@@ -492,6 +510,11 @@ Todas as transações do lar (lista).
 | `description` | string |
 | `attributionProfileId` | guid |
 | `correspondentDisplayName` | string |
+| `recurrenceId` | guid \| null |
+| `statementMonth` | int \| null |
+| `statementYear` | int \| null |
+| `observations` | string \| null |
+| `reviewed` | bool — lançamento marcado como revisado |
 
 ---
 
@@ -530,6 +553,22 @@ Atualização parcial. **Não aplicável** a: transações **concluídas**, **ca
 | `dueDate` | string \| null |
 | `expirationDate` | string \| null |
 | `attributionProfileId` | guid \| null |
+
+---
+
+### `PATCH /api/transactions/{transactionId}/reviewed`
+
+Marca ou desmarca um lançamento como revisado. Não passa pelas regras de edição, então vale para qualquer lançamento (inclusive de fatura fechada/paga).
+
+**Body:**
+
+| Campo | Tipo |
+|-------|------|
+| `reviewed` | bool |
+
+- **400** se a transação não existir ou pertencer a outro lar.
+
+**Resposta `data`:** `null`.
 
 ---
 
