@@ -16,7 +16,7 @@ namespace PersonalBudget.Infrastructure.Migrations
         {
             migrationBuilder.Sql(@"
                 CREATE INDEX IF NOT EXISTS ix_transactions_household_date
-                ON transactions (household_id, transaction_date DESC NULLS LAST);
+                ON transactions (""HouseholdId"", transaction_date DESC NULLS LAST);
             ");
         }
 
