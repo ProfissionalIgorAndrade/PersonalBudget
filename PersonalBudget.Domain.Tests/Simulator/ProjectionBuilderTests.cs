@@ -157,6 +157,99 @@ public class ProjectionBuilderTests
         Build(rows: rows).Baseline[2].Income.Should().Be(9000m);
     }
 
+    // ─── full month ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public void FullMonth_ReferenceMonth_IncludesWhatWasPostedUpToToday()
+    {
+        var oct = Build().Baseline[0];
+
+        // Campos de fluxo restante não mudam.
+        oct.Income.Should().Be(0m);
+        oct.Committed.Should().Be(150m);
+        oct.Variable.Should().Be(1300m);
+        oct.Result.Should().Be(-1450m);
+
+        // Receita: lançado 4000 e média 4000 => 4000.
+        oct.FullMonth.Income.Should().Be(4000m);
+        // Comprometido lançado 800 + 150 = 950; variável lançado 300 + 50 = 350, média 1500 => 1500.
+        oct.FullMonth.Expense.Should().Be(2450m);
+        oct.FullMonth.Result.Should().Be(1550m);
+    }
+
+    [Fact]
+    public void FullMonth_FutureMonth_EqualsTheExistingValues()
+    {
+        var r = Build();
+
+        foreach (var m in r.Baseline.Skip(1))
+        {
+            m.FullMonth.Income.Should().Be(m.Income);
+            m.FullMonth.Expense.Should().Be(m.Committed + m.Variable);
+            m.FullMonth.Result.Should().Be(m.Result);
+        }
+
+        r.Baseline[1].FullMonth.Expense.Should().Be(2450m);   // 950 + 1500
+        r.Baseline[2].FullMonth.Income.Should().Be(4000m);
+        r.Baseline[2].FullMonth.Expense.Should().Be(1500m);
+        r.Baseline[2].FullMonth.Result.Should().Be(2500m);
+    }
+
+    [Fact]
+    public void FullMonth_NoHistory_EstimatesAreZero()
+    {
+        var r = Build(rows: new List<ProjectionFlowRow>());
+
+        r.Baseline.Should().OnlyContain(m =>
+            m.FullMonth.Income == 0m && m.FullMonth.Expense == 0m && m.FullMonth.Result == 0m);
+    }
+
+    [Fact]
+    public void FullMonth_ReferenceMonth_AverageAbovePosted_CompletesToTheAverage()
+    {
+        // Set/26: receita 5000, variável 1000 => médias 5000 e 1000.
+        // Out/26: receita 2000 e variável 300 já lançadas até hoje.
+        var rows = new List<ProjectionFlowRow>
+        {
+            Row(2026, 9, false, TransactionType.Income, TransactionFrequency.Variable, 5000m, 5000m),
+            Row(2026, 9, false, TransactionType.Expense, TransactionFrequency.Variable, 1000m, 1000m),
+            Row(2026, 10, false, TransactionType.Income, TransactionFrequency.Variable, 2000m, 2000m),
+            Row(2026, 10, false, TransactionType.Expense, TransactionFrequency.Variable, 300m, 300m),
+        };
+
+        var oct = Build(rows: rows).Baseline[0];
+
+        oct.Income.Should().Be(3000m);       // fluxo restante: 0 + (5000 - 2000)
+        oct.Variable.Should().Be(700m);      // 0 + (1000 - 300)
+        oct.FullMonth.Income.Should().Be(5000m);    // 2000 + 3000
+        oct.FullMonth.Expense.Should().Be(1000m);   // 300 + 700
+        oct.FullMonth.Result.Should().Be(4000m);
+    }
+
+    [Fact]
+    public void FullMonth_ReferenceMonth_PostedAboveAverage_KeepsThePosted()
+    {
+        // Set/26: receita 1000, variável 100 => médias 1000 e 100.
+        // Out/26: receita 3000, fixa 200 e variável 500, tudo até hoje.
+        var rows = new List<ProjectionFlowRow>
+        {
+            Row(2026, 9, false, TransactionType.Income, TransactionFrequency.Variable, 1000m, 1000m),
+            Row(2026, 9, false, TransactionType.Expense, TransactionFrequency.Variable, 100m, 100m),
+            Row(2026, 10, false, TransactionType.Income, TransactionFrequency.Variable, 3000m, 3000m),
+            Row(2026, 10, false, TransactionType.Expense, TransactionFrequency.Fixed, 200m, 200m),
+            Row(2026, 10, false, TransactionType.Expense, TransactionFrequency.Variable, 500m, 500m),
+        };
+
+        var oct = Build(rows: rows).Baseline[0];
+
+        oct.Income.Should().Be(0m);
+        oct.Committed.Should().Be(0m);
+        oct.Variable.Should().Be(0m);
+        oct.FullMonth.Income.Should().Be(3000m);
+        oct.FullMonth.Expense.Should().Be(700m);    // 200 + 500 + max(0, 100 - 500)
+        oct.FullMonth.Result.Should().Be(2300m);
+    }
+
     [Fact]
     public void Baseline_RunningBalanceStartsFromTheOpeningBalance()
     {
