@@ -12,15 +12,48 @@ namespace PersonalBudget.Api.Controllers;
 public class SimulatorController : ControllerBase
 {
     private readonly ISimulatorService _simulatorService;
+    private readonly IProjectionService _projectionService;
     private readonly IActiveHouseholdResolver _householdResolver;
 
-    public SimulatorController(ISimulatorService simulatorService, IActiveHouseholdResolver householdResolver)
+    public SimulatorController(
+        ISimulatorService simulatorService,
+        IProjectionService projectionService,
+        IActiveHouseholdResolver householdResolver)
     {
         _simulatorService = simulatorService;
+        _projectionService = projectionService;
         _householdResolver = householdResolver;
     }
 
-    /// <summary>Calcula uma projeção de cenário hipotético sem persistir dados reais.</summary>
+    /// <summary>
+    /// Projeta saldo e fluxo mês a mês a partir do saldo real das contas correntes, com os impactos
+    /// informados somados ao baseline. Não persiste nada.
+    /// </summary>
+    [HttpPost("projection")]
+    public async Task<IActionResult> Project([FromBody] SimulatorProjectionRequest request)
+    {
+        var userId      = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var command = new ProjectionCommand(
+            HouseholdId: householdId,
+            Today:       request.Today,
+            Months:      request.Months,
+            Impacts:     request.Impacts?.Select(i => i is null
+                ? null!
+                : new ProjectionImpactInput(
+                    i.Id, i.Description, i.Type, i.Mode, i.StartMonth,
+                    i.Amount, i.AmountKind, i.Installments, i.Months)).ToList()
+        );
+
+        var result = await _projectionService.ProjectAsync(command);
+        return Ok(ApiResponse<ProjectionResponse>.Ok(result));
+    }
+
+    /// <summary>
+    /// [LEGADO] Calcula uma projeção de cenário hipotético sem persistir dados reais.
+    /// Será removido quando o frontend migrar para <c>POST /api/simulator/projection</c>.
+    /// </summary>
     [HttpPost("calculate")]
     public async Task<IActionResult> Calculate(
         [FromBody] SimulateScenarioRequest request,

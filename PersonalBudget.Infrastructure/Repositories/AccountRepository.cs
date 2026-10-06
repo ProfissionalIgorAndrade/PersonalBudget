@@ -28,6 +28,14 @@ public class AccountRepository : IAccountRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Account>> GetActiveCheckingByHouseholdIdAsync(Guid householdId)
+    {
+        return await _context.Accounts
+            .AsNoTracking()
+            .Where(a => a.HouseholdId == householdId && a.IsActive && a.Kind == AccountKind.Checking)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Account>> GetAllByHouseholdIdAsync(Guid householdId)
     {
         return await _context.Accounts
