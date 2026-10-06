@@ -328,6 +328,37 @@ Frontend action required:
   for non-transfer transactions.
 - For transfers, continue omitting categoryId (backend handles it).
 
+------------------------------------------------------------
+15. NEW VALUES — Bank enum (POST/PUT /api/accounts)
+------------------------------------------------------------
+The Bank enum gained 18 values. Existing values are unchanged.
+
+Accepted names (send exactly as written, case-sensitive):
+  Itau, Nubank, Inter, Santander, Bradesco, Caixa,
+  BancoDoBrasil, Btg, C6Bank, Safra, Sicoob, Sicredi, Original,
+  Pan, Neon, PicPay, MercadoPago, Banrisul, Next, Bmg, Xp,
+  PagBank, Bv, Outro
+
+An unknown name (e.g. "Foo") returns 400 Bad Request.
+
+"bank" in responses stays the raw enum name (e.g. "BancoDoBrasil").
+"displayName" (and "name" in GET /api/accounts/summary) uses the
+human label when the account has no nickname:
+  BancoDoBrasil -> "Banco do Brasil"   Btg -> "BTG Pactual"
+  C6Bank -> "C6 Bank"                  Original -> "Banco Original"
+  Pan -> "Banco Pan"                   MercadoPago -> "Mercado Pago"
+  Bmg -> "Banco BMG"                   Xp -> "XP"
+  Bv -> "Banco BV"
+  Safra, Sicoob, Sicredi, Neon, PicPay, Banrisul, Next, PagBank,
+  Outro -> same as the enum name.
+  Itau keeps "Itau" (no accent), as before.
+
+No database migration: accounts.bank is an integer column.
+
+Frontend action required:
+- Do not deploy UI that sends the new names before this backend is
+  deployed: the previous backend rejects unknown names with 400.
+
 ============================================================
 END OF DOCUMENT
 ============================================================

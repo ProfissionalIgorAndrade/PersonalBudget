@@ -17,7 +17,7 @@ public static class AccountDisplayName
         if (account.Kind == AccountKind.Savings)
             return account.Name ?? SavingsBoxFallback;
 
-        var label = account.Name ?? account.Bank.ToString();
+        var label = account.Name ?? BankLabel.Of(account.Bank);
         return memberName is null ? label : $"{label} - {memberName}";
     }
 }

@@ -37,6 +37,18 @@ Content-Type: application/json
   "InitialBalance": 1005
 }
 
+###
+# Create account with one of the newer banks (see the Bank enum in docs/API-ENDPOINTS.md)
+POST {{HostAddress}}/api/accounts
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "Bank": "BancoDoBrasil",
+  "MemberId": "00000000-0000-0000-0000-000000000000",
+  "Name": "Conta BB"
+}
+
 
 ###
 # Get all accounts (requires auth)

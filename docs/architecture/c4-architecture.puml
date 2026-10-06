@@ -374,6 +374,24 @@ package "Aggregate: Account" #LightYellow {
         Santander
         Bradesco
         Caixa
+        BancoDoBrasil
+        Btg
+        C6Bank
+        Safra
+        Sicoob
+        Sicredi
+        Original
+        Pan
+        Neon
+        PicPay
+        MercadoPago
+        Banrisul
+        Next
+        Bmg
+        Xp
+        PagBank
+        Bv
+        Outro
     }
     Account *-- Money
     Account --> Bank

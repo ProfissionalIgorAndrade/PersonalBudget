@@ -65,7 +65,7 @@ Erros tratados pelo middleware costumam retornar:
 
 | Enum | Valores |
 |------|--------|
-| `Bank` | `Itau`, `Nubank`, `Inter`, `Santander`, `Bradesco`, `Caixa` |
+| `Bank` | `Itau`, `Nubank`, `Inter`, `Santander`, `Bradesco`, `Caixa`, `BancoDoBrasil`, `Btg`, `C6Bank`, `Safra`, `Sicoob`, `Sicredi`, `Original`, `Pan`, `Neon`, `PicPay`, `MercadoPago`, `Banrisul`, `Next`, `Bmg`, `Xp`, `PagBank`, `Bv`, `Outro` |
 | `CategoryType` | `Income`, `Expense` |
 | `TransactionType` | `Income`, `Expense` |
 | `TransactionFrequency` | `Variable`, `Fixed`, `Installments` |

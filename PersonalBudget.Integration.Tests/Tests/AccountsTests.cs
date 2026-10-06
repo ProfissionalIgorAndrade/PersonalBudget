@@ -97,6 +97,63 @@ public class AccountsTests(IntegrationTestFactory factory)
     }
 
     [Fact]
+    public async Task Create_WithBancoDoBrasil_DisplayNameUsesLabelAndKeepsRawBankName()
+    {
+        var s = await CreateScenarioAsync();
+        var id = await PostAndGetIdAsync(s.Client, "/api/accounts",
+            new { bank = "BancoDoBrasil", memberId = s.ProfileId });
+
+        var account = await GetAccountAsync(s, id);
+
+        account.GetProperty("displayName").GetString().Should().Be($"Banco do Brasil - {s.MemberName}");
+        account.GetProperty("bank").GetString().Should().Be("BancoDoBrasil");
+    }
+
+    [Theory]
+    [InlineData("Btg", "BTG Pactual")]
+    [InlineData("C6Bank", "C6 Bank")]
+    [InlineData("MercadoPago", "Mercado Pago")]
+    [InlineData("Outro", "Outro")]
+    public async Task Create_WithNewBank_DisplayNameUsesLabel(string bank, string label)
+    {
+        var s = await CreateScenarioAsync();
+        var id = await PostAndGetIdAsync(s.Client, "/api/accounts",
+            new { bank, memberId = s.ProfileId });
+
+        var account = await GetAccountAsync(s, id);
+
+        account.GetProperty("displayName").GetString().Should().Be($"{label} - {s.MemberName}");
+        account.GetProperty("bank").GetString().Should().Be(bank);
+    }
+
+    [Fact]
+    public async Task Create_WithUnknownBank_ReturnsBadRequest()
+    {
+        var s = await CreateScenarioAsync();
+
+        var response = await s.Client.PostAsJsonAsync("/api/accounts",
+            new { bank = "Foo", memberId = s.ProfileId });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Create_WithExistingBanks_KeepsTheSameDisplayName()
+    {
+        var s = await CreateScenarioAsync();
+        var nubankId = await PostAndGetIdAsync(s.Client, "/api/accounts",
+            new { bank = "Nubank", memberId = s.ProfileId });
+        var itauId = await PostAndGetIdAsync(s.Client, "/api/accounts",
+            new { bank = "Itau", memberId = s.ProfileId });
+
+        (await GetAccountAsync(s, nubankId)).GetProperty("displayName").GetString()
+            .Should().Be($"Nubank - {s.MemberName}");
+        (await GetAccountAsync(s, itauId)).GetProperty("displayName").GetString()
+            .Should().Be($"Itau - {s.MemberName}");
+    }
+
+    [Fact]
     public async Task Create_WithBlankNickname_StoresNull()
     {
         var s = await CreateScenarioAsync();
