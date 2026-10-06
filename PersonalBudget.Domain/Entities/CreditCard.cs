@@ -3,7 +3,6 @@ public class CreditCard
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
     public Guid HouseholdId { get; private set; }
-    public Guid AccountId { get; private set; }
 
     /// <summary>
     /// Perfil de membro do lar a quem o cartão pertence.
@@ -15,21 +14,16 @@ public class CreditCard
     public Guid? MemberId { get; private set; }
     public string Name { get; private set; }
     public decimal Limit { get; private set; }
-    public int ClosingDay { get; private set; }
     public int DueDay { get; private set; }
     public bool IsActive { get; private set; }
     /// <summary>CSS hex color, e.g. "#818cf8". Optional display hint for UI rendering.</summary>
     public string? Color { get; private set; }
-    private readonly List<CreditCardStatement> _statements = new();
-    public IReadOnlyCollection<CreditCardStatement> Statements => _statements.AsReadOnly();
 
     private CreditCard(
         Guid userId,
         Guid householdId,
-        Guid accountId,
         string name,
         decimal limit,
-        int closingDay,
         int dueDay,
         string? color = null,
         Guid? memberId = null)
@@ -38,14 +32,13 @@ public class CreditCard
             throw new DomainException("O limite do cartão de crédito deve ser maior que zero.");
         if (householdId == Guid.Empty)
             throw new DomainException("Cartão deve pertencer a um lar.");
+        ValidateDueDay(dueDay);
 
         Id = Guid.NewGuid();
         UserId = userId;
         HouseholdId = householdId;
-        AccountId = accountId;
         Name = name;
         Limit = limit;
-        ClosingDay = closingDay;
         DueDay = dueDay;
         IsActive = true;
         Color = color;
@@ -57,34 +50,25 @@ public class CreditCard
     public static CreditCard Create(
         Guid userId,
         Guid householdId,
-        Guid accountId,
         string name,
         decimal limit,
-        int closingDay,
         int dueDay,
         string? color = null,
         Guid? memberId = null)
-        => new(userId, householdId, accountId, name, limit, closingDay, dueDay, color, memberId);
+        => new(userId, householdId, name, limit, dueDay, color, memberId);
 
-    /// <summary>
-    /// Atualiza os dados do cartão. <paramref name="accountId"/> nulo mantém a
-    /// conta atual - necessário para trocar a conta base quando a original foi
-    /// desativada, já que AccountId é obrigatório e o cartão ficaria preso a
-    /// uma conta que não existe mais na interface.
-    /// </summary>
-    public void Update(string name, decimal limit, int closingDay, int dueDay, string? color = null, Guid? accountId = null, Guid? memberId = null)
+    /// <summary>Atualiza os dados do cartão. <paramref name="memberId"/> nulo mantém o atual.</summary>
+    public void Update(string name, decimal limit, int dueDay, string? color = null, Guid? memberId = null)
     {
         if (!IsActive)
             throw new DomainException("Cartão de crédito inativo não pode ser atualizado.");
 
+        ValidateDueDay(dueDay);
+
         Name = name;
         Limit = limit;
-        ClosingDay = closingDay;
         DueDay = dueDay;
         Color = color;
-
-        if (accountId is { } id && id != Guid.Empty)
-            AccountId = id;
 
         if (memberId is { } mid && mid != Guid.Empty)
             MemberId = mid;
@@ -111,53 +95,9 @@ public class CreditCard
         HouseholdId = newHouseholdId;
     }
 
-    public CreditCardStatement GetOrCreateOpenStatement(DateTime transactionDate)
+    private static void ValidateDueDay(int dueDay)
     {
-        var statement = _statements
-            .FirstOrDefault(x =>
-                x.PeriodStart <= transactionDate &&
-                x.PeriodEnd >= transactionDate);
-
-        if (statement != null)
-            return statement;
-
-        statement = CreateStatement(transactionDate);
-
-        _statements.Add(statement);
-
-        return statement;
+        if (dueDay < 1 || dueDay > 31)
+            throw new DomainException("O dia de vencimento deve estar entre 1 e 31.");
     }
-
-    private CreditCardStatement CreateStatement(DateTime date)
-    {
-        var year = date.Year;
-        var month = date.Month;
-
-        var daysInMonth = DateTime.DaysInMonth(year, month);
-        var closingDay = Math.Clamp(ClosingDay, 1, daysInMonth);
-
-        var periodEnd = DateTime.SpecifyKind(new DateTime(year, month, closingDay), DateTimeKind.Utc);
-        var periodStart = periodEnd.AddMonths(-1).AddDays(1);
-
-        var closingDate = periodEnd;
-
-        var dueDate = closingDate.AddDays(DueDay);
-
-        return new CreditCardStatement(
-            Id,
-            periodStart,
-            periodEnd,
-            closingDate,
-            dueDate);
-    }
-
-    public CreditCardStatement AddExpense(DateTime date, Money amount)
-    {
-        var statement = GetOrCreateOpenStatement(date);
-
-        statement.AddTransaction(amount, TransactionType.Expense);
-
-        return statement;
-    }
-
 }

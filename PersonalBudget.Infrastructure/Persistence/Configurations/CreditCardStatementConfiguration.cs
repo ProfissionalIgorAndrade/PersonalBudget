@@ -12,22 +12,10 @@ public class CreditCardStatementConfiguration : IEntityTypeConfiguration<CreditC
         builder.Property(x => x.CreditCardId)
             .IsRequired();
 
-        builder.Property(x => x.PeriodStart)
+        builder.Property(x => x.StatementMonth)
             .IsRequired();
 
-        builder.Property(x => x.PeriodEnd)
-            .IsRequired();
-
-        builder.Property(x => x.ClosingDate)
-            .IsRequired();
-
-        builder.Property(x => x.DueDate)
-            .IsRequired();
-
-        builder.Property(x => x.ClosingMonth)
-            .IsRequired();
-            
-        builder.Property(x => x.ClosingYear)
+        builder.Property(x => x.StatementYear)
             .IsRequired();
 
         builder.OwnsOne(a => a.TotalAmount, money =>
@@ -37,16 +25,13 @@ public class CreditCardStatementConfiguration : IEntityTypeConfiguration<CreditC
                 .IsRequired();
         });
 
-        builder.Property(x => x.Status)
-            .HasConversion<string>()
-            .IsRequired();
+        builder.HasOne<CreditCard>()
+            .WithMany()
+            .HasForeignKey(x => x.CreditCardId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(x => x.PaidFromAccountId)
-            .IsRequired(false);
-
-        builder.Property(x => x.RefundTransactionId)
-            .IsRequired(false);
-
-        builder.HasIndex(x => new { x.CreditCardId, x.PeriodStart, x.PeriodEnd });
+        // Uma fatura por cartão, mês e ano. Também atende as buscas por cartão.
+        builder.HasIndex(x => new { x.CreditCardId, x.StatementYear, x.StatementMonth })
+            .IsUnique();
     }
 }

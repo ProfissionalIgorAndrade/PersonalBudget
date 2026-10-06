@@ -1,20 +1,16 @@
 namespace PersonalBudget.Application.DTOs.CreditCard;
 
 /// <summary>
-/// Fatura do cartão com todos os lançamentos e informações de limite, fechamento e vencimento.
-/// A data de vencimento é calculada: se dia de vencimento >= dia de fechamento, é no mesmo mês;
-/// caso contrário, é no mês seguinte (ex.: fechamento 30/mar, vencimento dia 8 → 8/abr).
+/// Fatura do cartão com todos os lançamentos e informações de limite e vencimento.
+/// A data de vencimento é calculada: dia de vencimento do cartão no mês da fatura,
+/// limitado ao último dia do mês (ex.: dia 31 em fevereiro vence dia 28 ou 29).
 /// </summary>
 public record StatementWithTransactionsResponse(
     Guid StatementId,
     Guid CreditCardId,
     string CreditCardName,
     decimal Limit,
-    DateTime PeriodStart,
-    DateTime PeriodEnd,
-    DateTime ClosingDate,
     DateTime DueDate,
-    string Status,
     decimal TotalAmount,
     IReadOnlyList<StatementTransactionItemDto> Transactions
 );

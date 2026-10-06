@@ -18,8 +18,9 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.AttributionProfileId)
             .IsRequired();
 
+        // Nulo apenas em compras de cartão: o vínculo com conta é validado no domínio.
         builder.Property(t => t.AccountId)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.Property(t => t.CategoryId);
 
@@ -91,6 +92,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.HasIndex(t => t.AttributionProfileId);
         builder.HasIndex(t => t.AccountId);
         builder.HasIndex(t => t.CreditCardId);
+        builder.HasIndex(t => t.StatementId);
         builder.HasIndex(t => t.TransferId);
         builder.HasIndex(t => t.RecurrenceId);
     }

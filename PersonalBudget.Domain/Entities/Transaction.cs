@@ -7,7 +7,11 @@ public class Transaction
     public Guid HouseholdId { get; private set; }
     /// <summary>Correspondente para resumo por pessoa (Igor, Andreza, Família, etc.).</summary>
     public Guid AttributionProfileId { get; private set; }
-    public Guid AccountId { get; private set; }
+    /// <summary>
+    /// Conta do lançamento. Nulo apenas em compras de cartão de crédito, que
+    /// vivem na fatura e não movimentam o saldo de nenhuma conta.
+    /// </summary>
+    public Guid? AccountId { get; private set; }
     public Guid? CategoryId { get; private set; }
     public Guid? CreditCardId { get; private set; }
     public Guid? StatementId { get; private set; }
@@ -33,7 +37,7 @@ public class Transaction
         Guid userId,
         Guid householdId,
         Guid attributionProfileId,
-        Guid accountId,
+        Guid? accountId,
         Money amount,
         TransactionType type,
         PaymentMethod paymentMethod,
@@ -55,7 +59,7 @@ public class Transaction
         if (attributionProfileId == Guid.Empty)
             throw new DomainException("Correspondente (perfil) da transação é obrigatório.");
 
-        if (accountId == Guid.Empty)
+        if (accountId == Guid.Empty || (accountId is null && paymentMethod != PaymentMethod.CreditCard))
             throw new DomainException("A transação deve pertencer a uma conta.");
 
         if (paymentMethod == PaymentMethod.CreditCard && creditCardId is null)
@@ -90,7 +94,7 @@ public class Transaction
         Guid userId,
         Guid householdId,
         Guid attributionProfileId,
-        Guid accountId,
+        Guid? accountId,
         Money amount,
         TransactionType type,
         PaymentMethod paymentMethod,

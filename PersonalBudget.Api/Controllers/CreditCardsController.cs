@@ -68,10 +68,8 @@ public class CreditCardsController : ControllerBase
         var command = new CreateCreditCardCommand(
             userId,
             householdId,
-            request.AccountId,
             request.Name,
             request.Limit,
-            request.ClosingDay,
             request.DueDay,
             request.Color,
             request.MemberId
@@ -187,10 +185,8 @@ public class CreditCardsController : ControllerBase
             creditCardId,
             request.Name,
             request.Limit,
-            request.ClosingDay,
             request.DueDay,
             request.Color,
-            request.AccountId,
             request.MemberId
         );
 

@@ -6,14 +6,8 @@ public interface ICreditCardStatementRepository
 
     Task<CreditCardStatement?> GetByIdAsync(Guid id);
 
-    Task<CreditCardStatement?> GetOpenStatementForDateAsync(Guid creditCardId, DateTime date);
-
-    /// <summary>Fatura cujo período contém a data (qualquer status).</summary>
-    Task<CreditCardStatement?> GetByCreditCardAndContainingDateAsync(Guid creditCardId, DateTime date);
-
-    Task<CreditCardStatement?> GetByCreditCardAndClosingMonthYearAsync(Guid creditCardId, int month, int year);
-
-    Task<List<CreditCardStatement>> GetByCreditCardAsync(Guid creditCardId);
+    /// <summary>Fatura do cartão para o mês/ano informado (identidade única por cartão, mês e ano).</summary>
+    Task<CreditCardStatement?> GetByCreditCardAndMonthYearAsync(Guid creditCardId, int month, int year);
 
     Task SaveChangesAsync();
 }
