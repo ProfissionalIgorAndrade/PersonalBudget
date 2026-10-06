@@ -135,6 +135,10 @@ public class SimulatorProjectionTests(IntegrationTestFactory factory)
         data.GetProperty("baseline").EnumerateArray()
             .Select(m => m.GetProperty(property).GetDecimal()).ToArray();
 
+    private static decimal[] FullMonthColumn(JsonElement data, string property) =>
+        data.GetProperty("baseline").EnumerateArray()
+            .Select(m => m.GetProperty("fullMonth").GetProperty(property).GetDecimal()).ToArray();
+
     private static async Task<int> CountTransactionsAsync(Scenario s) =>
         (await GetDataAsync(await s.Client.GetAsync("/api/transactions"))).GetArrayLength();
 
@@ -321,6 +325,34 @@ public class SimulatorProjectionTests(IntegrationTestFactory factory)
         Column(data, "income").Should().Equal(0m);
         Column(data, "variable").Should().Equal(120m);     // 50 de conta futura + 70 de cartão
         Column(data, "balance").Should().Equal(780m);
+    }
+
+    [Fact]
+    public async Task FullMonth_ReferenceMonthIsTheWholeMonth_AndFutureMonthsStayTheSame()
+    {
+        var s = await CreateScenarioAsync();
+        var accountId = await CreateAccountAsync(s);
+        var cardId = await CreateCardAsync(s);
+        await AddAccountRowAsync(s, accountId, "Income", "Variable", 1000m, "05/10/2026");          // até hoje
+        await AddAccountRowAsync(s, accountId, "Expense", "Variable", 100m, "10/10/2026");          // até hoje
+        await AddAccountRowAsync(s, accountId, "Expense", "Variable", 50m, "20/10/2026");           // depois de hoje
+        await AddCardPurchaseAsync(s, cardId, 70m, "01/10/2026", statementMonth: 10, statementYear: 2026);
+        // nov e dez: fixa de 400 e compra de cartão de 80 na fatura de nov
+        await AddAccountRowAsync(s, accountId, "Expense", "Fixed", 400m, "05/11/2026", repeatCount: 2, dueDay: 5);
+        await AddCardPurchaseAsync(s, cardId, 80m, "05/10/2026", statementMonth: 11, statementYear: 2026);
+
+        var data = await ProjectAsync(s, Body());
+
+        // Campos de fluxo restante do mês atual continuam iguais.
+        Column(data, "income").Should().Equal(0m, 0m, 0m);
+        Column(data, "committed").Should().Equal(0m, 400m, 400m);
+        Column(data, "variable").Should().Equal(120m, 80m, 0m);
+
+        // Out: receita 1000; despesa 100 + 50 + 70 = 220 (sem média: histórico vazio).
+        // Nov: 400 + 80. Dez: 400.
+        FullMonthColumn(data, "income").Should().Equal(1000m, 0m, 0m);
+        FullMonthColumn(data, "expense").Should().Equal(220m, 480m, 400m);
+        FullMonthColumn(data, "result").Should().Equal(780m, -480m, -400m);
     }
 
     // ─── impacts ────────────────────────────────────────────────────────────
