@@ -1,6 +1,7 @@
 using PersonalBudget.Application.DTOs.CreditCard;
 using PersonalBudget.Application.DTOs.Dashboard;
 using PersonalBudget.Application.DTOs.Household;
+using PersonalBudget.Application.DTOs.Simulator;
 using PersonalBudget.Application.DTOs.Transaction;
 
 public interface ITransactionQueryRepository
@@ -34,4 +35,12 @@ public interface ITransactionQueryRepository
 
     /// <summary>Todos os parcelamentos ativos (não cancelados) do lar para cálculo de grupos.</summary>
     Task<IReadOnlyList<GetAllTransactionByUserResponse>> GetInstallmentTransactionsAsync(Guid householdId);
+
+    /// <summary>
+    /// Totais agregados no banco para a projeção do simulador, de fromMonth/fromYear a toMonth/toYear
+    /// (inclusive), sem Transfer e Savings. Compras de cartão entram pelo mês/ano da fatura; o resto,
+    /// pelo mês da data. PostedByTodayTotal soma o que é de conta e tem data até <paramref name="cutoffDate"/>.
+    /// </summary>
+    Task<IReadOnlyList<ProjectionFlowRow>> GetProjectionFlowAsync(
+        Guid householdId, int fromMonth, int fromYear, int toMonth, int toYear, DateTime cutoffDate);
 }

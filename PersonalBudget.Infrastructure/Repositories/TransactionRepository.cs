@@ -129,4 +129,28 @@ public class TransactionRepository : ITransactionRepository
             })
             .ToDictionaryAsync(x => x.AccountId, x => x.Balance);
     }
+
+    public async Task<Dictionary<Guid, decimal>> GetBalancesByAccountIdsUntilAsync(
+        IEnumerable<Guid> accountIds, DateTime cutoffDate)
+    {
+        var ids = accountIds.ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, decimal>();
+
+        // transaction_date é timestamptz e as datas são gravadas à meia-noite UTC.
+        var cutoff = DateTime.SpecifyKind(cutoffDate.Date, DateTimeKind.Utc);
+
+        return await _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.AccountId != null && ids.Contains(t.AccountId.Value) && t.Date.Value <= cutoff)
+            .GroupBy(t => t.AccountId!.Value)
+            .Select(g => new
+            {
+                AccountId = g.Key,
+                Balance = g.Sum(t => t.Type == TransactionType.Income
+                    ? (decimal)t.Amount.Amount
+                    : -(decimal)t.Amount.Amount)
+            })
+            .ToDictionaryAsync(x => x.AccountId, x => x.Balance);
+    }
 }

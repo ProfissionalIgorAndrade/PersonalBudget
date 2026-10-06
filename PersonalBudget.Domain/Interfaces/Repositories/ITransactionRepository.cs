@@ -14,5 +14,10 @@ public interface ITransactionRepository
     Task<IEnumerable<Transaction>> GetByStatementIdAsync(Guid statementId);
     Task<IReadOnlyList<Transaction>> GetByRecurrenceIdAsync(Guid recurrenceId, Guid householdId);
     Task<Dictionary<Guid, decimal>> GetBalancesByAccountIdsAsync(IEnumerable<Guid> accountIds);
+    /// <summary>
+    /// Saldo por conta considerando só lançamentos com data até <paramref name="cutoffDate"/> (inclusive,
+    /// por dia). Ao contrário de <see cref="GetBalancesByAccountIdsAsync"/>, ignora lançamentos futuros.
+    /// </summary>
+    Task<Dictionary<Guid, decimal>> GetBalancesByAccountIdsUntilAsync(IEnumerable<Guid> accountIds, DateTime cutoffDate);
     Task SaveChangesAsync();
 }

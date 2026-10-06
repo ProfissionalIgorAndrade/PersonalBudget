@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PersonalBudget.Application.DTOs.CreditCard;
 using PersonalBudget.Application.DTOs.Dashboard;
 using PersonalBudget.Application.DTOs.Household;
+using PersonalBudget.Application.DTOs.Simulator;
 using PersonalBudget.Application.DTOs.Transaction;
 
 public class TransactionQueryRepository : ITransactionQueryRepository
@@ -464,6 +465,66 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             .ToListAsync();
 
         return results.OrderBy(t => t.Date).ToList();
+    }
+
+    public async Task<IReadOnlyList<ProjectionFlowRow>> GetProjectionFlowAsync(
+        Guid householdId, int fromMonth, int fromYear, int toMonth, int toYear, DateTime cutoffDate)
+    {
+        // transaction_date é timestamptz: os parâmetros precisam ser UTC.
+        var rangeStart = new DateTime(fromYear, fromMonth, 1, 0, 0, 0, DateTimeKind.Utc);
+        var rangeEnd   = new DateTime(toYear, toMonth, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
+        var cutoff     = DateTime.SpecifyKind(cutoffDate.Date, DateTimeKind.Utc);
+        var fromIndex  = fromYear * 12 + fromMonth;
+        var toIndex    = toYear * 12 + toMonth;
+
+        // Fora de cartão: mês da data da transação. Dois GroupBy sem join para o servidor devolver
+        // poucas linhas (mês x tipo x frequência), nunca uma linha por lançamento.
+        var nonCard = await _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.HouseholdId == householdId
+                     && t.CreditCardId == null
+                     && t.PaymentMethod != PaymentMethod.Transfer
+                     && t.PaymentMethod != PaymentMethod.Savings
+                     && t.Date.Value >= rangeStart
+                     && t.Date.Value < rangeEnd)
+            .GroupBy(t => new { t.Date.Value.Year, t.Date.Value.Month, t.Type, t.Frequency })
+            .Select(g => new
+            {
+                g.Key.Year,
+                g.Key.Month,
+                g.Key.Type,
+                g.Key.Frequency,
+                Total  = g.Sum(t => t.Amount.Amount),
+                Posted = g.Sum(t => t.Date.Value <= cutoff ? t.Amount.Amount : 0m)
+            })
+            .ToListAsync();
+
+        // Cartão: mês/ano da fatura (StatementMonth/StatementYear), nunca a data da compra.
+        var card = await (
+            from t in _context.Transactions
+            join s in _context.CreditCardStatements on t.StatementId equals s.Id
+            where t.HouseholdId == householdId
+               && t.CreditCardId != null
+               && t.PaymentMethod != PaymentMethod.Transfer
+               && t.PaymentMethod != PaymentMethod.Savings
+               && (s.StatementYear * 12 + s.StatementMonth) >= fromIndex
+               && (s.StatementYear * 12 + s.StatementMonth) <= toIndex
+            group t by new { s.StatementYear, s.StatementMonth, t.Type, t.Frequency } into g
+            select new
+            {
+                g.Key.StatementYear,
+                g.Key.StatementMonth,
+                g.Key.Type,
+                g.Key.Frequency,
+                Total = g.Sum(x => x.Amount.Amount)
+            }
+        ).AsNoTracking().ToListAsync();
+
+        return nonCard
+            .Select(r => new ProjectionFlowRow(r.Year, r.Month, false, r.Type, r.Frequency, r.Total, r.Posted))
+            .Concat(card.Select(r => new ProjectionFlowRow(
+                r.StatementYear, r.StatementMonth, true, r.Type, r.Frequency, r.Total, 0m)))
+            .ToList();
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────────

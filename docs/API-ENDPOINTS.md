@@ -594,6 +594,89 @@ Atualiza apenas o status.
 
 ---
 
+## 7. Simulador — `api/simulator`
+
+Todos os endpoints são autenticados e usam o lar ativo (`X-Household-Id`). Nenhum persiste dados: o servidor não guarda cenários.
+
+### `POST /api/simulator/projection`
+
+Projeta saldo e fluxo mês a mês a partir do saldo real das contas correntes, somando ao baseline os impactos enviados. Tudo é calculado em SQL agregado (nunca carrega o mês inteiro em memória).
+
+**Body:**
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| `today` | string \| null | `yyyy-MM-dd`. Omitido = data do servidor em UTC-3. Define o mês de referência e o corte do saldo de partida |
+| `months` | int | Horizonte, **1 a 24** (inclui o mês de referência) |
+| `impacts` | array \| null | **Máx. 50** |
+
+Cada item de `impacts`:
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| `id` | string \| null | Devolvido como veio; omitido = `impact-{posição}` |
+| `description` | string \| null | Até 120 caracteres |
+| `type` | `Income` \| `Expense` | |
+| `mode` | `Single` \| `Installment` \| `Monthly` | |
+| `startMonth` | string | `yyyy-MM`, ano entre 2000 e 2100. Precisão de mês, não de dia |
+| `amount` | decimal | Maior que 0 |
+| `amountKind` | `PerInstallment` \| `Total` \| null | Só vale em `Installment`; omitido = `PerInstallment` |
+| `installments` | int \| null | `Installment`: **1 a 120** (obrigatório) |
+| `months` | int \| null | `Monthly`: duração (1 a 120). `null` ou `0` = até o fim do horizonte |
+
+Regra de parcela (`Installment`): `PerInstallment` usa `amount` em cada parcela; `Total` usa `Round(amount / installments, 2)` e o **resto vai na última parcela** (igual à criação real de parcelas de cartão).
+
+**Resposta `data`:**
+
+| Campo | Notas |
+|-------|--------|
+| `referenceMonth` | `yyyy-MM` do mês de `today` |
+| `openingBalance` | `{ amount, asOf, accounts: [{ id, name, balance }], excludesSavings: true }`. Soma do saldo **de hoje** (lançamentos com data até `today`) das contas correntes **ativas**; caixinhas ficam de fora |
+| `assumptions` | `{ lookbackMonths (3), monthsWithData, averageIncome \| null, averageVariableExpense \| null, notes: string[] }`. `notes` são textos em pt-BR explicando cada regra |
+| `baseline[]` | Um item por mês: `year, month, label ("out/26"), income, committed, variable, result, balance` |
+| `impacts[]` | `id, description, type, mode, monthly[], totalInHorizon, totalFull, installmentAmount, lastInstallmentAmount, installmentsInHorizon, installmentsTotal`. `monthly` é assinado (receita positiva, despesa negativa) e alinhado ao horizonte. `installmentAmount` e `lastInstallmentAmount` só vêm em `Installment`. `installmentsTotal` é `null` em `Monthly` sem duração |
+| `scenario[]` | Um item por mês: `year, month, label, simulatedIncome, simulatedExpense (positivo), result, balance, delta (saldo do cenário menos saldo do baseline)` |
+| `summary` | `baselineMinBalance { amount, monthIndex }`, `scenarioMinBalance { amount, monthIndex }`, `firstNegativeMonthIndexBaseline`, `firstNegativeMonthIndexScenario` (`null` se nunca fica negativo), `endBalanceBaseline`, `endBalanceScenario`, `totalImpactInHorizon`, `totalImpactFull` (assinados) |
+| `warnings[]` | `{ impactId, code, message }` com `code` = `BeforeWindow` (termina antes do mês de referência), `Truncated` (começa antes: só os meses da janela entram) ou `AfterWindow` (continua depois do horizonte ou começa depois dele: `totalFull` inclui o que o horizonte não mostra) |
+
+**Como o baseline é calculado** (por mês M, sempre sem `Transfer` e `Savings`; compras de cartão pelo mês/ano da fatura, o resto pela data):
+
+- `committed` = despesas `Fixed` + `Installments` já lançadas em M (inclui a fatura do cartão).
+- `variable` = despesas `Variable` já lançadas em M + o que faltar para chegar à média (`max(0, averageVariableExpense - lançado)`), ou seja, `max(lançado, média)`.
+- `income` = receitas já lançadas em M + `max(0, averageIncome - lançado)`.
+- Médias: média dos **3 meses completos anteriores** ao mês de referência; meses sem nenhum lançamento são ignorados; sem dados a média é `null` e a estimativa é 0.
+- `result` = `income - committed - variable`; `balance` = saldo do mês anterior + `result`, partindo do `openingBalance`.
+- **Mês de referência**: lançamentos de conta com data até `today` já estão no saldo de partida, então não entram de novo no fluxo (mas contam como "já lançado" para reduzir as estimativas). Entram: a fatura inteira do cartão do mês, lançamentos de conta com data depois de `today` e o restante estimado.
+- Cenário = baseline + todos os impactos enviados.
+
+**Limites e premissas:** despesas fixas futuras só existem até onde foram lançadas; a estimativa variável usa a média de 3 meses e inclui compras grandes pontuais; compra de cartão sai no mês da fatura; o mês atual é parcial; receita de cartão (estorno) conta como receita do mês da fatura.
+
+**Erros:** `400` com envelope `{ success: false, message }` quando: horizonte fora de 1..24, mais de 50 impactos, `today` ou `startMonth` inválidos, `amount` ≤ 0, `installments` fora de 1..120, `months` do impacto fora de 0..120, descrição acima de 120 caracteres. A mensagem diz qual impacto falhou, ex.: `Impacto #2 ("Viagem"): o valor deve ser maior que zero.` Enum desconhecido (`type`, `mode`, `amountKind`) ou corpo ausente também retornam `400` (validação padrão do ASP.NET, corpo no formato `ProblemDetails`).
+
+**Exemplo:**
+
+```json
+POST /api/simulator/projection
+{
+  "today": "2026-10-15",
+  "months": 6,
+  "impacts": [
+    { "id": "a", "description": "Notebook", "type": "Expense", "mode": "Installment",
+      "startMonth": "2026-11", "amount": 3600, "amountKind": "Total", "installments": 12 }
+  ]
+}
+```
+
+---
+
+### `POST /api/simulator/calculate` (legado)
+
+> **Legado — será removido** quando o frontend migrar para `POST /api/simulator/projection`. Não use em telas novas: parte de saldo zero, repete o mês atual igual por N meses e usa agregados que ainda incluem transferências e movimentos de caixinha.
+
+Query `months` (1 a 24, padrão 6). Body: `{ scenarioName, impacts: [{ description, amount, type, mode, startDate, installmentCount }] }`.
+
+---
+
 ## Checklist rápido para o front-end
 
 1. Guardar JWT após login/signin; enviar `Authorization: Bearer …` em todas as rotas protegidas.

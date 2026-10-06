@@ -1,5 +1,6 @@
 using PersonalBudget.Application.Interfaces;
 using PersonalBudget.Application.Services;
+using PersonalBudget.Application.Services.Simulator;
 using PersonalBudget.Application.Services.TransactionCreation;
 using PersonalBudget.Infrastructure.Repositories;
 
@@ -35,6 +36,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICreditCardStatementService, CreditCardStatementService>();
         services.AddScoped<ICreditCardImportService, CreditCardImportService>();
         services.AddScoped<ISimulatorService, SimulatorService>();
+        services.AddScoped<IProjectionService, ProjectionService>();
 
         // Transaction creation strategies
         services.AddScoped<ITransactionCreationStrategy, AccountTransactionCreationStrategy>();
