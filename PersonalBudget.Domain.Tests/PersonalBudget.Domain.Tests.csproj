@@ -17,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PersonalBudget.Domain\PersonalBudget.Domain.csproj" />
+    <ProjectReference Include="..\PersonalBudget.Application\PersonalBudget.Application.csproj" />
   </ItemGroup>
 </Project>
