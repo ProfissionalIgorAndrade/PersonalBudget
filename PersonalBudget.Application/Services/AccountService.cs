@@ -43,14 +43,30 @@ public class AccountService : IAccountService
         await _transactionRepository.AddAsync(tx);
     }
 
+    /// <summary>
+    /// Carrega a caixinha garantindo que existe, pertence ao lar e é de fato uma caixinha.
+    /// </summary>
+    private async Task<Account> GetSavingsBoxOrThrowAsync(Guid householdId, Guid accountId)
+    {
+        var box = await _repository.GetByIdAsync(accountId)
+            ?? throw new DomainException("Caixinha não encontrada.");
+
+        if (box.HouseholdId != householdId)
+            throw new DomainException("Caixinha não pertence a este lar.");
+
+        if (box.Kind != AccountKind.Savings)
+            throw new DomainException("Esta operação é exclusiva para caixinhas.");
+
+        return box;
+    }
+
     public async Task<Guid> CreateAsync(CreateAccountCommand command)
     {
         var account = Account.Create(
             command.UserId,
             command.HouseholdId,
             command.Bank,
-            new BankAgency(command.Agency),
-            new BankAccountNumber(command.AccountNumber),
+            command.Name,
             command.MemberId
         );
 
@@ -70,17 +86,11 @@ public class AccountService : IAccountService
         return accounts.Select(a =>
         {
             string? memberName = a.MemberProfileId.HasValue && profileMap.TryGetValue(a.MemberProfileId.Value, out var n) ? n : null;
-            var displayName = a.Kind == AccountKind.Savings
-                ? (a.Name ?? "Caixinha")
-                : $"{a.Bank} - {a.Agency.Value}";
-            if (memberName is not null && a.Kind != AccountKind.Savings)
-                displayName += $" - {memberName}";
+            var displayName = AccountDisplayName.Build(a, memberName);
             var balance = balances.GetValueOrDefault(a.Id, 0m);
             return new AccountResponse(
                 a.Id,
                 a.Bank.ToString(),
-                a.Agency.Value,
-                a.Number.Value,
                 balance,
                 a.MemberProfileId,
                 memberName,
@@ -109,10 +119,8 @@ public class AccountService : IAccountService
         var items = active
             .Select(a =>
             {
-                var name = $"{a.Bank} - {a.Agency.Value}";
-                if (a.MemberProfileId.HasValue && profileMap.TryGetValue(a.MemberProfileId.Value, out var memberName))
-                    name += $" - {memberName}";
-                return new AccountSummaryItem(a.Id, name, a.Bank.ToString(), balances.GetValueOrDefault(a.Id, 0m));
+                string? memberName = a.MemberProfileId.HasValue && profileMap.TryGetValue(a.MemberProfileId.Value, out var n) ? n : null;
+                return new AccountSummaryItem(a.Id, AccountDisplayName.Build(a, memberName), a.Bank.ToString(), balances.GetValueOrDefault(a.Id, 0m));
             })
             .ToList();
         return new AccountsSummaryResponse(totalBalance, items);
@@ -134,11 +142,7 @@ public class AccountService : IAccountService
 
     public async Task RenameSavingsBoxAsync(RenameSavingsBoxCommand command)
     {
-        var box = await _repository.GetByIdAsync(command.AccountId)
-            ?? throw new DomainException("Caixinha não encontrada.");
-
-        if (box.HouseholdId != command.HouseholdId)
-            throw new DomainException("Caixinha não pertence a este lar.");
+        var box = await GetSavingsBoxOrThrowAsync(command.HouseholdId, command.AccountId);
 
         box.RenameSavingsBox(command.Name);
         await _repository.UpdateAsync(box);
@@ -146,11 +150,7 @@ public class AccountService : IAccountService
 
     public async Task SetSavingsGoalAsync(SetSavingsGoalCommand command)
     {
-        var box = await _repository.GetByIdAsync(command.AccountId)
-            ?? throw new DomainException("Caixinha não encontrada.");
-
-        if (box.HouseholdId != command.HouseholdId)
-            throw new DomainException("Caixinha não pertence a este lar.");
+        var box = await GetSavingsBoxOrThrowAsync(command.HouseholdId, command.AccountId);
 
         box.SetSavingsGoal(command.Goal);
         await _repository.UpdateAsync(box);
@@ -158,28 +158,14 @@ public class AccountService : IAccountService
 
     public async Task DepositToSavingsBoxAsync(DepositToSavingsBoxCommand command)
     {
-        var box = await _repository.GetByIdAsync(command.AccountId)
-            ?? throw new DomainException("Caixinha não encontrada.");
-
-        if (box.HouseholdId != command.HouseholdId)
-            throw new DomainException("Caixinha não pertence a este lar.");
-
-        if (box.Kind != AccountKind.Savings)
-            throw new DomainException("Esta operação é exclusiva para caixinhas.");
+        var box = await GetSavingsBoxOrThrowAsync(command.HouseholdId, command.AccountId);
 
         await RecordSavingsMovementAsync(box, command.Amount, isDeposit: true, command.Reason);
     }
 
     public async Task WithdrawFromSavingsBoxAsync(WithdrawFromSavingsBoxCommand command)
     {
-        var box = await _repository.GetByIdAsync(command.AccountId)
-            ?? throw new DomainException("Caixinha não encontrada.");
-
-        if (box.HouseholdId != command.HouseholdId)
-            throw new DomainException("Caixinha não pertence a este lar.");
-
-        if (box.Kind != AccountKind.Savings)
-            throw new DomainException("Esta operação é exclusiva para caixinhas.");
+        var box = await GetSavingsBoxOrThrowAsync(command.HouseholdId, command.AccountId);
 
         await RecordSavingsMovementAsync(box, command.Amount, isDeposit: false, command.Reason);
     }
@@ -191,10 +177,9 @@ public class AccountService : IAccountService
         if (account is null || account.HouseholdId != command.HouseholdId)
             throw new DomainException("Conta não encontrada.");
 
-        account.UpdateBankInfo(
+        account.UpdateOwnership(
             command.Bank,
-            new BankAgency(command.Agency),
-            new BankAccountNumber(command.AccountNumber),
+            command.Name,
             command.MemberId
         );
 

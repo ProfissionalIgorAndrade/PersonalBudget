@@ -8,8 +8,6 @@ public class Account
     /// <summary>Membro da família ao qual esta conta pertence.</summary>
     public Guid? MemberProfileId { get; private set; }
     public Bank Bank { get; private set; }
-    public BankAgency Agency { get; private set; } = null!;
-    public BankAccountNumber Number { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
     public bool IsActive { get; private set; } = true;
 
@@ -20,8 +18,14 @@ public class Account
     /// </summary>
     public Guid? ParentAccountId { get; private set; }
 
-    /// <summary>Nome da caixinha ("Viagem", "Reserva"). Null para conta corrente.</summary>
+    /// <summary>
+    /// Nome da caixinha ("Viagem", "Reserva"), obrigatório nela. Na conta corrente é
+    /// um apelido opcional para diferenciar contas do mesmo banco; null quando ausente.
+    /// </summary>
     public string? Name { get; private set; }
+
+    /// <summary>Tamanho máximo de <see cref="Name"/>; espelha a coluna "name".</summary>
+    public const int NameMaxLength = 80;
 
     /// <summary>
     /// Meta de quanto se quer acumular na caixinha. Null quando não há meta —
@@ -33,8 +37,7 @@ public class Account
         Guid userId,
         Guid householdId,
         Bank bank,
-        BankAgency agency,
-        BankAccountNumber number,
+        string? name,
         Guid memberProfileId)
     {
         if (userId == Guid.Empty)
@@ -49,15 +52,14 @@ public class Account
         HouseholdId = householdId;
         MemberProfileId = memberProfileId;
         Bank = bank;
-        Agency = agency;
-        Number = number;
+        Name = NormalizeName(name);
         CreatedAt = DateTime.UtcNow;
     }
 
     /// <summary>
     /// Cria uma caixinha vinculada a uma conta corrente.
     ///
-    /// Herda banco, agência, número e membro da conta pai: uma caixinha não
+    /// Herda banco e membro da conta pai: uma caixinha não
     /// tem identidade bancária própria, é uma divisão do mesmo dinheiro.
     /// </summary>
     public static Account CreateSavingsBox(Account parent, string name)
@@ -70,13 +72,11 @@ public class Account
             throw new DomainException("A caixinha precisa de um nome.");
 
         return new Account(parent.UserId, parent.HouseholdId, parent.Bank,
-                           new BankAgency(parent.Agency.Value),
-                           new BankAccountNumber(parent.Number.Value),
+                           name,
                            parent.MemberProfileId!.Value)
         {
             Kind = AccountKind.Savings,
             ParentAccountId = parent.Id,
-            Name = name.Trim(),
         };
     }
 
@@ -98,7 +98,7 @@ public class Account
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("A caixinha precisa de um nome.");
 
-        Name = name.Trim();
+        Name = NormalizeName(name);
     }
 
     protected Account() { }
@@ -107,17 +107,19 @@ public class Account
        Guid userId,
        Guid householdId,
        Bank bank,
-       BankAgency agency,
-       BankAccountNumber number,
+       string? name,
        Guid memberProfileId)
     {
-        return new Account(userId, householdId, bank, agency, number, memberProfileId);
+        return new Account(userId, householdId, bank, name, memberProfileId);
     }
 
-    public void UpdateBankInfo(
+    /// <summary>
+    /// Atualiza banco, apelido e titular. Na caixinha o nome é obrigatório, então um
+    /// valor vazio preserva o atual; na conta corrente vazio remove o apelido.
+    /// </summary>
+    public void UpdateOwnership(
         Bank bank,
-        BankAgency agency,
-        BankAccountNumber number,
+        string? name,
         Guid? memberProfileId = null)
     {
         if (!IsActive)
@@ -126,11 +128,24 @@ public class Account
             throw new DomainException("A conta deve estar vinculada a um membro da família.");
 
         Bank = bank;
-        Agency = agency;
-        Number = number;
+
+        var normalized = NormalizeName(name);
+        if (Kind != AccountKind.Savings || normalized is not null)
+            Name = normalized;
 
         if (memberProfileId.HasValue)
             MemberProfileId = memberProfileId.Value;
+    }
+
+    /// <summary>Trim; vazio vira null. Rejeita acima de <see cref="NameMaxLength"/>.</summary>
+    private static string? NormalizeName(string? name)
+    {
+        var trimmed = name?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return null;
+        if (trimmed.Length > NameMaxLength)
+            throw new DomainException($"O nome deve ter no máximo {NameMaxLength} caracteres.");
+        return trimmed;
     }
 
     public void Deactivate()

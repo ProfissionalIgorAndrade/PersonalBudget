@@ -3,8 +3,6 @@ namespace PersonalBudget.Application.DTOs.Account;
 public record AccountResponse(
     Guid Id,
     string Bank,
-    string Agency,
-    string AccountNumber,
     decimal Balance,
     Guid? MemberProfileId,
     string? MemberName,
@@ -15,7 +13,7 @@ public record AccountResponse(
     string Kind = "Checking",
     /// <summary>Conta corrente da caixinha. Null para conta corrente.</summary>
     Guid? ParentAccountId = null,
-    /// <summary>Nome da caixinha. Null para conta corrente.</summary>
+    /// <summary>Nome da caixinha ou apelido da conta corrente. Null quando ausente.</summary>
     string? Name = null,
     /// <summary>Meta da caixinha. Null quando não há meta.</summary>
     decimal? SavingsGoal = null

@@ -155,7 +155,7 @@ Response shape:
   ]
 }
 
-Note: "name" is the agency value (same as Account.Agency.Value).
+Note: "name" is the account display name (nickname or bank, plus " - member"; savings box = its name).
       "bank" is the Bank enum name (e.g. "Nubank", "Itau").
 
 Example: GET /api/accounts/summary

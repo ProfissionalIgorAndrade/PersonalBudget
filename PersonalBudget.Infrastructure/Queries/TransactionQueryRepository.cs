@@ -19,7 +19,6 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     {
         return
             from t in _context.Transactions
-            join a in _context.Accounts on t.AccountId equals a.Id
             join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
             from c in _context.Categories
                 .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
@@ -33,7 +32,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             where t.HouseholdId == householdId
             orderby t.Date.Value descending
             select new GetAllTransactionByUserResponse(
-                t.Id, t.AccountId, a.Agency.Value,
+                t.Id, t.AccountId,
                 t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
                 t.CreditCardId, cc != null ? cc.Name : null,
                 t.TransferId, t.Type.ToString(),
@@ -53,7 +52,6 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     {
         return
             from t in _context.Transactions
-            join a in _context.Accounts on t.AccountId equals a.Id
             join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
             from c in _context.Categories
                 .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
@@ -69,7 +67,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 || (t.CreditCardId != null && s != null && s.ClosingMonth == month && s.ClosingYear == year))
             orderby t.Date.Value descending
             select new GetAllTransactionByUserResponse(
-                t.Id, t.AccountId, a.Agency.Value,
+                t.Id, t.AccountId,
                 t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
                 t.CreditCardId, cc != null ? cc.Name : null,
                 t.TransferId, t.Type.ToString(),
@@ -90,8 +88,6 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             (from t in _context.Transactions
              join s in _context.CreditCardStatements
                  on t.StatementId equals s.Id
-             join a in _context.Accounts
-                 on t.AccountId equals a.Id
              join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
              from c in _context.Categories
                  .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
@@ -105,7 +101,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  && s.ClosingYear == year
              orderby t.Date.Value descending
              select new GetAllTransactionByUserResponse(
-                 t.Id, t.AccountId, a.Agency.Value,
+                 t.Id, t.AccountId,
                  t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
                  t.CreditCardId, cc != null ? cc.Name : null,
                  t.TransferId, t.Type.ToString(),
@@ -247,7 +243,6 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             transactions = transactions.Where(t => t.Frequency == frequency.Value);
 
         return from t in transactions
-               join a in _context.Accounts on t.AccountId equals a.Id
                join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
                from c in _context.Categories
                    .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
@@ -257,7 +252,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                    .DefaultIfEmpty()
                orderby t.Date.Value descending
                select new GetAllTransactionByUserResponse(
-                   t.Id, t.AccountId, a.Agency.Value,
+                   t.Id, t.AccountId,
                    t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
                    t.CreditCardId, cc != null ? cc.Name : null,
                    t.TransferId, t.Type.ToString(),

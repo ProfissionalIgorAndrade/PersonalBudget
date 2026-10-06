@@ -42,7 +42,7 @@ public class TransactionReviewedTests(IntegrationTestFactory factory)
             new { name = "Mercado", type = "Expense" });
 
         var accountId = await CreateAndGetIdAsync(client, "/api/accounts",
-            new { bank = "Nubank", agency = "0001", accountNumber = "12345-6", memberId = profileId });
+            new { bank = "Nubank", memberId = profileId });
 
         var cardId = await CreateAndGetIdAsync(client, "/api/credit-cards",
             new { accountId, name = "Cartao", limit = 5000m, closingDay = 25, dueDay = 5, memberId = profileId });

@@ -1,6 +1,6 @@
 public record CreateAccountRequest(
     Bank Bank,
-    string Agency,
-    string AccountNumber,
-    Guid MemberId
+    Guid MemberId,
+    /// <summary>Apelido opcional, para diferenciar contas do mesmo banco.</summary>
+    string? Name = null
 );
