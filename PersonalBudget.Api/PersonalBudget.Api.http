@@ -258,3 +258,39 @@ Authorization: Bearer {{authToken}}
 
 
 
+### SIMULATOR ENDPOINTS
+
+###
+# Projection from the real checking-account balance (requires auth).
+# today is optional (default = server date in UTC-3); months is 1..24; max 50 impacts.
+# Installment with amountKind Total: Round(total/n, 2), remainder on the last installment.
+POST {{HostAddress}}/api/simulator/projection
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "today": "2026-10-15",
+  "months": 6,
+  "impacts": [
+    {
+      "id": "notebook",
+      "description": "Notebook",
+      "type": "Expense",
+      "mode": "Installment",
+      "startMonth": "2026-11",
+      "amount": 3600,
+      "amountKind": "Total",
+      "installments": 12
+    },
+    {
+      "id": "freela",
+      "description": "Freela",
+      "type": "Income",
+      "mode": "Monthly",
+      "startMonth": "2026-12",
+      "amount": 500,
+      "months": 3
+    }
+  ]
+}
+

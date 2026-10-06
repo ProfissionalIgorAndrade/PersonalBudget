@@ -359,6 +359,71 @@ Frontend action required:
 - Do not deploy UI that sends the new names before this backend is
   deployed: the previous backend rejects unknown names with 400.
 
+------------------------------------------------------------
+NEW ENDPOINT — POST /api/simulator/projection  (simulator redesign)
+------------------------------------------------------------
+Purpose : Month-by-month projection that starts from the real balance
+          of the active CHECKING accounts (savings boxes excluded) and
+          adds the simulated impacts on top of a baseline built from
+          real rows. Nothing is persisted.
+
+Request:
+  {
+    today?:  "yyyy-MM-dd"   // default = server date in UTC-3
+    months:  1..24          // horizon, includes the reference month
+    impacts: [              // max 50
+      {
+        id, description (<=120),
+        type:      "Income" | "Expense",
+        mode:      "Single" | "Installment" | "Monthly",
+        startMonth: "yyyy-MM",
+        amount:    > 0,
+        amountKind?: "PerInstallment" | "Total"  // Installment only
+        installments?: 1..120                     // Installment only
+        months?: 1..120   // Monthly duration; null/0 = until horizon end
+      }
+    ]
+  }
+
+Installment rule: Total => Round(total/n, 2) with the remainder on the
+LAST installment (same as real card installments).
+
+Response data (camelCase, inside the usual envelope):
+  referenceMonth "yyyy-MM"
+  openingBalance { amount, asOf, accounts:[{id,name,balance}], excludesSavings:true }
+  assumptions    { lookbackMonths, monthsWithData, averageIncome|null,
+                   averageVariableExpense|null, notes:[pt-BR text] }
+  baseline[]     { year, month, label "out/26", income, committed,
+                   variable, result, balance }
+  impacts[]      { id, description, type, mode,
+                   monthly[] (signed, aligned to the horizon),
+                   totalInHorizon, totalFull, installmentAmount|null,
+                   lastInstallmentAmount|null, installmentsInHorizon,
+                   installmentsTotal|null }
+  scenario[]     { year, month, label, simulatedIncome, simulatedExpense,
+                   result, balance, delta }
+  summary        { baselineMinBalance{amount,monthIndex},
+                   scenarioMinBalance{amount,monthIndex},
+                   firstNegativeMonthIndexBaseline|null,
+                   firstNegativeMonthIndexScenario|null,
+                   endBalanceBaseline, endBalanceScenario,
+                   totalImpactInHorizon, totalImpactFull }
+  warnings[]     { impactId, code: BeforeWindow|Truncated|AfterWindow, message }
+
+Errors: 400 with { success:false, message } naming the impact that
+failed (e.g. 'Impacto #2 ("Viagem"): o valor deve ser maior que zero.').
+Unknown enum value or missing body also return 400 (ProblemDetails).
+
+Full reference: docs/API-ENDPOINTS.md, section "7. Simulador".
+
+Legacy: POST /api/simulator/calculate is unchanged and still works, but
+it is now LEGACY and will be removed in a later cleanup PR, after the
+frontend migrates.
+
+Frontend action required:
+- Deploy the backend first; the new screen must not call the endpoint
+  before it exists in production.
+
 ============================================================
 END OF DOCUMENT
 ============================================================
