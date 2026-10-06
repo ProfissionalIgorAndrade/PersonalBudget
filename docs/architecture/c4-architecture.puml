@@ -92,7 +92,7 @@ Container_Boundary(webApi, "PersonalBudget.Api") {
 
     Component(transactionsCtrl, "TransactionsController", "ASP.NET Controller", "CRUD de transacoes, filtros\npor mes/ano, atualizacao de\nstatus e exclusao em lote")
 
-    Component(creditCardsCtrl, "CreditCardsController", "ASP.NET Controller", "CRUD de cartoes, consulta\nde faturas, fechamento,\npagamento e importacao CSV")
+    Component(creditCardsCtrl, "CreditCardsController", "ASP.NET Controller", "CRUD de cartoes, consulta\nde faturas, revisao de lancamentos\ne importacao CSV")
 
     Component(categoriesCtrl, "CategoriesController", "ASP.NET Controller", "CRUD de categorias\n(receita / despesa)")
 
@@ -162,7 +162,7 @@ Container_Boundary(appLayer, "PersonalBudget.Application") {
 
     Component(creditCardService, "CreditCardService", "Application Service", "CRUD de cartoes,\nvalidacao de household")
 
-    Component(statementService, "CreditCardStatementService", "Application Service", "Fechamento e pagamento\nde faturas")
+    Component(statementService, "CreditCardStatementService", "Application Service", "Consulta de faturas (vencimento\ncalculado) e revisao\nde lancamentos")
 
     Component(importService, "CreditCardImportService", "Application Service", "Parse de CSV e criacao\nem lote de transacoes\nno cartao")
 
@@ -182,7 +182,7 @@ Rel(householdService, domainLayer, "Cria/valida Household e Invite")
 Rel(accountService, domainLayer, "Cria/valida Account")
 Rel(transactionService, domainLayer, "Cria Transaction via Strategy")
 Rel(creditCardService, domainLayer, "Cria/valida CreditCard")
-Rel(statementService, domainLayer, "Fecha/paga CreditCardStatement")
+Rel(statementService, domainLayer, "Le CreditCardStatement")
 Rel(importService, domainLayer, "Cria transacoes em lote")
 
 Rel(accountService, infraLayer, "IAccountRepository")
@@ -384,41 +384,27 @@ package "Aggregate: CreditCard" #LightCoral {
         +Id: Guid
         +UserId: Guid
         +HouseholdId: Guid
-        +AccountId: Guid?
+        +MemberId: Guid?
         +Name: string
         +Limit: decimal
-        +ClosingDay: int
         +DueDay: int
         +IsActive: bool
         --
-        +GetOrCreateOpenStatement(date): Statement
-        +AddExpense(transaction)
-        +CloseStatement(statementId)
-        +PayStatement(statementId)
+        +Update(name, limit, dueDay, color, memberId)
+        +Deactivate()
     }
     class CreditCardStatement {
         +Id: Guid
         +CreditCardId: Guid
-        +PeriodStart: DateTime
-        +PeriodEnd: DateTime
-        +ClosingDate: DateTime
-        +DueDate: DateTime
-        +ClosingMonth: int
-        +ClosingYear: int
-        +Status: BillStatus
+        +StatementMonth: int
+        +StatementYear: int
         +TotalAmount: Money
         --
         +AddTransaction(amount, type)
-        +Close()
-        +MarkAsPaid()
+        +RemoveTransactionContribution(amount, type)
+        +DueDateFor(dueDay): DateTime
     }
-    enum BillStatus {
-        Open
-        Closed
-        Paid
-    }
-    CreditCard "1" *-- "0..*" CreditCardStatement
-    CreditCardStatement --> BillStatus
+    CreditCard "1" -- "0..*" CreditCardStatement
     CreditCardStatement *-- Money
 }
 
@@ -558,7 +544,7 @@ class CreditCardTransactionCreationStrategy {
     -_statementRepo: ICreditCardStatementRepository
     --
     +AppliesTo(): CreditCard
-    Abre ou reutiliza fatura\ncom base em ClosingDay
+    Abre ou reutiliza a fatura\nde (cartao, mes, ano).\nCompra sem conta (AccountId nulo)
 }
 
 class TransferTransactionCreationStrategy {

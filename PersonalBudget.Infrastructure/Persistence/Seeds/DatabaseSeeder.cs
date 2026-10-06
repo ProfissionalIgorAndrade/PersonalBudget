@@ -111,20 +111,16 @@ public static class DatabaseSeeder
         var nubankCard = CreditCard.Create(
             userId: igor.Id,
             householdId: hId,
-            accountId: account1.Id,
             name: "Nubank Ultravioleta",
             limit: 8000,
-            closingDay: 30,
             dueDay: 10
         );
 
         var itauCard = CreditCard.Create(
             userId: igor.Id,
             householdId: hId,
-            accountId: account2.Id,
             name: "Itaú Visa Platinum",
             limit: 5000,
-            closingDay: 28,
             dueDay: 6
         );
 
@@ -134,9 +130,7 @@ public static class DatabaseSeeder
         Console.WriteLine("CreditCards: " + itauCard.Id);
         Console.WriteLine("CreditCards: " + nubankCard.Id);
 
-        // Não salvar cartões antes de AddExpense: as faturas vão para o campo privado _statements e,
-        // se o cartão já estiver persistido (Unchanged), o provider InMemory pode gerar DbUpdateConcurrencyException
-        // ao tentar atualizar faturas que o modelo não rastreou corretamente. Tudo segue num único SaveChanges ao final.
+        // Tudo é salvo num único SaveChanges ao final: cartões, faturas e transações.
 
         var now = DateTime.UtcNow;
         var lastMonth = now.AddMonths(-1);
@@ -152,8 +146,22 @@ public static class DatabaseSeeder
 
         Transaction AddTx(Transaction t) { transactions.Add(t); return t; }
 
-        Account AccountForCard(CreditCard card)
-            => card.AccountId == account1.Id ? account1 : card.AccountId == account2.Id ? account2 : accountConjunta;
+        // Uma fatura por (cartão, ano, mês), igual ao índice único do banco. O mês é o da data da compra.
+        var statements = new Dictionary<(Guid CardId, int Year, int Month), CreditCardStatement>();
+
+        CreditCardStatement StatementFor(CreditCard card, DateTime date, Money amount)
+        {
+            var key = (card.Id, date.Year, date.Month);
+            if (!statements.TryGetValue(key, out var statement))
+            {
+                statement = CreditCardStatement.Create(card.Id, date.Month, date.Year);
+                statements[key] = statement;
+                context.CreditCardStatements.Add(statement);
+            }
+
+            statement.AddTransaction(amount, TransactionType.Expense);
+            return statement;
+        }
 
         Transaction AddCcExpense(
             Guid userId,
@@ -165,12 +173,12 @@ public static class DatabaseSeeder
             Guid categoryId,
             TransactionFrequency frequency = TransactionFrequency.Variable)
         {
-            var statement = card.AddExpense(date, amount);
+            var statement = StatementFor(card, date, amount);
             return AddTx(Transaction.Create(
                 userId,
                 hId,
                 profileId,
-                AccountForCard(card).Id,
+                null,
                 amount,
                 TransactionType.Expense,
                 PaymentMethod.CreditCard,
@@ -263,80 +271,80 @@ public static class DatabaseSeeder
 
         var tvAmount = new Money(3200);
         var tvDate = new DateTime(now.Year, now.Month, 3);
-        var tvStatement = nubankCard.AddExpense(tvDate, tvAmount);
-        AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, tvAmount, TransactionType.Expense, PaymentMethod.CreditCard,
+        var tvStatement = StatementFor(nubankCard, tvDate, tvAmount);
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, null, tvAmount, TransactionType.Expense, PaymentMethod.CreditCard,
             tvDate, "TV OLED LG - Amazon", lazer.Id, nubankCard.Id, tvStatement.Id));
 
         var s1Amt = new Money(430);
         var s1Date = new DateTime(now.Year, now.Month, 7);
-        var s1St = nubankCard.AddExpense(s1Date, s1Amt);
-        AddTx(Transaction.Create(igor.Id, hId, PAN, account1.Id, s1Amt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var s1St = StatementFor(nubankCard, s1Date, s1Amt);
+        AddTx(Transaction.Create(igor.Id, hId, PAN, null, s1Amt, TransactionType.Expense, PaymentMethod.CreditCard,
             s1Date, "Supermercado Extra", alimentacao.Id, nubankCard.Id, s1St.Id));
 
         var s2Amt = new Money(520);
         var s2Date = new DateTime(lastMonth.Year, lastMonth.Month, 18);
-        var s2St = nubankCard.AddExpense(s2Date, s2Amt);
-        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, s2Amt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var s2St = StatementFor(nubankCard, s2Date, s2Amt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, null, s2Amt, TransactionType.Expense, PaymentMethod.CreditCard,
             s2Date, "Supermercado Extra (mês passado)", alimentacao.Id, nubankCard.Id, s2St.Id));
 
         var farmAmt = new Money(210);
         var farmDate = new DateTime(now.Year, now.Month, 11);
-        var farmSt = nubankCard.AddExpense(farmDate, farmAmt);
-        AddTx(Transaction.Create(andreza.Id, hId, PAN, account1.Id, farmAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var farmSt = StatementFor(nubankCard, farmDate, farmAmt);
+        AddTx(Transaction.Create(andreza.Id, hId, PAN, null, farmAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             farmDate, "Farmácia Drogasil", alimentacao.Id, nubankCard.Id, farmSt.Id));
 
         var cinemaAmt = new Money(80);
         var cinemaDate = new DateTime(now.Year, now.Month, 16);
-        var cinemaSt = nubankCard.AddExpense(cinemaDate, cinemaAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, cinemaAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var cinemaSt = StatementFor(nubankCard, cinemaDate, cinemaAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, null, cinemaAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             cinemaDate, "Cinema - Shopping", lazer.Id, nubankCard.Id, cinemaSt.Id));
 
         var viaAmt = new Money(1800);
         var viaDate = new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 2);
-        var viaSt = nubankCard.AddExpense(viaDate, viaAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PFAM, account1.Id, viaAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var viaSt = StatementFor(nubankCard, viaDate, viaAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, null, viaAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             viaDate, "Passagens aéreas (daqui a 2 meses)", lazer.Id, nubankCard.Id, viaSt.Id));
 
         var restAmt = new Money(220);
         var restDate = new DateTime(now.Year, now.Month, 9);
-        var restSt = itauCard.AddExpense(restDate, restAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PAN, account2.Id, restAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var restSt = StatementFor(itauCard, restDate, restAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PAN, null, restAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             restDate, "Restaurante Japonês", lazer.Id, itauCard.Id, restSt.Id));
 
         var uberAmt = new Money(65);
         var uberDate = new DateTime(now.Year, now.Month, 6);
-        var uberSt = itauCard.AddExpense(uberDate, uberAmt);
-        AddTx(Transaction.Create(andreza.Id, hId, PIG, account2.Id, uberAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var uberSt = StatementFor(itauCard, uberDate, uberAmt);
+        AddTx(Transaction.Create(andreza.Id, hId, PIG, null, uberAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             uberDate, "Uber trabalho", lazer.Id, itauCard.Id, uberSt.Id));
 
         var ifoodAmt = new Money(95);
         var ifoodDate = new DateTime(now.Year, now.Month, 14);
-        var ifoodSt = itauCard.AddExpense(ifoodDate, ifoodAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, ifoodAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var ifoodSt = StatementFor(itauCard, ifoodDate, ifoodAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, null, ifoodAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             ifoodDate, "iFood - jantar", alimentacao.Id, itauCard.Id, ifoodSt.Id));
 
         var combAmt = new Money(260);
         var combDate = new DateTime(lastMonth.Year, lastMonth.Month, 22);
-        var combSt = itauCard.AddExpense(combDate, combAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, combAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var combSt = StatementFor(itauCard, combDate, combAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, null, combAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             combDate, "Posto de gasolina", lazer.Id, itauCard.Id, combSt.Id));
 
         var streamAmt = new Money(55);
         var streamDate = new DateTime(now.Year, now.Month, 1);
-        var streamSt = itauCard.AddExpense(streamDate, streamAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PFAM, account2.Id, streamAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var streamSt = StatementFor(itauCard, streamDate, streamAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, null, streamAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             streamDate, "Assinatura streaming", lazer.Id, itauCard.Id, streamSt.Id));
 
         var mercFutAmt = new Money(480);
         var mercFutDate = new DateTime(nextMonth.Year, nextMonth.Month, 4);
-        var mercFutSt = itauCard.AddExpense(mercFutDate, mercFutAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PFAM, account2.Id, mercFutAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var mercFutSt = StatementFor(itauCard, mercFutDate, mercFutAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PFAM, null, mercFutAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             mercFutDate, "Supermercado (próximo mês)", alimentacao.Id, itauCard.Id, mercFutSt.Id));
 
         var barAmt = new Money(120);
         var barDate = new DateTime(now.Year, now.Month, 18);
-        var barSt = nubankCard.AddExpense(barDate, barAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PIG, account1.Id, barAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var barSt = StatementFor(nubankCard, barDate, barAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, null, barAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             barDate, "Barzinho com amigos", lazer.Id, nubankCard.Id, barSt.Id));
 
         AddTx(Transaction.Create(igor.Id, hId, PAN, account1.Id, new Money(35), TransactionType.Expense, PaymentMethod.Account,
@@ -353,8 +361,8 @@ public static class DatabaseSeeder
 
         var taxiAmt = new Money(90);
         var taxiDate = new DateTime(twoMonthsAhead.Year, twoMonthsAhead.Month, 1);
-        var taxiSt = itauCard.AddExpense(taxiDate, taxiAmt);
-        AddTx(Transaction.Create(igor.Id, hId, PIG, account2.Id, taxiAmt, TransactionType.Expense, PaymentMethod.CreditCard,
+        var taxiSt = StatementFor(itauCard, taxiDate, taxiAmt);
+        AddTx(Transaction.Create(igor.Id, hId, PIG, null, taxiAmt, TransactionType.Expense, PaymentMethod.CreditCard,
             taxiDate, "Táxi aeroporto", lazer.Id, itauCard.Id, taxiSt.Id));
 
         AddTx(Transaction.Create(andreza.Id, hId, PAN, accountConjunta.Id, new Money(450), TransactionType.Expense, PaymentMethod.Account,

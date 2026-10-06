@@ -1,6 +1,6 @@
 public record GetAllTransactionByUserResponse(
     Guid Id,
-    Guid AccountId,
+    Guid? AccountId,
     Guid? CategoryId,
     string? CategoryName,
     string? CategoryType,

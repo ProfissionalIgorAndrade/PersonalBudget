@@ -323,17 +323,19 @@ Transações da conta no mês/ano; **exclui** lançamentos de `PaymentMethod.Cre
 
 ## 5. Cartões de crédito — `api/credit-cards`
 
+O cartão não tem conta de débito nem dia de fechamento. A fatura é identificada por (cartão, mês, ano), onde mês/ano são os do **vencimento**, e existe uma única por combinação. Compras de cartão não pertencem a nenhuma conta: não alteram o saldo e vêm com `accountId` nulo.
+
 ### `POST /api/credit-cards`
 
 **Body:**
 
 | Campo | Tipo |
 |-------|------|
-| `accountId` | guid (conta vinculada) |
 | `name` | string |
-| `limit` | decimal |
-| `closingDay` | int |
-| `dueDay` | int |
+| `limit` | decimal (> 0) |
+| `dueDay` | int (1 a 31) |
+| `color` | string \| null |
+| `memberId` | guid \| null — perfil de membro dono do cartão |
 
 **Resposta:** 201 com `data`: `{ "id": guid }`.
 
@@ -341,7 +343,7 @@ Transações da conta no mês/ano; **exclui** lançamentos de `PaymentMethod.Cre
 
 ### `GET /api/credit-cards`
 
-**Resposta `data`:** lista de cartões (`CreditCard`).
+**Resposta `data`:** lista de cartões ativos do lar (`CreditCard`): `id`, `userId`, `householdId`, `memberId`, `name`, `limit`, `dueDay`, `isActive`, `color`.
 
 ---
 
@@ -367,11 +369,7 @@ Fatura do cartão com lançamentos para o mês/ano.
 | `creditCardId` | guid |
 | `creditCardName` | string |
 | `limit` | decimal |
-| `periodStart` | datetime |
-| `periodEnd` | datetime |
-| `closingDate` | datetime |
-| `dueDate` | datetime |
-| `status` | string |
+| `dueDate` | datetime — calculado: `dueDay` do cartão no mês da fatura, limitado ao último dia do mês |
 | `totalAmount` | decimal |
 | `transactions` | array de `StatementTransactionItemDto` |
 
@@ -387,7 +385,6 @@ Fatura do cartão com lançamentos para o mês/ano.
 | `categoryId` | guid \| null |
 | `categoryName` | string \| null |
 | `transactionType` | string |
-| `status` | string |
 | `frequency` | string |
 | `attributionProfileId` | guid |
 | `correspondentDisplayName` | string |
@@ -400,7 +397,7 @@ Fatura do cartão com lançamentos para o mês/ano.
 
 ### `PATCH /api/credit-cards/{creditCardId}/statement/{statementId}/reviewed`
 
-Marca ou desmarca como revisados **todos** os lançamentos da fatura. Permitido em qualquer status da fatura (Aberta, Fechada ou Paga).
+Marca ou desmarca como revisados **todos** os lançamentos da fatura.
 
 **Body:**
 
@@ -414,22 +411,6 @@ Marca ou desmarca como revisados **todos** os lançamentos da fatura. Permitido 
 
 ---
 
-### `POST /api/credit-cards/{creditCardId}/statements/{statementId}/close`
-
-Marca fatura como fechada.
-
-**Resposta `data`:** data/hora (ex.: `DateTime.Now` serializado).
-
----
-
-### `POST /api/credit-cards/{creditCardId}/statements/{statementId}/pay`
-
-Registra pagamento da fatura.
-
-**Resposta `data`:** data/hora.
-
----
-
 ### `PUT /api/credit-cards/{creditCardId}`
 
 **Body:**
@@ -438,8 +419,9 @@ Registra pagamento da fatura.
 |-------|------|
 | `name` | string |
 | `limit` | decimal |
-| `closingDay` | int |
-| `dueDay` | int |
+| `dueDay` | int (1 a 31) |
+| `color` | string \| null |
+| `memberId` | guid \| null — null mantém o atual |
 
 ---
 
@@ -459,9 +441,10 @@ Cria transação (conta, cartão, transferência, parcelas, recorrência conform
 
 | Campo | Tipo | Notas |
 |-------|------|--------|
-| `accountId` | guid \| null | Conta (método conta) |
+| `accountId` | guid \| null | Conta. Obrigatória exceto em compra de cartão, que não tem conta |
 | `categoryId` | guid \| null | |
 | `creditCardId` | guid \| null | Cartão |
+| `statementMonth` / `statementYear` | int \| null | Obrigatórios em compra de cartão: mês/ano (do vencimento) da fatura; a fatura é criada se não existir |
 | `fromAccountId` / `toAccountId` | guid \| null | Transferência |
 | `type` | `TransactionType` | |
 | `frequency` | `TransactionFrequency` | Parcelas exigem `Installments` + `installmentCount` > 1 e cartão |
@@ -493,7 +476,7 @@ Todas as transações do lar (lista).
 | Campo | Tipo |
 |-------|------|
 | `id` | guid |
-| `accountId` | guid |
+| `accountId` | guid \| null — nulo em compra de cartão |
 | `categoryId` | guid \| null |
 | `categoryName` | string \| null |
 | `categoryType` | string \| null |
@@ -559,7 +542,7 @@ Atualização parcial. **Não aplicável** a: transações **concluídas**, **ca
 
 ### `PATCH /api/transactions/{transactionId}/reviewed`
 
-Marca ou desmarca um lançamento como revisado. Não passa pelas regras de edição, então vale para qualquer lançamento (inclusive de fatura fechada/paga).
+Marca ou desmarca um lançamento como revisado. Não passa pelas regras de edição, então vale para qualquer lançamento.
 
 **Body:**
 

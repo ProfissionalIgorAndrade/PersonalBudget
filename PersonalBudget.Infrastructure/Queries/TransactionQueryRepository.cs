@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using PersonalBudget.Application.DTOs.CreditCard;
 using PersonalBudget.Application.DTOs.Dashboard;
@@ -11,6 +12,43 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     public TransactionQueryRepository(AppDbContext context)
     {
         _context = context;
+    }
+
+    // ─── statement-month bucketing ──────────────────────────────────────────────
+
+    /// <summary>Transação junto da fatura (nula para lançamentos fora de cartão).</summary>
+    private sealed class TransactionWithStatement
+    {
+        public Transaction Transaction { get; init; } = null!;
+        public CreditCardStatement? Statement { get; init; }
+    }
+
+    /// <summary>Transações do lar com a fatura associada (left join).</summary>
+    private IQueryable<TransactionWithStatement> TransactionsWithStatement(Guid householdId)
+    {
+        return
+            from t in _context.Transactions
+            from s in _context.CreditCardStatements
+                .Where(s => t.StatementId != null && s.Id == t.StatementId)
+                .DefaultIfEmpty()
+            where t.HouseholdId == householdId
+            select new TransactionWithStatement { Transaction = t, Statement = s };
+    }
+
+    /// <summary>
+    /// Lançamento pertence ao mês/ano: pela data da transação, ou pelo mês/ano da fatura
+    /// quando é compra de cartão.
+    /// </summary>
+    private static Expression<Func<TransactionWithStatement, bool>> InStatementMonth(int month, int year)
+    {
+        return x =>
+            (x.Transaction.CreditCardId == null
+                && x.Transaction.Date.Value.Month == month
+                && x.Transaction.Date.Value.Year == year)
+            || (x.Transaction.CreditCardId != null
+                && x.Statement != null
+                && x.Statement.StatementMonth == month
+                && x.Statement.StatementYear == year);
     }
 
     // ─── shared projection helper ──────────────────────────────────────────────
@@ -40,8 +78,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                 t.ExpirationDate, t.DueDate,
                 t.Amount.Amount, t.Date.Value, t.Description.Value,
                 p.Id, p.DisplayName, t.RecurrenceId,
-                s != null ? s.ClosingMonth : (int?)null,
-                s != null ? s.ClosingYear : (int?)null,
+                s != null ? s.StatementMonth : (int?)null,
+                s != null ? s.StatementYear : (int?)null,
                 t.Observations, t.Reviewed);
     }
 
@@ -51,33 +89,27 @@ public class TransactionQueryRepository : ITransactionQueryRepository
         Guid householdId, int month, int year)
     {
         return
-            from t in _context.Transactions
-            join p in _context.HouseholdMemberProfiles on t.AttributionProfileId equals p.Id
+            from x in TransactionsWithStatement(householdId).Where(InStatementMonth(month, year))
+            join p in _context.HouseholdMemberProfiles on x.Transaction.AttributionProfileId equals p.Id
             from c in _context.Categories
-                .Where(c => t.CategoryId != null && c.Id == t.CategoryId)
+                .Where(c => x.Transaction.CategoryId != null && c.Id == x.Transaction.CategoryId)
                 .DefaultIfEmpty()
             from cc in _context.CreditCards
-                .Where(cc => t.CreditCardId != null && cc.Id == t.CreditCardId)
+                .Where(cc => x.Transaction.CreditCardId != null && cc.Id == x.Transaction.CreditCardId)
                 .DefaultIfEmpty()
-            from s in _context.CreditCardStatements
-                .Where(s => t.StatementId != null && s.Id == t.StatementId)
-                .DefaultIfEmpty()
-            where t.HouseholdId == householdId
-               && ((t.CreditCardId == null && t.Date.Value.Month == month && t.Date.Value.Year == year)
-                || (t.CreditCardId != null && s != null && s.ClosingMonth == month && s.ClosingYear == year))
-            orderby t.Date.Value descending
+            orderby x.Transaction.Date.Value descending
             select new GetAllTransactionByUserResponse(
-                t.Id, t.AccountId,
-                t.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
-                t.CreditCardId, cc != null ? cc.Name : null,
-                t.TransferId, t.Type.ToString(),
-                t.PaymentMethod.ToString(), t.Frequency.ToString(),
-                t.ExpirationDate, t.DueDate,
-                t.Amount.Amount, t.Date.Value, t.Description.Value,
-                p.Id, p.DisplayName, t.RecurrenceId,
-                s != null ? s.ClosingMonth : (int?)null,
-                s != null ? s.ClosingYear : (int?)null,
-                t.Observations, t.Reviewed);
+                x.Transaction.Id, x.Transaction.AccountId,
+                x.Transaction.CategoryId, c != null ? c.Name : null, c != null ? c.Type.ToString() : null,
+                x.Transaction.CreditCardId, cc != null ? cc.Name : null,
+                x.Transaction.TransferId, x.Transaction.Type.ToString(),
+                x.Transaction.PaymentMethod.ToString(), x.Transaction.Frequency.ToString(),
+                x.Transaction.ExpirationDate, x.Transaction.DueDate,
+                x.Transaction.Amount.Amount, x.Transaction.Date.Value, x.Transaction.Description.Value,
+                p.Id, p.DisplayName, x.Transaction.RecurrenceId,
+                x.Statement != null ? x.Statement.StatementMonth : (int?)null,
+                x.Statement != null ? x.Statement.StatementYear : (int?)null,
+                x.Transaction.Observations, x.Transaction.Reviewed);
     }
 
     // ─── existing methods ───────────────────────────────────────────────────────
@@ -97,8 +129,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  .DefaultIfEmpty()
              where t.HouseholdId == householdId
                  && t.CreditCardId == creditCardId
-                 && s.ClosingMonth == month
-                 && s.ClosingYear == year
+                 && s.StatementMonth == month
+                 && s.StatementYear == year
              orderby t.Date.Value descending
              select new GetAllTransactionByUserResponse(
                  t.Id, t.AccountId,
@@ -109,7 +141,7 @@ public class TransactionQueryRepository : ITransactionQueryRepository
                  t.ExpirationDate, t.DueDate,
                  t.Amount.Amount, t.Date.Value, t.Description.Value,
                  p.Id, p.DisplayName, t.RecurrenceId,
-                 s.ClosingMonth, s.ClosingYear,
+                 s.StatementMonth, s.StatementYear,
                  t.Observations, t.Reviewed))
             .AsNoTracking()
             .ToListAsync();
@@ -275,14 +307,8 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             .ToListAsync();
 
         var sumsByProfile = await (
-            from t in _context.Transactions
-            from s in _context.CreditCardStatements
-                .Where(s => t.StatementId != null && s.Id == t.StatementId)
-                .DefaultIfEmpty()
-            where t.HouseholdId == householdId
-               && ((t.CreditCardId == null && t.Date.Value.Month == month && t.Date.Value.Year == year)
-                || (t.CreditCardId != null && s != null && s.ClosingMonth == month && s.ClosingYear == year))
-            group t by t.AttributionProfileId into g
+            from x in TransactionsWithStatement(householdId).Where(InStatementMonth(month, year))
+            group x.Transaction by x.Transaction.AttributionProfileId into g
             select new
             {
                 ProfileId = g.Key,
@@ -306,19 +332,13 @@ public class TransactionQueryRepository : ITransactionQueryRepository
     public async Task<DashboardSummaryResponse> GetDashboardSummaryAsync(Guid householdId, int month, int year)
     {
         var transactions = await (
-            from t in _context.Transactions
-            from s in _context.CreditCardStatements
-                .Where(s => t.StatementId != null && s.Id == t.StatementId)
-                .DefaultIfEmpty()
-            where t.HouseholdId == householdId
-               && ((t.CreditCardId == null && t.Date.Value.Month == month && t.Date.Value.Year == year)
-                || (t.CreditCardId != null && s != null && s.ClosingMonth == month && s.ClosingYear == year))
+            from x in TransactionsWithStatement(householdId).Where(InStatementMonth(month, year))
             select new
             {
-                t.Type,
-                t.Frequency,
-                t.PaymentMethod,
-                Amount = t.Amount.Amount
+                x.Transaction.Type,
+                x.Transaction.Frequency,
+                x.Transaction.PaymentMethod,
+                Amount = x.Transaction.Amount.Amount
             }
         ).AsNoTracking().ToListAsync();
 
@@ -356,12 +376,12 @@ public class TransactionQueryRepository : ITransactionQueryRepository
             where t.HouseholdId == householdId
                && ((t.CreditCardId == null && t.Date.Value >= startDate && t.Date.Value < endDate.AddMonths(1))
                 || (t.CreditCardId != null && s != null
-                    && (s.ClosingYear * 12 + s.ClosingMonth) >= (startDate.Year * 12 + startDate.Month)
-                    && (s.ClosingYear * 12 + s.ClosingMonth) <= (endDate.Year   * 12 + endDate.Month)))
+                    && (s.StatementYear * 12 + s.StatementMonth) >= (startDate.Year * 12 + startDate.Month)
+                    && (s.StatementYear * 12 + s.StatementMonth) <= (endDate.Year   * 12 + endDate.Month)))
             select new
             {
-                EffectiveMonth = t.CreditCardId != null && s != null ? s.ClosingMonth : t.Date.Value.Month,
-                EffectiveYear  = t.CreditCardId != null && s != null ? s.ClosingYear  : t.Date.Value.Year,
+                EffectiveMonth = t.CreditCardId != null && s != null ? s.StatementMonth : t.Date.Value.Month,
+                EffectiveYear  = t.CreditCardId != null && s != null ? s.StatementYear  : t.Date.Value.Year,
                 t.Type,
                 t.Frequency,
                 Amount = t.Amount.Amount
@@ -395,18 +415,12 @@ public class TransactionQueryRepository : ITransactionQueryRepository
         Guid householdId, int month, int year)
     {
         var transactions = await (
-            from t in _context.Transactions
-            from s in _context.CreditCardStatements
-                .Where(s => t.StatementId != null && s.Id == t.StatementId)
-                .DefaultIfEmpty()
-            where t.HouseholdId == householdId
-               && ((t.CreditCardId == null && t.Date.Value.Month == month && t.Date.Value.Year == year)
-                || (t.CreditCardId != null && s != null && s.ClosingMonth == month && s.ClosingYear == year))
+            from x in TransactionsWithStatement(householdId).Where(InStatementMonth(month, year))
             select new
             {
-                t.CategoryId,
-                t.Type,
-                Amount = t.Amount.Amount
+                x.Transaction.CategoryId,
+                x.Transaction.Type,
+                Amount = x.Transaction.Amount.Amount
             }
         ).AsNoTracking().ToListAsync();
 

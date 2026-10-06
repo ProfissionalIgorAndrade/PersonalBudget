@@ -3,18 +3,15 @@ using PersonalBudget.Application.DTOs.Account;
 public class AccountService : IAccountService
 {
     private readonly IAccountRepository _repository;
-    private readonly ICreditCardRepository _creditCardRepository;
     private readonly IHouseholdMemberProfileRepository _profileRepository;
     private readonly ITransactionRepository _transactionRepository;
 
     public AccountService(
         IAccountRepository repository,
-        ICreditCardRepository creditCardRepository,
         IHouseholdMemberProfileRepository profileRepository,
         ITransactionRepository transactionRepository)
     {
         _repository = repository;
-        _creditCardRepository = creditCardRepository;
         _profileRepository = profileRepository;
         _transactionRepository = transactionRepository;
     }

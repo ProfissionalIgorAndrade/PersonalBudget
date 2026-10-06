@@ -7,41 +7,19 @@ public class CreditCardStatementService : ICreditCardStatementService
 
     private readonly ICreditCardRepository _creditCardRepository;
     private readonly ICreditCardStatementRepository _statementRepository;
-    private readonly IAccountRepository _accountRepository;
     private readonly ITransactionQueryRepository _transactionQueryRepository;
     private readonly ITransactionRepository _transactionRepository;
-    private readonly IHouseholdMemberProfileRepository _profileRepository;
 
     public CreditCardStatementService(
         ICreditCardRepository creditCardRepository,
         ICreditCardStatementRepository statementRepository,
-        IAccountRepository accountRepository,
         ITransactionQueryRepository transactionQueryRepository,
-        ITransactionRepository transactionRepository,
-        IHouseholdMemberProfileRepository profileRepository)
+        ITransactionRepository transactionRepository)
     {
         _creditCardRepository = creditCardRepository;
         _statementRepository = statementRepository;
-        _accountRepository = accountRepository;
         _transactionQueryRepository = transactionQueryRepository;
         _transactionRepository = transactionRepository;
-        _profileRepository = profileRepository;
-    }
-
-    public async Task<List<CreditCardStatementDto>> GetByCreditCardAsync(Guid creditCardId)
-    {
-        var statements = await _statementRepository.GetByCreditCardAsync(creditCardId);
-
-        return statements.Select(x => new CreditCardStatementDto(
-            x.Id,
-            x.CreditCardId,
-            x.PeriodStart,
-            x.PeriodEnd,
-            x.ClosingDate,
-            x.DueDate,
-            x.TotalAmount.Amount,
-            x.Status.ToString()
-        )).ToList();
     }
 
     public async Task SetReviewedAsync(Guid householdId, Guid creditCardId, Guid statementId, bool reviewed)
@@ -61,130 +39,77 @@ public class CreditCardStatementService : ICreditCardStatementService
         await _transactionRepository.BulkUpdateAsync(transactions);
     }
 
-    public async Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsAsync(Guid householdId, Guid creditCardId, int month, int year)
-    {
-        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
-        if (card is null || card.HouseholdId != householdId)
-            return null;
+    public Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsAsync(
+        Guid householdId, Guid creditCardId, int month, int year)
+        => GetStatementAsync(
+            householdId, creditCardId,
+            () => _statementRepository.GetByCreditCardAndMonthYearAsync(creditCardId, month, year));
 
-        var statement = await _statementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCardId, month, year);
-        if (statement is null)
-            return null;
+    public Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsByIdAsync(
+        Guid householdId, Guid creditCardId, Guid statementId)
+        => GetStatementAsync(
+            householdId, creditCardId,
+            () => _statementRepository.GetByIdAsync(statementId));
 
-        var transactions = await _transactionQueryRepository.GetTransactionDetailsByStatementAsync(statement.Id);
-        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
-        var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
-
-        return new StatementWithTransactionsResponse(
-            statement.Id,
-            card.Id,
-            card.Name,
-            card.Limit,
-            statement.PeriodStart,
-            statement.PeriodEnd,
-            statement.ClosingDate,
-            dueDate,
-            statement.Status.ToString(),
-            netTotal,
-            transactions
-        );
-    }
-
-    public async Task<StatementWithTransactionsResponse?> GetStatementWithTransactionsByIdAsync(Guid householdId, Guid creditCardId, Guid statementId)
-    {
-        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
-        if (card is null || card.HouseholdId != householdId)
-            return null;
-
-        var statement = await _statementRepository.GetByIdAsync(statementId);
-        if (statement is null || statement.CreditCardId != creditCardId)
-            return null;
-
-        var transactions = await _transactionQueryRepository.GetTransactionDetailsByStatementAsync(statement.Id);
-        var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
-        var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
-
-        return new StatementWithTransactionsResponse(
-            statement.Id,
-            card.Id,
-            card.Name,
-            card.Limit,
-            statement.PeriodStart,
-            statement.PeriodEnd,
-            statement.ClosingDate,
-            dueDate,
-            statement.Status.ToString(),
-            netTotal,
-            transactions
-        );
-    }
-
-    public async Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsPagedAsync(
+    public Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsPagedAsync(
         Guid householdId, Guid creditCardId, int month, int year, int page, int pageSize)
+        => GetStatementPagedAsync(
+            householdId, creditCardId,
+            () => _statementRepository.GetByCreditCardAndMonthYearAsync(creditCardId, month, year),
+            page, pageSize);
+
+    public Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsByIdPagedAsync(
+        Guid householdId, Guid creditCardId, Guid statementId, int page, int pageSize)
+        => GetStatementPagedAsync(
+            householdId, creditCardId,
+            () => _statementRepository.GetByIdAsync(statementId),
+            page, pageSize);
+
+    private async Task<StatementWithTransactionsResponse?> GetStatementAsync(
+        Guid householdId, Guid creditCardId, Func<Task<CreditCardStatement?>> loadStatement)
     {
-        if (page < 1)
-            throw new DomainException("Page must be at least 1.");
-
-        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
-        if (card is null || card.HouseholdId != householdId)
+        var resolved = await ResolveAsync(householdId, creditCardId, loadStatement);
+        if (resolved is null)
             return null;
 
-        var statement = await _statementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCardId, month, year);
-        if (statement is null)
-            return null;
+        var (card, statement) = resolved;
 
-        var (transactions, totalCount) = await _transactionQueryRepository.GetTransactionDetailsByStatementPagedAsync(
-            statement.Id, page, pageSize);
+        var transactions = await _transactionQueryRepository.GetTransactionDetailsByStatementAsync(statement.Id);
         var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
-        var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
 
-        return new PaginatedStatementWithTransactionsResponse(
+        return new StatementWithTransactionsResponse(
             statement.Id,
             card.Id,
             card.Name,
             card.Limit,
-            statement.PeriodStart,
-            statement.PeriodEnd,
-            statement.ClosingDate,
-            dueDate,
-            statement.Status.ToString(),
+            statement.DueDateFor(card.DueDay),
             netTotal,
-            transactions,
-            page,
-            pageSize,
-            totalCount
+            transactions
         );
     }
 
-    public async Task<PaginatedStatementWithTransactionsResponse?> GetStatementWithTransactionsByIdPagedAsync(
-        Guid householdId, Guid creditCardId, Guid statementId, int page, int pageSize)
+    private async Task<PaginatedStatementWithTransactionsResponse?> GetStatementPagedAsync(
+        Guid householdId, Guid creditCardId, Func<Task<CreditCardStatement?>> loadStatement, int page, int pageSize)
     {
         if (page < 1)
             throw new DomainException("Page must be at least 1.");
 
-        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
-        if (card is null || card.HouseholdId != householdId)
+        var resolved = await ResolveAsync(householdId, creditCardId, loadStatement);
+        if (resolved is null)
             return null;
 
-        var statement = await _statementRepository.GetByIdAsync(statementId);
-        if (statement is null || statement.CreditCardId != creditCardId)
-            return null;
+        var (card, statement) = resolved;
 
         var (transactions, totalCount) = await _transactionQueryRepository.GetTransactionDetailsByStatementPagedAsync(
             statement.Id, page, pageSize);
         var netTotal = await _transactionQueryRepository.GetStatementNetTotalAsync(statement.Id);
-        var dueDate = ComputeDueDate(statement.ClosingDate, card.ClosingDay, card.DueDay);
 
         return new PaginatedStatementWithTransactionsResponse(
             statement.Id,
             card.Id,
             card.Name,
             card.Limit,
-            statement.PeriodStart,
-            statement.PeriodEnd,
-            statement.ClosingDate,
-            dueDate,
-            statement.Status.ToString(),
+            statement.DueDateFor(card.DueDay),
             netTotal,
             transactions,
             page,
@@ -194,30 +119,22 @@ public class CreditCardStatementService : ICreditCardStatementService
     }
 
     /// <summary>
-    /// Estorna o pagamento de uma fatura paga: reverte as transações para pendente
-    /// e muda o status para Fechada (Paid → Closed).
-    /// Quando PaidFromAccountId está registrado, também credita o valor na conta de origem
-    /// e cria um lançamento de estorno visível.
+    /// Carrega o cartão do lar e a fatura que pertence a ele.
+    /// Devolve null quando o cartão não é do lar ou a fatura não existe para o cartão.
     /// </summary>
-    private static DateTime ComputeDueDate(DateTime closingDate, int closingDay, int dueDay)
+    private async Task<ResolvedStatement?> ResolveAsync(
+        Guid householdId, Guid creditCardId, Func<Task<CreditCardStatement?>> loadStatement)
     {
-        var year = closingDate.Year;
-        var month = closingDate.Month;
-        int dueYear, dueMonth;
-        if (dueDay >= closingDay)
-        {
-            dueYear = year;
-            dueMonth = month;
-        }
-        else
-        {
-            dueMonth = month + 1;
-            dueYear = year;
-            if (dueMonth > 12) { dueMonth = 1; dueYear++; }
-        }
-        var maxDay = DateTime.DaysInMonth(dueYear, dueMonth);
-        var day = Math.Min(dueDay, maxDay);
-        return DateTime.SpecifyKind(new DateTime(dueYear, dueMonth, day), DateTimeKind.Utc);
+        var card = await _creditCardRepository.GetByIdAsync(creditCardId);
+        if (card is null || card.HouseholdId != householdId)
+            return null;
+
+        var statement = await loadStatement();
+        if (statement is null || statement.CreditCardId != creditCardId)
+            return null;
+
+        return new ResolvedStatement(card, statement);
     }
 
+    private sealed record ResolvedStatement(CreditCard Card, CreditCardStatement Statement);
 }

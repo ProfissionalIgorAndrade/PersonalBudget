@@ -118,8 +118,8 @@ public class TransactionRepository : ITransactionRepository
             return new Dictionary<Guid, decimal>();
 
         return await _context.Transactions
-            .Where(t => ids.Contains(t.AccountId))
-            .GroupBy(t => t.AccountId)
+            .Where(t => t.AccountId != null && ids.Contains(t.AccountId.Value))
+            .GroupBy(t => t.AccountId!.Value)
             .Select(g => new
             {
                 AccountId = g.Key,

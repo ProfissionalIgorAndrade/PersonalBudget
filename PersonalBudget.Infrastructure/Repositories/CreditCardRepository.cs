@@ -32,13 +32,6 @@ public class CreditCardRepository : ICreditCardRepository
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    public async Task<CreditCard?> GetByIdWithStatementsAsync(Guid id)
-    {
-        return await _context.CreditCards
-            .Include(c => c.Statements)
-            .FirstOrDefaultAsync(c => c.Id == id);
-    }
-
     public async Task<IEnumerable<CreditCard>> GetByHouseholdAsync(Guid householdId)
     {
         return await _context.CreditCards
@@ -67,18 +60,5 @@ public class CreditCardRepository : ICreditCardRepository
 
         _context.CreditCards.UpdateRange(creditCards);
         await SaveChangesAsync();
-    }
-
-    public async Task DeactivateByAccountIdAsync(Guid accountId)
-    {
-        var creditCards = await _context.CreditCards
-            .Where(c => c.AccountId == accountId && c.IsActive)
-            .ToListAsync();
-
-        foreach (var card in creditCards)
-            card.Deactivate();
-
-        if (creditCards.Count > 0)
-            await _context.SaveChangesAsync();
     }
 }

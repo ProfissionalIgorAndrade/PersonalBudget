@@ -57,7 +57,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
             command.UserId,
             command.HouseholdId,
             command.AttributionProfileId!.Value,
-            creditCard.AccountId,
+            accountId: null,
             new Money(command.Amount),
             command.Type,
             PaymentMethod.CreditCard,
@@ -120,7 +120,7 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
                 command.UserId,
                 command.HouseholdId,
                 command.AttributionProfileId!.Value,
-                creditCard.AccountId,
+                accountId: null,
                 new Money(installmentAmount),
                 command.Type,
                 PaymentMethod.CreditCard,
@@ -152,17 +152,16 @@ public class CreditCardTransactionCreationStrategy : TransactionCreationStrategy
         Money amount,
         TransactionType transactionType)
     {
-        var statement = await _creditCardStatementRepository.GetByCreditCardAndClosingMonthYearAsync(creditCard.Id, month, year);
+        var statement = await _creditCardStatementRepository.GetByCreditCardAndMonthYearAsync(creditCard.Id, month, year);
 
         if (statement is null)
         {
-            statement = CreditCardStatement.CreateForMonth(creditCard.Id, month, year, creditCard.ClosingDay, creditCard.DueDay);
+            statement = CreditCardStatement.Create(creditCard.Id, month, year);
             statement.AddTransaction(amount, transactionType);
             await _creditCardStatementRepository.AddAsync(statement);
         }
         else
         {
-            // AddTransaction já lança exceção se a fatura não estiver Open
             statement.AddTransaction(amount, transactionType);
             await _creditCardStatementRepository.UpdateAsync(statement);
         }

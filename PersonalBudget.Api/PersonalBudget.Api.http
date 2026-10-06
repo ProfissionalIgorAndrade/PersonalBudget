@@ -126,10 +126,8 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-  "accountId": "{{accountId}}",
   "name": "Visa Platinum",
   "limit": 12000,
-  "closingDay": 10,
   "dueDay": 29
 }
 
@@ -149,7 +147,6 @@ Content-Type: application/json
 {
   "name": "Visa Platinum",
   "limit": 3500,
-  "closingDay": 5,
   "dueDay": 31
 }
 
@@ -207,9 +204,10 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-  "AccountId": "{{accountId}}",
   "CategoryId": "{{categoryId}}",
   "CreditCardId": "{{creditCardId}}",
+  "statementMonth": 2,
+  "statementYear": 2026,
   "type": "Expense",
   "frequency": "Variable",
   "paymentMethod": "CreditCard",

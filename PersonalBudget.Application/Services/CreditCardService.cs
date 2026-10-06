@@ -1,30 +1,19 @@
 public class CreditCardService : ICreditCardService
 {
     private readonly ICreditCardRepository _repository;
-    private readonly IAccountRepository _accountRepository;
 
-    public CreditCardService(
-        ICreditCardRepository repository,
-        IAccountRepository accountRepository)
+    public CreditCardService(ICreditCardRepository repository)
     {
         _repository = repository;
-        _accountRepository = accountRepository;
     }
 
     public async Task<Guid> CreateAsync(CreateCreditCardCommand command)
     {
-        var account = await _accountRepository.GetByIdAsync(command.AccountId);
-
-        if (account is null || account.HouseholdId != command.HouseholdId)
-            throw new DomainException("Conta não encontrada.");
-
         var creditCard = CreditCard.Create(
             command.UserId,
             command.HouseholdId,
-            command.AccountId,
             command.Name,
             command.Limit,
-            command.ClosingDay,
             command.DueDay,
             command.Color,
             command.MemberId
@@ -49,10 +38,8 @@ public class CreditCardService : ICreditCardService
         creditCard.Update(
             command.Name,
             command.Limit,
-            command.ClosingDay,
             command.DueDay,
             command.Color,
-            command.AccountId,
             command.MemberId
         );
 

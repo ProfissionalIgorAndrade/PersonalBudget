@@ -27,48 +27,19 @@ public class CreditCardStatementRepository : ICreditCardStatementRepository
         await SaveChangesAsync();
     }
 
-    public async Task<CreditCardStatement?> GetOpenStatementForDateAsync(Guid creditCardId, DateTime date)
-    {
-        var d = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
-        return await _context.CreditCardStatements
-            .FirstOrDefaultAsync(x =>
-                x.CreditCardId == creditCardId &&
-                x.PeriodStart <= d &&
-                x.PeriodEnd >= d &&
-                x.Status == BillStatus.Open);
-    }
-
-    public async Task<CreditCardStatement?> GetByCreditCardAndContainingDateAsync(Guid creditCardId, DateTime date)
-    {
-        var d = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
-        return await _context.CreditCardStatements
-            .FirstOrDefaultAsync(x =>
-                x.CreditCardId == creditCardId &&
-                x.PeriodStart <= d &&
-                x.PeriodEnd >= d);
-    }
-
     public async Task<CreditCardStatement?> GetByIdAsync(Guid id)
     {
         return await _context.CreditCardStatements
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
-    public async Task<CreditCardStatement?> GetByCreditCardAndClosingMonthYearAsync(Guid creditCardId, int month, int year)
+    public async Task<CreditCardStatement?> GetByCreditCardAndMonthYearAsync(Guid creditCardId, int month, int year)
     {
         return await _context.CreditCardStatements
             .FirstOrDefaultAsync(x =>
                 x.CreditCardId == creditCardId &&
-                x.ClosingMonth == month &&
-                x.ClosingYear == year);
-    }
-
-    public async Task<List<CreditCardStatement>> GetByCreditCardAsync(Guid creditCardId)
-    {
-        return await _context.CreditCardStatements
-            .Where(x => x.CreditCardId == creditCardId)
-            .OrderByDescending(x => x.PeriodStart)
-            .ToListAsync();
+                x.StatementMonth == month &&
+                x.StatementYear == year);
     }
 
     public async Task SaveChangesAsync()
