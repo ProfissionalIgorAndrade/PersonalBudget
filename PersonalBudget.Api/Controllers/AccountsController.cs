@@ -33,8 +33,7 @@ public class AccountsController : ControllerBase
             userId,
             householdId,
             request.Bank,
-            request.Agency,
-            request.AccountNumber,
+            request.Name,
             request.MemberId
         );
 
@@ -162,8 +161,7 @@ public class AccountsController : ControllerBase
             householdId,
             accountId,
             request.Bank,
-            request.Agency,
-            request.AccountNumber,
+            request.Name,
             request.MemberId
         );
 

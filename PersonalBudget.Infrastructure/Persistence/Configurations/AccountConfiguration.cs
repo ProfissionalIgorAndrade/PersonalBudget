@@ -27,24 +27,6 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsRequired()
             .HasConversion<int>();
 
-        // 🔹 Agency (Value Object)
-        builder.OwnsOne(a => a.Agency, agency =>
-        {
-            agency.Property(a => a.Value)
-                .HasColumnName("agency_number")
-                .HasMaxLength(20)
-                .IsRequired();
-        });
-
-        // 🔹 Account Number (Value Object)
-        builder.OwnsOne(a => a.Number, number =>
-        {
-            number.Property(n => n.Value)
-                .HasColumnName("account_number")
-                .HasMaxLength(20)
-                .IsRequired();
-        });
-
         builder.Property(a => a.CreatedAt)
             .IsRequired();
 
@@ -61,7 +43,7 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.Property(a => a.Name)
             .HasColumnName("name")
-            .HasMaxLength(80);
+            .HasMaxLength(Account.NameMaxLength);
 
         builder.Property(a => a.SavingsGoal)
             .HasColumnName("savings_goal")

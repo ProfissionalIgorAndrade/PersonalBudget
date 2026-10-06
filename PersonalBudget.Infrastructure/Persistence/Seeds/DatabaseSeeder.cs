@@ -54,8 +54,7 @@ public static class DatabaseSeeder
             userId: igor.Id,
             householdId: hId,
             bank: Bank.Nubank,
-            agency: new BankAgency("0001"),
-            number: new BankAccountNumber("123456-7"),
+            name: null,
             memberProfileId: profileIgor.Id
         );
 
@@ -63,8 +62,7 @@ public static class DatabaseSeeder
             userId: igor.Id,
             householdId: hId,
             bank: Bank.Itau,
-            agency: new BankAgency("1301"),
-            number: new BankAccountNumber("889922-3"),
+            name: null,
             memberProfileId: profileIgor.Id
         );
 
@@ -72,8 +70,7 @@ public static class DatabaseSeeder
             userId: andreza.Id,
             householdId: hId,
             bank: Bank.Inter,
-            agency: new BankAgency("0001"),
-            number: new BankAccountNumber("98765-0"),
+            name: null,
             memberProfileId: profileAndreza.Id
         );
 

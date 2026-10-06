@@ -3,7 +3,6 @@ public record UpdateAccountCommand(
     Guid HouseholdId,
     Guid AccountId,
     Bank Bank,
-    string Agency,
-    string AccountNumber,
+    string? Name,
     Guid? MemberId
 );
