@@ -45,7 +45,7 @@ public class TransactionReviewedTests(IntegrationTestFactory factory)
             new { bank = "Nubank", memberId = profileId });
 
         var cardId = await CreateAndGetIdAsync(client, "/api/credit-cards",
-            new { accountId, name = "Cartao", limit = 5000m, closingDay = 25, dueDay = 5, memberId = profileId });
+            new { name = "Cartao", limit = 5000m, dueDay = 5, memberId = profileId });
 
         return new Scenario(client, accountId, cardId, categoryId, profileId);
     }
@@ -84,7 +84,6 @@ public class TransactionReviewedTests(IntegrationTestFactory factory)
     private static Task<Guid> CreateCardTransactionAsync(Scenario s, string description) =>
         CreateAndGetIdAsync(s.Client, "/api/transactions", new
         {
-            accountId = s.AccountId,
             categoryId = s.CategoryId,
             creditCardId = s.CardId,
             type = "Expense",

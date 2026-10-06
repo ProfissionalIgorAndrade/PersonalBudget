@@ -235,4 +235,51 @@ public class AccountsTests(IntegrationTestFactory factory)
             row.GetProperty("accountId").GetGuid().Should().Be(accountId);
         }
     }
+
+    [Fact]
+    public async Task CardPurchase_DoesNotChangeBalanceNorAppearInAccountTransactions()
+    {
+        var s = await CreateScenarioAsync();
+        var accountId = await PostAndGetIdAsync(s.Client, "/api/accounts",
+            new { bank = "Nubank", memberId = s.ProfileId });
+        var categoryId = await PostAndGetIdAsync(s.Client, "/api/categories",
+            new { name = "Mercado", type = "Expense" });
+        var cardId = await PostAndGetIdAsync(s.Client, "/api/credit-cards",
+            new { name = "Cartao", limit = 5000m, dueDay = 10, memberId = s.ProfileId });
+
+        await PostAndGetIdAsync(s.Client, "/api/transactions", new
+        {
+            accountId,
+            categoryId,
+            type = "Income",
+            frequency = "Variable",
+            paymentMethod = "Account",
+            amount = 200m,
+            date = "05/10/2026",
+            description = "Entrada",
+            attributionProfileId = s.ProfileId
+        });
+        var purchaseId = await PostAndGetIdAsync(s.Client, "/api/transactions", new
+        {
+            categoryId,
+            creditCardId = cardId,
+            type = "Expense",
+            frequency = "Variable",
+            paymentMethod = "CreditCard",
+            amount = 80m,
+            date = "05/10/2026",
+            description = "Compra cartao",
+            statementMonth = 10,
+            statementYear = 2026,
+            attributionProfileId = s.ProfileId
+        });
+
+        var account = await GetAccountAsync(s, accountId);
+        account.GetProperty("balance").GetDecimal().Should().Be(200m);
+
+        var byAccount = await GetDataAsync(
+            await s.Client.GetAsync($"/api/accounts/{accountId}/transactions?month=10&year=2026"));
+        byAccount.EnumerateArray()
+            .Should().NotContain(t => t.GetProperty("id").GetGuid() == purchaseId);
+    }
 }
