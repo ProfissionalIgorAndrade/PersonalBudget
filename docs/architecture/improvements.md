@@ -126,16 +126,9 @@ modelBuilder.Entity<Transaction>().HasQueryFilter(t => !t.IsDeleted);
 
 **Locais de atencao:**
 - `TransactionQueryRepository` — verificar uso de `.Include()` em queries de listagem
-- `CreditCardRepository` — statements sao carregados como navigation property `_statements`
 
 **Solucao recomendada:**
 ```csharp
-// Usar Include/ThenInclude onde necessario
-dbContext.CreditCards
-    .Include(c => c._statements.Where(s => s.Status == BillStatus.Open))
-    .Where(c => c.HouseholdId == householdId)
-    .ToListAsync();
-
 // Para queries de leitura pesadas, usar projecoes com Select (evita carregar entidade completa)
 dbContext.Transactions
     .Where(t => t.HouseholdId == householdId)
