@@ -350,13 +350,12 @@ package "Aggregate: Account" #LightYellow {
         +UserId: Guid
         +HouseholdId: Guid
         +Bank: Bank
-        +Agency: BankAgency
-        +Number: BankAccountNumber
+        +Name: string?
         +Balance: Money
         +IsActive: bool
         +CreatedAt: DateTime
         --
-        +UpdateBankInfo(...)
+        +UpdateOwnership(...)
         +Deactivate()
         +Credit(amount)
         +Debit(amount)
@@ -368,12 +367,6 @@ package "Aggregate: Account" #LightYellow {
         +Add(other): Money
         +Subtract(other): Money
     }
-    class BankAgency <<ValueObject>> {
-        +Value: string
-    }
-    class BankAccountNumber <<ValueObject>> {
-        +Value: string
-    }
     enum Bank {
         Itau
         Nubank
@@ -383,8 +376,6 @@ package "Aggregate: Account" #LightYellow {
         Caixa
     }
     Account *-- Money
-    Account *-- BankAgency
-    Account *-- BankAccountNumber
     Account --> Bank
 }
 

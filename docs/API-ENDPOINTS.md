@@ -216,8 +216,8 @@ Autenticado + `X-Household-Id` (opcional, conforme regra global).
 | Campo | Tipo |
 |-------|------|
 | `bank` | `Bank` (string enum) |
-| `agency` | string |
-| `accountNumber` | string |
+| `memberId` | guid |
+| `name` | string \| null (apelido opcional, máx. 80; vazio = sem apelido) |
 | `initialBalance` | decimal |
 
 **Resposta:** 201 com `data`: `{ "id": guid }`.
@@ -228,7 +228,9 @@ Autenticado + `X-Household-Id` (opcional, conforme regra global).
 
 Lista contas do lar.
 
-**Resposta `data`:** array de entidades `Account` (serializadas): `id`, `userId`, `householdId`, `bank`, `agency`, `number`, `balance`, `createdAt`, `isActive`, etc. (value objects podem aparecer aninhados conforme serialização).
+**Resposta `data`:** array de `AccountResponse`: `id`, `bank`, `balance`, `memberProfileId`, `memberName`, `displayName`, `isActive`, `createdAt`, `kind`, `parentAccountId`, `name` (apelido da conta corrente ou nome da caixinha), `savingsGoal`. Não há `agency` nem `accountNumber`.
+
+`displayName`: caixinha = `name` ou "Caixinha"; conta corrente = (`name` ou banco) + ` - {membro}` quando há membro.
 
 ---
 
@@ -267,8 +269,8 @@ Transações da conta no mês/ano; **exclui** lançamentos de `PaymentMethod.Cre
 | Campo | Tipo |
 |-------|------|
 | `bank` | `Bank` |
-| `agency` | string |
-| `accountNumber` | string |
+| `memberId` | guid \| null |
+| `name` | string \| null (apelido; vazio remove na conta corrente) |
 
 **Resposta `data`:** `null`.
 
@@ -492,7 +494,6 @@ Todas as transações do lar (lista).
 |-------|------|
 | `id` | guid |
 | `accountId` | guid |
-| `accountName` | string |
 | `categoryId` | guid \| null |
 | `categoryName` | string \| null |
 | `categoryType` | string \| null |
