@@ -19,7 +19,7 @@ public class SimulationTests
         Simulation.Create(Household, Owner, description, type, mode, startMonth, amount, kind, installments, months);
 
     private static void ShouldFail(Func<Simulation> act, string messagePart) =>
-        act.Should().Throw<DomainException>().Which.Message.Should().Contain(messagePart);
+        act.Should().Throw<DomainException>().Which.Message.Should().ContainEquivalentOf(messagePart);
 
     [Fact]
     public void Create_Single_SetsFieldsAndServerGeneratedId()
