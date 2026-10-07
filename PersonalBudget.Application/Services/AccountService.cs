@@ -281,6 +281,9 @@ public class AccountService : IAccountService
         if (account is null || account.HouseholdId != command.HouseholdId)
             throw new DomainException("Conta não encontrada.");
 
+        if (account.Kind == AccountKind.Savings)
+            throw new DomainException("Para excluir uma caixinha, informe o motivo na exclusão de caixinha.");
+
         account.Deactivate();
 
         await _repository.UpdateAsync(account);

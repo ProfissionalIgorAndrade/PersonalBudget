@@ -331,6 +331,19 @@ public class SavingsBoxDeleteTests(IntegrationTestFactory factory)
     }
 
     [Fact]
+    public async Task GenericAccountDelete_OnSavingsBox_ReturnsBadRequestAndKeepsBox()
+    {
+        var s = await CreateScenarioAsync();
+        var box = await CreateBoxAsync(s, "Viagem");
+
+        var response = await s.Client.DeleteAsync($"/api/accounts/{box}");
+
+        await ShouldBeBadRequestAsync(response, "motivo");
+        (await GetEventsAsync(s.Client)).Count(e => e.GetProperty("kind").GetString() == "Deleted")
+            .Should().Be(0);
+    }
+
+    [Fact]
     public async Task Delete_SameBoxTwice_SecondCallReturnsBadRequest()
     {
         var s = await CreateScenarioAsync();
