@@ -1,1 +1,1 @@
-public record CreateSavingsBoxCommand(Guid HouseholdId, Guid ParentAccountId, string Name);
+public record CreateSavingsBoxCommand(Guid HouseholdId, Guid UserId, Guid ParentAccountId, string Name);

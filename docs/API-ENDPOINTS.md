@@ -282,6 +282,48 @@ Transações da conta no mês/ano; **exclui** lançamentos de `PaymentMethod.Cre
 
 ---
 
+### `DELETE /api/accounts/savings-boxes/{accountId}`
+
+Exclui uma caixinha (ela fica inativa e some de `GET /api/accounts`). **Tem corpo JSON**, como `DELETE /api/transactions/{id}/recurring`.
+
+**Body:**
+
+| Campo | Tipo |
+|-------|------|
+| `reason` | string (obrigatório; trim; máx. 200). Vira a observação dos lançamentos gerados |
+| `destinationAccountId` | guid \| null (caixinha que recebe o saldo) |
+
+**Regras:**
+
+- Só caixinha ativa do lar; senão 400.
+- Saldo > 0: `destinationAccountId` é obrigatório e deve ser **outra** caixinha ativa do mesmo lar (nunca a própria nem conta corrente); senão 400. O saldo inteiro é resgatado da origem e depositado no destino, ambos como `PaymentMethod.Savings` (fora de receita e despesa).
+- Saldo = 0: `destinationAccountId` é ignorado.
+- Grava o evento `Deleted` (veja abaixo). A gravação **não é uma única transação**: tudo é validado antes, mas uma falha de banco no meio pode deixar o saldo já movido com a caixinha ainda ativa.
+
+**Resposta `data`:** `null`.
+
+---
+
+### `GET /api/accounts/savings-box-events`
+
+Histórico de criação e exclusão de caixinhas do lar, do mais recente ao mais antigo. Caixinhas criadas antes desta funcionalidade não têm evento `Created`.
+
+**Resposta `data`:** array de:
+
+| Campo | Tipo |
+|-------|------|
+| `id` | guid |
+| `kind` | `"Created"` \| `"Deleted"` |
+| `accountId` | guid (a caixinha) |
+| `boxName` | string (nome na hora do evento) |
+| `reason` | string \| null (só em `Deleted`) |
+| `amount` | decimal (saldo movido; 0 em `Created`) |
+| `destinationAccountId` | guid \| null |
+| `destinationName` | string \| null (nome do destino na hora da exclusão) |
+| `occurredAt` | datetime UTC |
+
+---
+
 ## 4. Categorias — `api/categories`
 
 ### `POST /api/categories`
