@@ -649,6 +649,13 @@ Regra de parcela (`Installment`): `PerInstallment` usa `amount` em cada parcela;
 - **Mês de referência**: lançamentos de conta com data até `today` já estão no saldo de partida, então não entram de novo no fluxo (mas contam como "já lançado" para reduzir as estimativas). Entram: a fatura inteira do cartão do mês, lançamentos de conta com data depois de `today` e o restante estimado.
 - Cenário = baseline + todos os impactos enviados.
 
+**`fullMonth`** (`{ income, expense, result }`, aditivo): o mês inteiro, e não o fluxo restante. Sempre sem `Transfer` e `Savings`.
+
+- **Meses depois do de referência**: igual aos campos acima: `income = income`, `expense = committed + variable`, `result = income - expense`.
+- **Mês de referência**: inclui também o que já foi lançado até `today` (lançamentos de conta com data até hoje e a fatura do cartão), que `income`, `committed` e `variable` deixam de fora por já estarem no saldo de partida. `income = lançado + max(0, averageIncome - lançado)` (ou seja, `max(lançado, média)`); `expense = comprometido lançado + variável lançado + max(0, averageVariableExpense - variável lançado)`; `result = income - expense`. Aqui "lançado" soma todas as linhas do mês, inclusive as de data até `today`.
+- Sem histórico, a média é `null` e a estimativa é 0.
+- `balance` e o restante dos campos continuam sendo o fluxo restante a partir do saldo de partida; `fullMonth` não entra no saldo corrido.
+
 **Limites e premissas:** despesas fixas futuras só existem até onde foram lançadas; a estimativa variável usa a média de 3 meses e inclui compras grandes pontuais; compra de cartão sai no mês da fatura; o mês atual é parcial; receita de cartão (estorno) conta como receita do mês da fatura.
 
 **Erros:** `400` com envelope `{ success: false, message }` quando: horizonte fora de 1..24, mais de 50 impactos, `today` ou `startMonth` inválidos, `amount` ≤ 0, `installments` fora de 1..120, `months` do impacto fora de 0..120, descrição acima de 120 caracteres. A mensagem diz qual impacto falhou, ex.: `Impacto #2 ("Viagem"): o valor deve ser maior que zero.` Enum desconhecido (`type`, `mode`, `amountKind`) ou corpo ausente também retornam `400` (validação padrão do ASP.NET, corpo no formato `ProblemDetails`).

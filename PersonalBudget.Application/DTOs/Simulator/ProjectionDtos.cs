@@ -105,7 +105,18 @@ public record BaselineMonthDto(
     decimal Committed,
     decimal Variable,
     decimal Result,
-    decimal Balance
+    decimal Balance,
+    FullMonthDto FullMonth
+);
+
+/// <summary>
+/// Mês de calendário inteiro (mês da fatura para cartão), sem descontar o que já está no saldo de partida.
+/// Nos meses futuros é igual a <c>Income</c>, <c>Committed + Variable</c> e <c>Result</c> do baseline.
+/// </summary>
+public record FullMonthDto(
+    decimal Income,
+    decimal Expense,
+    decimal Result
 );
 
 /// <param name="Monthly">Valores assinados (receita positiva, despesa negativa), alinhados ao horizonte.</param>

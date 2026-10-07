@@ -53,8 +53,15 @@ public static class ProjectionBuilder
             var result = income - committed - variable;
             running += result;
 
+            // Mês inteiro: soma tudo o que é do mês (inclusive o que já está no saldo de partida) e
+            // completa receita e gasto variável até a média. Nos meses futuros coincide com o fluxo acima.
+            var fullIncome = Posted(IsIncome) + Math.Max(0m, (avgIncome ?? 0m) - Posted(IsIncome));
+            var fullExpense = Posted(IsCommitted) + Posted(IsVariable)
+                + Math.Max(0m, (avgVariable ?? 0m) - Posted(IsVariable));
+            var fullMonth = new FullMonthDto(fullIncome, fullExpense, fullIncome - fullExpense);
+
             baseline.Add(new BaselineMonthDto(
-                month.Year, month.Month, month.Label, income, committed, variable, result, running));
+                month.Year, month.Month, month.Label, income, committed, variable, result, running, fullMonth));
         }
 
         // ─── impacts ───
