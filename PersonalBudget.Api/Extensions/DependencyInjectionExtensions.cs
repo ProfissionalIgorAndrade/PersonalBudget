@@ -22,6 +22,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<ITransactionQueryRepository, TransactionQueryRepository>();
         services.AddScoped<ICreditCardStatementRepository, CreditCardStatementRepository>();
+        services.AddScoped<ISimulationRepository, SimulationRepository>();
 
         services.AddScoped<IActiveHouseholdResolver, ActiveHouseholdResolver>();
         services.AddScoped<IHouseholdProvisioningService, HouseholdProvisioningService>();
@@ -37,6 +38,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICreditCardImportService, CreditCardImportService>();
         services.AddScoped<ISimulatorService, SimulatorService>();
         services.AddScoped<IProjectionService, ProjectionService>();
+        services.AddScoped<ISimulationService, SimulationService>();
 
         // Transaction creation strategies
         services.AddScoped<ITransactionCreationStrategy, AccountTransactionCreationStrategy>();
