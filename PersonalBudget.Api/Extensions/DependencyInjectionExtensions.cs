@@ -23,6 +23,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ITransactionQueryRepository, TransactionQueryRepository>();
         services.AddScoped<ICreditCardStatementRepository, CreditCardStatementRepository>();
         services.AddScoped<ISimulationRepository, SimulationRepository>();
+        services.AddScoped<ISavingsBoxEventRepository, SavingsBoxEventRepository>();
 
         services.AddScoped<IActiveHouseholdResolver, ActiveHouseholdResolver>();
         services.AddScoped<IHouseholdProvisioningService, HouseholdProvisioningService>();

@@ -49,7 +49,7 @@ public class AccountsController : ControllerBase
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
         var id = await _service.CreateSavingsBoxAsync(
-            new CreateSavingsBoxCommand(householdId, request.ParentAccountId, request.Name));
+            new CreateSavingsBoxCommand(householdId, userId, request.ParentAccountId, request.Name));
 
         return CreatedAtAction(nameof(GetAll), new { id }, ApiResponse<object>.Ok(new { Id = id }, "Caixinha criada."));
     }
@@ -96,6 +96,31 @@ public class AccountsController : ControllerBase
 
         await _service.WithdrawFromSavingsBoxAsync(new WithdrawFromSavingsBoxCommand(householdId, accountId, request.Amount, request.Reason));
         return Ok(ApiResponse<object?>.Ok(null, "Saque realizado."));
+    }
+
+    /// <summary>
+    /// Exclui a caixinha com motivo obrigatório. Com saldo positivo, move tudo para a caixinha de destino.
+    /// </summary>
+    [HttpDelete("savings-boxes/{accountId:guid}")]
+    public async Task<IActionResult> DeleteSavingsBox(Guid accountId, [FromBody] DeleteSavingsBoxRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        await _service.DeleteSavingsBoxAsync(new DeleteSavingsBoxCommand(
+            householdId, userId, accountId, request.Reason, request.DestinationAccountId));
+        return Ok(ApiResponse<object?>.Ok(null, "Caixinha excluída."));
+    }
+
+    /// <summary>Histórico de criação e exclusão de caixinhas do lar, do mais recente ao mais antigo.</summary>
+    [HttpGet("savings-box-events")]
+    public async Task<IActionResult> GetSavingsBoxEvents()
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+
+        var events = await _service.ListSavingsBoxEventsAsync(householdId);
+        return Ok(ApiResponse<object>.Ok(events));
     }
 
     [HttpGet]
