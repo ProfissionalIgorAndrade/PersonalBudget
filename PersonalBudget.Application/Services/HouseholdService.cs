@@ -15,6 +15,7 @@ public class HouseholdService : IHouseholdService
     private readonly ICategoryRepository _categories;
     private readonly ICreditCardRepository _creditCards;
     private readonly ITransactionRepository _transactions;
+    private readonly ISimulationRepository _simulations;
 
     public HouseholdService(
         IHouseholdRepository households,
@@ -26,7 +27,8 @@ public class HouseholdService : IHouseholdService
         IAccountRepository accounts,
         ICategoryRepository categories,
         ICreditCardRepository creditCards,
-        ITransactionRepository transactions)
+        ITransactionRepository transactions,
+        ISimulationRepository simulations)
     {
         _households = households;
         _memberships = memberships;
@@ -38,6 +40,7 @@ public class HouseholdService : IHouseholdService
         _categories = categories;
         _creditCards = creditCards;
         _transactions = transactions;
+        _simulations = simulations;
     }
 
     public async Task<IReadOnlyList<HouseholdListItemDto>> ListForUserAsync(Guid userId)
@@ -156,6 +159,12 @@ public class HouseholdService : IHouseholdService
                 c.ReassignUserId(uMerge);
             if (cards.Count > 0)
                 await _creditCards.BulkUpdateAsync(cards);
+
+            var simulations = (await _simulations.GetAllByHouseholdAndOwnerAsync(householdId, uRemove)).ToList();
+            foreach (var sim in simulations)
+                sim.ReassignOwner(uMerge);
+            if (simulations.Count > 0)
+                await _simulations.BulkUpdateAsync(simulations);
         }
 
         await _profiles.RemoveAsync(removeProfile);
@@ -290,6 +299,14 @@ public class HouseholdService : IHouseholdService
             c.RelocateToHousehold(targetHouseholdId);
         if (cards.Count > 0)
             await _creditCards.BulkUpdateAsync(cards);
+
+        // Sem este bloco as simulações ficariam órfãs no lar de origem, que é removido no fim.
+        // O dono (OwnerUserId) não muda: o usuário que aceita o convite é o mesmo.
+        var simulations = (await _simulations.GetAllByHouseholdAsync(sourceHouseholdId)).ToList();
+        foreach (var sim in simulations)
+            sim.RelocateToHousehold(targetHouseholdId);
+        if (simulations.Count > 0)
+            await _simulations.BulkUpdateAsync(simulations);
 
         var txs = (await _transactions.GetByHouseholdAsync(sourceHouseholdId)).ToList();
         foreach (var t in txs)
