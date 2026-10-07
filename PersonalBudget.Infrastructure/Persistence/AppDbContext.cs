@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<CreditCardStatement> CreditCardStatements => Set<CreditCardStatement>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Simulation> Simulations => Set<Simulation>();
+    public DbSet<SavingsBoxEvent> SavingsBoxEvents => Set<SavingsBoxEvent>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
