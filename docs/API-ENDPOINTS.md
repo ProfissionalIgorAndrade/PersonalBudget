@@ -598,6 +598,8 @@ Atualiza apenas o status.
 
 Todos os endpoints são autenticados e usam o lar ativo (`X-Household-Id`). Nenhum persiste dados: o servidor não guarda cenários.
 
+> As simulações salvas ficam em `api/simulations` (seção 8). `POST /api/simulator/calculate` e `POST /api/simulator/projection` continuam sem uso desse armazenamento: recebem os impactos no corpo e não leem nada salvo.
+
 ### `POST /api/simulator/projection`
 
 Projeta saldo e fluxo mês a mês a partir do saldo real das contas correntes, somando ao baseline os impactos enviados. Tudo é calculado em SQL agregado (nunca carrega o mês inteiro em memória).
@@ -681,6 +683,76 @@ POST /api/simulator/projection
 > **Legado — será removido** quando o frontend migrar para `POST /api/simulator/projection`. Não use em telas novas: parte de saldo zero, repete o mês atual igual por N meses e usa agregados que ainda incluem transferências e movimentos de caixinha.
 
 Query `months` (1 a 24, padrão 6). Body: `{ scenarioName, impacts: [{ description, amount, type, mode, startDate, installmentCount }] }`.
+
+---
+
+## 8. Simulações salvas — `api/simulations`
+
+Simulações "E se...?" guardadas no servidor, **por lar**. Todo membro do lar ativo (`X-Household-Id`) vê todas as simulações do lar; quem cria é o **dono**, e **só o dono edita ou apaga**. O liga/desliga de cada simulação é pessoal e fica só no cliente (nunca vai para o servidor). Todos os endpoints são autenticados.
+
+**Item** (`data` de `GET`): `id`, `description`, `type`, `mode`, `startMonth`, `amount`, `amountKind`, `installments`, `months`, `ownerUserId`, `ownerName`, `isOwner`, `createdAt`, `updatedAt`.
+
+- `type`: `Income` \| `Expense`. `mode`: `Single` \| `Installment` \| `Monthly`. `amountKind`: `PerInstallment` \| `Total` (strings).
+- `ownerName`: nome do perfil vinculado do dono no lar; se não houver, o nome do usuário; senão `"Membro"`. Nomes podem repetir: use `ownerUserId` para identificar o dono. `isOwner` é `true` quando o dono é o usuário autenticado.
+- Ordem: `createdAt` crescente e, em empate, `id`. Estável entre aparelhos.
+- `installments` só vem preenchido em `Installment`; `months` só em `Monthly` (`null` = até o fim do horizonte).
+
+**Body** de `POST` e `PUT /{id}` (e de cada item de `import`):
+
+| Campo | Tipo | Notas |
+|-------|------|--------|
+| `description` | string \| null | Até **120** caracteres (após trim); vazio é aceito |
+| `type` | string | `Income` ou `Expense` |
+| `mode` | string | `Single`, `Installment` ou `Monthly` |
+| `startMonth` | string | `yyyy-MM`, ano de **2000 a 2100** |
+| `amount` | decimal | **> 0** |
+| `amountKind` | string \| null | Omitido = `PerInstallment` |
+| `installments` | int \| null | **Obrigatório, 1 a 120**, em `Installment`; ignorado nos demais modos |
+| `months` | int \| null | Só em `Monthly`: **0 a 120**; `null`/`0` = até o fim do horizonte; ignorado nos demais modos |
+
+### `GET /api/simulations`
+
+Lista as simulações do lar ativo. **Resposta `data`:** array de itens (acima).
+
+### `POST /api/simulations`
+
+Cria uma simulação para o usuário autenticado. **201** com `data: { id }`. O id é gerado pelo servidor.
+
+### `PUT /api/simulations/{id}`
+
+Substitui os campos editáveis (mesmo body do `POST`). **200**, `data: null`. Só o dono.
+
+### `DELETE /api/simulations/{id}`
+
+Apaga uma simulação. **200**, `data: null`. Só o dono.
+
+### `DELETE /api/simulations/mine`
+
+Apaga **só as simulações do usuário autenticado** no lar ativo; nunca as dos outros membros. **200**, `data: { removed }`.
+
+### `POST /api/simulations/import`
+
+Cria várias simulações de uma vez para o usuário autenticado (ex.: as que estavam no `localStorage`). **Tudo ou nada**: se um item for inválido ou estourar o limite, nada é criado. **Body:** `{ "simulations": [ ...mesmo formato do POST... ] }` (1 a 50 itens). Os itens mantêm a ordem recebida. **200**, `data: { imported, ids }`.
+
+**Limite:** **50 simulações por dono** em cada lar (as existentes contam na importação).
+
+**Erros:**
+
+- `400` com `{ success: false, message }`: validação (descrição > 120, `startMonth` inválido ou fora de 2000..2100, `amount` ≤ 0, `installments` fora de 1..120 em `Installment`, `months` fora de 0..120 em `Monthly`, `type`/`mode`/`amountKind` ausente ou inválido), limite de 50 por dono, importação vazia. A mensagem diz qual simulação falhou, ex.: `Simulação #2 ("Viagem"): o valor deve ser maior que zero.` (o `#N` só aparece na importação). Nome de enum desconhecido ou corpo ausente também retornam `400`/`415` pela validação padrão do ASP.NET (`ProblemDetails`).
+- `400` `Simulação não encontrada.`: id inexistente **ou de outro lar**.
+- `403` `Simulação não pertence ao usuário.`: `PUT`/`DELETE` por quem não é o dono.
+
+**Aceitar convite:** ao aceitar um convite (`POST /api/households/invites/accept`), as simulações do lar de origem de quem aceita vão para o lar de destino e continuam sendo dele (`ownerUserId` não muda). Ao mesclar dois perfis vinculados (`DeleteProfileAndMergeAsync`), as simulações do perfil removido passam para o dono de destino.
+
+**Exemplo:**
+
+```json
+POST /api/simulations
+{ "description": "Notebook", "type": "Expense", "mode": "Installment",
+  "startMonth": "2026-11", "amount": 3600, "amountKind": "Total", "installments": 12 }
+
+201 { "success": true, "message": "Simulação criada.", "data": { "id": "..." } }
+```
 
 ---
 
