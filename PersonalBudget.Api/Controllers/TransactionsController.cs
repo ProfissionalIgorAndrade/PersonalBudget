@@ -290,4 +290,17 @@ public class TransactionsController : ControllerBase
         var result = await _transactionService.GetGroupedByCategoryForMonthAsync(householdId, month, year);
         return Ok(ApiResponse<object>.Ok(result));
     }
+
+    /// <summary>
+    /// Importação em lote com deduplicação por ExternalId.
+    /// Linhas com ExternalId já existente são ignoradas; novas são criadas na conta informada.
+    /// </summary>
+    [HttpPost("import")]
+    public async Task<IActionResult> BulkImport([FromBody] BulkImportTransactionRequest request)
+    {
+        var userId = UserContext.GetUserId(User);
+        var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
+        var result = await _transactionService.BulkImportAsync(userId, householdId, request);
+        return Ok(ApiResponse<BulkImportTransactionResult>.Ok(result, $"{result.Created} criados, {result.Skipped} ignorados."));
+    }
 }
