@@ -24,6 +24,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICreditCardStatementRepository, CreditCardStatementRepository>();
         services.AddScoped<ISimulationRepository, SimulationRepository>();
         services.AddScoped<ISavingsBoxEventRepository, SavingsBoxEventRepository>();
+        services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
 
         services.AddScoped<IActiveHouseholdResolver, ActiveHouseholdResolver>();
         services.AddScoped<IHouseholdProvisioningService, HouseholdProvisioningService>();
@@ -40,6 +41,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ISimulatorService, SimulatorService>();
         services.AddScoped<IProjectionService, ProjectionService>();
         services.AddScoped<ISimulationService, SimulationService>();
+        services.AddScoped<ICategoryBudgetService, CategoryBudgetService>();
 
         // Transaction creation strategies
         services.AddScoped<ITransactionCreationStrategy, AccountTransactionCreationStrategy>();
@@ -51,4 +53,3 @@ public static class DependencyInjectionExtensions
         return services;
     }
 }
-
