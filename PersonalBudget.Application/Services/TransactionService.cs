@@ -855,4 +855,64 @@ public class TransactionService : ITransactionService
             skippedIds.Count,
             skippedIds);
     }
+
+    public async Task<BulkImportTransactionResult> BulkImportAsync(
+        Guid userId, Guid householdId, BulkImportTransactionRequest request)
+    {
+        var externalIds = request.Rows
+            .Where(r => r.ExternalId.HasValue)
+            .Select(r => r.ExternalId!.Value)
+            .ToList();
+
+        var existingIds = new HashSet<Guid>();
+        if (externalIds.Count > 0)
+        {
+            var existing = await _transactionRepository.GetByIdsAsync(externalIds);
+            foreach (var t in existing) existingIds.Add(t.Id);
+        }
+
+        int created = 0, skipped = 0;
+        var errors = new List<string>();
+
+        foreach (var row in request.Rows)
+        {
+            if (row.ExternalId.HasValue && existingIds.Contains(row.ExternalId.Value))
+            {
+                skipped++;
+                continue;
+            }
+
+            try
+            {
+                var command = new CreateTransactionCommand(
+                    UserId: userId,
+                    HouseholdId: householdId,
+                    AttributionProfileId: row.AttributionProfileId,
+                    AccountId: request.DefaultAccountId,
+                    CategoryId: row.CategoryId,
+                    CreditCardId: null,
+                    FromAccountId: null,
+                    ToAccountId: null,
+                    Type: row.Type,
+                    Frequency: TransactionFrequency.Variable,
+                    PaymentMethod: PaymentMethod.Account,
+                    Amount: row.Amount,
+                    Date: row.Date,
+                    Description: row.Description,
+                    InstallmentCount: null,
+                    TotalAmount: null,
+                    Title: null,
+                    Observations: row.Observations
+                );
+                await CreateAsync(command);
+                created++;
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"{row.Description}: {ex.Message}");
+            }
+        }
+
+        return new BulkImportTransactionResult(created, skipped, errors);
+    }
 }
