@@ -44,10 +44,16 @@ public class UserService : IUserService
         if (user == null)
             throw new ApplicationException("User does not exist.");
 
-        var passwordHash = _passwordHasher.Hash(command.Password);
-
-        if (!user.CanAuthenticate(passwordHash))
+        if (!user.CanAuthenticate(command.Password, _passwordHasher))
             throw new ApplicationException("Invalid password");
+
+        // The plain password is only available here, so this is the one place
+        // a hash made with an older algorithm can be upgraded.
+        if (_passwordHasher.NeedsRehash(user.PasswordHash))
+        {
+            user.ChangePassword(_passwordHasher.Hash(command.Password));
+            await _userRepository.UpdateAsync(user);
+        }
 
         return user.Id;
     }
@@ -57,8 +63,7 @@ public class UserService : IUserService
         var user = await _userRepository.GetByIdAsync(userId)
             ?? throw new ApplicationException("Usuário não encontrado.");
 
-        var currentHash = _passwordHasher.Hash(command.CurrentPassword ?? string.Empty);
-        if (!user.CanAuthenticate(currentHash))
+        if (!user.CanAuthenticate(command.CurrentPassword ?? string.Empty, _passwordHasher))
             throw new ApplicationException("Senha atual incorreta.");
 
         var newPassword = command.NewPassword ?? string.Empty;
@@ -66,12 +71,10 @@ public class UserService : IUserService
         if (newPassword.Length < MinimumPasswordLength)
             throw new ApplicationException($"A nova senha deve ter ao menos {MinimumPasswordLength} caracteres.");
 
-        var newHash = _passwordHasher.Hash(newPassword);
-
-        if (user.CanAuthenticate(newHash))
+        if (user.CanAuthenticate(newPassword, _passwordHasher))
             throw new ApplicationException("A nova senha deve ser diferente da atual.");
 
-        user.ChangePassword(newHash);
+        user.ChangePassword(_passwordHasher.Hash(newPassword));
 
         // GetByIdAsync is AsNoTracking, so SaveChangesAsync alone would be a
         // silent no-op: the request succeeds and the password never changes.
