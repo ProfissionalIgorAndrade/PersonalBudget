@@ -25,6 +25,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ISimulationRepository, SimulationRepository>();
         services.AddScoped<ISavingsBoxEventRepository, SavingsBoxEventRepository>();
         services.AddScoped<ICategoryBudgetRepository, CategoryBudgetRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         services.AddScoped<IActiveHouseholdResolver, ActiveHouseholdResolver>();
         services.AddScoped<IHouseholdProvisioningService, HouseholdProvisioningService>();
@@ -49,6 +50,11 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ITransactionCreationStrategy, TransferTransactionCreationStrategy>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
+
+        services.AddSingleton(provider => new RefreshTokenSettings(
+            provider.GetRequiredService<IConfiguration>()
+                .GetValue("Jwt:RefreshTokenExpiresInDays", RefreshTokenSettings.DefaultExpiresInDays)));
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         return services;
     }
