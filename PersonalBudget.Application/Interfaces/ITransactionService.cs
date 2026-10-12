@@ -19,5 +19,4 @@ public interface ITransactionService
     Task<DeleteTransactionsResult> DeleteAsync(DeleteTransactionCommand command);
     Task<DeleteTransactionsResult> DeleteManyAsync(DeleteTransactionsCommand command);
     Task<DeleteTransactionsResult> DeleteRecurringAsync(DeleteRecurringTransactionCommand command);
-    Task<BulkImportTransactionResult> BulkImportAsync(Guid userId, Guid householdId, BulkImportTransactionRequest request);
 }
