@@ -1,4 +1,3 @@
-using DotNet.Testcontainers.Builders;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +13,6 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>, IAsyncLife
         .WithDatabase("personal_budget_test")
         .WithUsername("postgres")
         .WithPassword("postgres")
-        .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(5432))
         .Build();
 
     public async Task InitializeAsync() => await _db.StartAsync();
