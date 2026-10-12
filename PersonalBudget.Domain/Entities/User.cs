@@ -37,11 +37,11 @@ public class User
             ?? throw new DomainException("Hash da senha é obrigatório.");
     }
 
-    public bool CanAuthenticate(PasswordHash providedPasswordHash)
+    public bool CanAuthenticate(string plainPassword, IPasswordHasher passwordHasher)
     {
         if (!IsActive)
             return false;
 
-        return PasswordHash.Equals(providedPasswordHash);
+        return passwordHasher.Verify(plainPassword, PasswordHash);
     }
 }
