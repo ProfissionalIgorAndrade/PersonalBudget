@@ -27,35 +27,33 @@ public class CreditCardsController : ControllerBase
         _householdResolver = householdResolver;
     }
 
-    [HttpPost("{creditCardId}/import")]
-    [Consumes("multipart/form-data")]
-    public async Task<IActionResult> ImportCsv(
+    /// <summary>
+    /// Importa linhas de CSV para a fatura (mês/ano) do cartão, ignorando as que já existem.
+    /// Com DryRun, apenas classifica cada linha como nova ou existente.
+    /// </summary>
+    [HttpPost("{creditCardId}/statement/import")]
+    public async Task<IActionResult> ImportStatement(
         Guid creditCardId,
-        IFormFile file)
+        [FromBody] ImportStatementRequest request)
     {
-        if (file is null || file.Length == 0)
-            return BadRequest(ApiResponse<object?>.Fail("Arquivo CSV é obrigatório."));
-
-        if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) &&
-            !file.ContentType.Contains("text"))
-            return BadRequest(ApiResponse<object?>.Fail("Apenas arquivos CSV são aceitos."));
-
         var userId = UserContext.GetUserId(User);
         var householdId = await _householdResolver.ResolveAsync(userId, HouseholdHttp.TryGetHouseholdIdHeader(Request));
 
-        string csvContent;
-        using (var reader = new System.IO.StreamReader(file.OpenReadStream()))
-            csvContent = await reader.ReadToEndAsync();
+        var command = new ImportStatementCommand(
+            userId,
+            householdId,
+            creditCardId,
+            request.StatementMonth,
+            request.StatementYear,
+            request.DryRun,
+            request.Rows
+        );
+        var result = await _importService.ImportStatementAsync(command);
 
-        var command = new ImportCreditCardCsvCommand(userId, householdId, creditCardId, csvContent);
-        var result = await _importService.ImportAsync(command);
-
-        return Ok(ApiResponse<object>.Ok(new
-        {
-            result.Imported,
-            result.Skipped,
-            result.Errors
-        }, $"{result.Imported} transação(ões) importada(s), {result.Skipped} ignorada(s)."));
+        var message = request.DryRun
+            ? $"{result.Rows.Count - result.Skipped} nova(s), {result.Skipped} já existente(s)."
+            : $"{result.Created} criado(s), {result.Skipped} ignorado(s).";
+        return Ok(ApiResponse<ImportStatementResult>.Ok(result, message));
     }
 
     [HttpPost]

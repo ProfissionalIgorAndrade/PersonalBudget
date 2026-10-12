@@ -1,237 +1,159 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using PersonalBudget.Application.Interfaces;
 
 public class CreditCardImportService : ICreditCardImportService
 {
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+    private static readonly string[] DateFormats = { "yyyy-MM-dd", "dd/MM/yyyy" };
+
     private readonly ITransactionService _transactionService;
+    private readonly ITransactionRepository _transactionRepository;
     private readonly ICreditCardRepository _creditCardRepository;
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly IHouseholdMemberProfileRepository _profileRepository;
+    private readonly ICreditCardStatementRepository _statementRepository;
 
     public CreditCardImportService(
         ITransactionService transactionService,
+        ITransactionRepository transactionRepository,
         ICreditCardRepository creditCardRepository,
-        ICategoryRepository categoryRepository,
-        IHouseholdMemberProfileRepository profileRepository)
+        ICreditCardStatementRepository statementRepository)
     {
         _transactionService = transactionService;
+        _transactionRepository = transactionRepository;
         _creditCardRepository = creditCardRepository;
-        _categoryRepository = categoryRepository;
-        _profileRepository = profileRepository;
+        _statementRepository = statementRepository;
     }
 
-    public async Task<ImportCreditCardCsvResult> ImportAsync(ImportCreditCardCsvCommand command)
+    /// <summary>
+    /// Importa linhas de CSV para uma fatura (cartão + mês/ano) sem duplicar o que já existe.
+    /// Uma linha é considerada existente quando o id_sistema é de um lançamento do lar ou,
+    /// na falta dele, quando data + valor + tipo + descrição batem com um lançamento da fatura.
+    /// </summary>
+    public async Task<ImportStatementResult> ImportStatementAsync(ImportStatementCommand command)
     {
+        if (command.StatementMonth < 1 || command.StatementMonth > 12)
+            throw new DomainException("StatementMonth deve estar entre 1 e 12.");
+
         var creditCard = await _creditCardRepository.GetByIdAsync(command.CreditCardId);
         if (creditCard is null || creditCard.HouseholdId != command.HouseholdId)
             throw new DomainException("Cartão de crédito não encontrado.");
 
-        var categories = (await _categoryRepository.GetByHouseholdAsync(command.HouseholdId)).ToList();
-        var profiles = await _profileRepository.GetByHouseholdAsync(command.HouseholdId);
+        var rows = command.Rows ?? [];
 
-        var rows = ParseCsv(command.CsvContent);
+        var statement = await _statementRepository.GetByCreditCardAndMonthYearAsync(
+            creditCard.Id, command.StatementMonth, command.StatementYear);
+        var statementTransactions = statement is null
+            ? []
+            : (await _transactionRepository.GetByStatementIdAsync(statement.Id)).ToList();
 
-        int imported = 0, skipped = 0;
+        var rowIds = rows
+            .Select(r => Guid.TryParse(r.ExternalId, out var id) ? id : (Guid?)null)
+            .ToList();
+        var knownIds = await GetHouseholdTransactionIdsAsync(rowIds, command.HouseholdId);
+
+        // Cada lançamento da fatura casa com no máximo uma linha do CSV. Os que já foram
+        // reconhecidos por id ficam de fora, para não "absorverem" uma segunda linha igual.
+        var unmatchedByContent = new Dictionary<string, int>();
+        foreach (var t in statementTransactions.Where(t => !knownIds.Contains(t.Id)))
+        {
+            var key = ContentKey(t.Date.Value, t.Amount.Amount, t.Type, t.Description.Value);
+            unmatchedByContent[key] = unmatchedByContent.GetValueOrDefault(key) + 1;
+        }
+
+        int created = 0, skipped = 0;
         var errors = new List<string>();
+        var results = new List<ImportStatementRowResult>(rows.Count);
 
         for (var i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
-            var label = $"Linha {i + 2}: \"{row.Descricao}\"";
+
+            if (rowIds[i] is { } id && knownIds.Contains(id))
+            {
+                skipped++;
+                results.Add(new ImportStatementRowResult(i, ImportStatementRowStatus.Existing, null));
+                continue;
+            }
+
+            var contentKey = TryParseDate(row.Date, out var date)
+                ? ContentKey(date, row.Amount, row.Type, row.Description)
+                : null;
+            if (contentKey is not null && unmatchedByContent.GetValueOrDefault(contentKey) > 0)
+            {
+                unmatchedByContent[contentKey]--;
+                skipped++;
+                results.Add(new ImportStatementRowResult(i, ImportStatementRowStatus.Existing, null));
+                continue;
+            }
+
+            if (command.DryRun)
+            {
+                results.Add(new ImportStatementRowResult(i, ImportStatementRowStatus.New, null));
+                continue;
+            }
+
             try
             {
-                var profileId = ResolveProfile(row.Pessoa, profiles);
-                if (profileId is null)
-                {
-                    errors.Add($"{label}: perfil '{row.Pessoa}' não encontrado no lar.");
-                    skipped++;
-                    continue;
-                }
-
-                var categoryId = await ResolveOrCreateCategoryAsync(row.Categoria, command.HouseholdId, categories);
-
-                await CreateTransactionsAsync(command, row, profileId.Value, categoryId);
-                imported++;
+                await _transactionService.CreateAsync(BuildCreateCommand(command, row));
+                created++;
+                results.Add(new ImportStatementRowResult(i, ImportStatementRowStatus.New, null));
             }
             catch (Exception ex)
             {
-                errors.Add($"{label}: {ex.Message}");
-                skipped++;
+                errors.Add($"Linha {i + 1}: \"{row.Description}\": {ex.Message}");
+                results.Add(new ImportStatementRowResult(i, ImportStatementRowStatus.Error, ex.Message));
             }
         }
 
-        return new ImportCreditCardCsvResult(imported, skipped, errors);
+        return new ImportStatementResult(created, skipped, errors, results);
     }
 
-    private async Task CreateTransactionsAsync(
-        ImportCreditCardCsvCommand command,
-        CsvRow row,
-        Guid profileId,
-        Guid? categoryId)
+    private async Task<HashSet<Guid>> GetHouseholdTransactionIdsAsync(
+        IEnumerable<Guid?> rowIds, Guid householdId)
     {
-        var type = row.ValorParcela < 0 ? TransactionType.Income : TransactionType.Expense;
-        var amount = Math.Abs(row.ValorParcela);
-        var date = row.Data;
+        var ids = rowIds.Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
+        if (ids.Count == 0)
+            return [];
 
-        // Each CSV row represents exactly one charge on the statement — always create a single transaction.
-        // For installment rows, include the parcel context in the description so the info is preserved.
-        var description = row.TotalParcelas > 1
-            ? $"{row.Descricao} ({row.ParcelaAtual}/{row.TotalParcelas})"
-            : row.Descricao;
+        var existing = await _transactionRepository.GetByIdsAsync(ids);
+        return existing
+            .Where(t => t.HouseholdId == householdId)
+            .Select(t => t.Id)
+            .ToHashSet();
+    }
 
-        var cmd = new CreateTransactionCommand(
+    private static CreateTransactionCommand BuildCreateCommand(
+        ImportStatementCommand command, ImportStatementRowRequest row) =>
+        new(
             UserId: command.UserId,
             HouseholdId: command.HouseholdId,
-            AttributionProfileId: profileId,
+            AttributionProfileId: row.AttributionProfileId,
             AccountId: null,
-            CategoryId: categoryId,
+            CategoryId: row.CategoryId,
             CreditCardId: command.CreditCardId,
             FromAccountId: null,
             ToAccountId: null,
-            Type: type,
+            Type: row.Type,
             Frequency: TransactionFrequency.Variable,
             PaymentMethod: PaymentMethod.CreditCard,
-            Amount: amount,
-            Date: date,
-            Description: description,
+            Amount: row.Amount,
+            Date: row.Date,
+            Description: row.Description,
             InstallmentCount: null,
             TotalAmount: null,
             Title: null,
-            Observations: string.IsNullOrWhiteSpace(row.Observacoes) ? null : row.Observacoes
+            StatementMonth: command.StatementMonth,
+            StatementYear: command.StatementYear,
+            Observations: string.IsNullOrWhiteSpace(row.Observations) ? null : row.Observations
         );
-        await _transactionService.CreateAsync(cmd);
-    }
 
-    private static Guid? ResolveProfile(string? pessoa, IReadOnlyList<HouseholdMemberProfile> profiles)
+    private static bool TryParseDate(string? value, out DateTime date) =>
+        DateTime.TryParseExact(value?.Trim(), DateFormats, PtBr, DateTimeStyles.None, out date);
+
+    private static string ContentKey(DateTime date, decimal amount, TransactionType type, string? description)
     {
-        if (string.IsNullOrWhiteSpace(pessoa))
-            return profiles.FirstOrDefault()?.Id;
-
-        return profiles
-            .FirstOrDefault(p => p.DisplayName.Equals(pessoa.Trim(), StringComparison.OrdinalIgnoreCase))
-            ?.Id;
+        var normalized = Regex.Replace((description ?? "").Trim(), @"\s+", " ").ToLowerInvariant();
+        var value = Math.Round(amount, 2).ToString("0.00", CultureInfo.InvariantCulture);
+        return $"{date:yyyy-MM-dd}|{value}|{(int)type}|{normalized}";
     }
-
-    private async Task<Guid?> ResolveOrCreateCategoryAsync(
-        string? name,
-        Guid householdId,
-        List<Category> categories)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return null;
-
-        var existing = categories.FirstOrDefault(c =>
-            c.Name.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase));
-
-        if (existing is not null)
-            return existing.Id;
-
-        var newCat = Category.Create(householdId, name.Trim(), CategoryType.Expense);
-        await _categoryRepository.AddAsync(newCat);
-        await _categoryRepository.SaveChangesAsync();
-        categories.Add(newCat);
-        return newCat.Id;
-    }
-
-    // ── CSV parsing ──────────────────────────────────────────────────────────
-
-    private static List<CsvRow> ParseCsv(string csvContent)
-    {
-        var lines = csvContent
-            .ReplaceLineEndings("\n")
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-        if (lines.Length < 2)
-            return [];
-
-        // Build header index map from first line
-        var headers = lines[0]
-            .Split(',')
-            .Select((h, i) => (key: h.Trim().ToLowerInvariant(), idx: i))
-            .ToDictionary(x => x.key, x => x.idx);
-
-        var rows = new List<CsvRow>(lines.Length - 1);
-        for (var i = 1; i < lines.Length; i++)
-        {
-            var fields = SplitCsvLine(lines[i]);
-            if (fields.Length < 7) continue; // skip malformed/empty lines
-
-            string Get(string col) =>
-                headers.TryGetValue(col, out var idx) && idx < fields.Length
-                    ? fields[idx].Trim()
-                    : "";
-
-            // status and observacoes are always the last two columns; handle rows
-            // that may have extra empty columns in the middle (e.g. extra blank column)
-            var status = fields.Length >= 2 ? fields[^2].Trim() : "";
-            var observacoes = fields.Length >= 1 ? fields[^1].Trim() : "";
-
-            rows.Add(new CsvRow(
-                Descricao: Get("descricao"),
-                Data: Get("data"),
-                ValorParcela: ParseDecimal(Get("valor_parcela")),
-                ParcelaAtual: ParseInt(Get("parcela_atual")),
-                TotalParcelas: ParseInt(Get("total_parcelas")),
-                ValorTotalCompra: ParseDecimal(Get("valor_total_compra")),
-                Pessoa: Get("pessoa"),
-                Categoria: Get("categoria"),
-                Status: status,
-                Observacoes: observacoes
-            ));
-        }
-
-        return rows;
-    }
-
-    private static string[] SplitCsvLine(string line)
-    {
-        // Simple CSV split respecting double-quoted fields
-        var result = new List<string>();
-        var current = new System.Text.StringBuilder();
-        var inQuotes = false;
-
-        foreach (var ch in line)
-        {
-            if (ch == '"')
-            {
-                inQuotes = !inQuotes;
-            }
-            else if (ch == ',' && !inQuotes)
-            {
-                result.Add(current.ToString());
-                current.Clear();
-            }
-            else
-            {
-                current.Append(ch);
-            }
-        }
-        result.Add(current.ToString());
-        return result.ToArray();
-    }
-
-    private static decimal ParseDecimal(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return 0m;
-        return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : 0m;
-    }
-
-    private static int ParseInt(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return 1;
-        return int.TryParse(value, out var n) ? n : 1;
-    }
-
-    private record CsvRow(
-        string Descricao,
-        string Data,
-        decimal ValorParcela,
-        int ParcelaAtual,
-        int TotalParcelas,
-        decimal ValorTotalCompra,
-        string Pessoa,
-        string Categoria,
-        string Status,
-        string Observacoes
-    );
 }
