@@ -78,7 +78,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowAll");
+app.UseCors(CorsExtensions.PolicyName);
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.MapControllers();
