@@ -13,7 +13,13 @@ dotnet user-secrets set "Jwt:Key" "<chave com 32+ caracteres>" --project Persona
 **Produção (Fly.io):** definir como secret antes do deploy.
 
 ```powershell
-fly secrets set Jwt__Key="$([Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48)))" -a personalbudget
+$bytes = New-Object byte[] 48
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+$key = [Convert]::ToBase64String($bytes)
+if ($key.Length -lt 32) { throw "Chave não gerada." }
+fly secrets set "Jwt__Key=$key" -a personalbudget
 ```
+
+Gere a chave em um passo separado e confira antes de enviar: se a geração falhar dentro do próprio comando `fly secrets set`, o secret é gravado vazio e a API passa a responder 500.
 
 Trocar a chave invalida os tokens já emitidos, e os usuários precisam fazer login de novo.
