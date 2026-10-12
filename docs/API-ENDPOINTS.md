@@ -80,6 +80,8 @@ Erros tratados pelo middleware costumam retornar:
 
 Não requer `Authorization`.
 
+**Limite de requisições:** os endpoints deste grupo aceitam 5 requisições por minuto por IP. Acima disso a resposta é `429 Too Many Requests`, no envelope padrão (`success: false`), com o header `Retry-After` em segundos.
+
 ### `POST /api/authentication/signin`
 
 Cadastro + login.
