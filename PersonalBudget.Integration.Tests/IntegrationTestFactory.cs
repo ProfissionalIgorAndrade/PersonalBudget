@@ -31,7 +31,10 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>, IAsyncLife
                 ["Jwt:Key"]              = "THIS_IS_A_SUPER_SECRET_KEY_WITH_AT_LEAST_32_CHARS",
                 ["Jwt:Issuer"]           = "PersonalBudget",
                 ["Jwt:Audience"]         = "PersonalBudget.Web",
-                ["Jwt:ExpiresInMinutes"] = "60"
+                ["Jwt:ExpiresInMinutes"] = "60",
+                // The suite signs up many users from one address; the real
+                // limit is exercised on its own in AuthRateLimitTests.
+                ["RateLimiting:Auth:PermitLimit"] = "100000"
             });
         });
 

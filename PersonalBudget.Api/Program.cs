@@ -54,7 +54,8 @@ builder.Services
     .AddDatabase(builder.Configuration, builder.Environment)
     .AddApplicationDependencies()
     .AddJwtAuthentication(builder.Configuration)
-    .AddCorsPolicy();
+    .AddCorsPolicy()
+    .AddAuthRateLimiting();
 
 if (!builder.Environment.IsDevelopment())
 {
@@ -81,6 +82,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors(CorsExtensions.PolicyName);
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+app.UseRateLimiter();
 app.MapControllers();
 
 app.Run();

@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PersonalBudget.Api.Contracts;
+using PersonalBudget.Api.Extensions;
 
 namespace PersonalBudget.Api.Controllers;
 
 [ApiController]
 [Route("api/authentication")]
+[EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
 public class AuthenticationController : ControllerBase
 {
     private readonly IUserService _userService;
