@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<Simulation> Simulations => Set<Simulation>();
     public DbSet<SavingsBoxEvent> SavingsBoxEvents => Set<SavingsBoxEvent>();
     public DbSet<CategoryBudget> CategoryBudgets => Set<CategoryBudget>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)

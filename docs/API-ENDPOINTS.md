@@ -94,7 +94,7 @@ Cadastro + login.
 | `email` | string | sim |
 | `password` | string | sim |
 
-**Resposta `data` (exemplo):** objeto com `userId` e `token` (JWT).
+**Resposta `data` (exemplo):** objeto com `userId`, `token` (JWT) e `refreshToken`.
 
 **Mensagem:** ex.: `"Usuário criado e autenticado."`
 
@@ -111,7 +111,39 @@ Login.
 | `email` | string |
 | `password` | string |
 
-**Resposta `data`:** `LoginUserResponse` — propriedades `userId`, `token`.
+**Resposta `data`:** `LoginUserResponse` — propriedades `userId`, `token`, `refreshToken`.
+
+---
+
+### `POST /api/authentication/refresh`
+
+Troca um refresh token válido por um novo par de tokens, sem pedir a senha.
+
+**Body:**
+
+| Campo | Tipo |
+|-------|------|
+| `refreshToken` | string |
+
+**Resposta `data`:** `LoginUserResponse` — `userId`, `token` (novo JWT) e `refreshToken` (novo).
+
+- O refresh token vale 30 dias e é de **uso único**: cada chamada invalida o enviado e devolve outro. Guarde sempre o mais recente.
+- Token desconhecido, expirado ou revogado retorna `401` no envelope padrão. O cliente deve voltar para o login.
+- Reapresentar um refresh token já usado revoga todas as sessões do usuário.
+
+---
+
+### `POST /api/authentication/logout`
+
+Revoga o refresh token informado. Sempre responde `200`.
+
+**Body:**
+
+| Campo | Tipo |
+|-------|------|
+| `refreshToken` | string |
+
+**Observação:** `POST /api/authentication/change-password` também revoga todos os refresh tokens do usuário.
 
 ---
 
