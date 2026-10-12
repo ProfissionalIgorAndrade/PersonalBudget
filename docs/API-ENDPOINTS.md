@@ -437,6 +437,53 @@ Fatura do cartão com lançamentos para o mês/ano.
 
 ---
 
+### `POST /api/credit-cards/{creditCardId}/statement/import`
+
+Importa linhas de CSV (já lidas pelo cliente) para a fatura do cartão no mês/ano informado, sem duplicar o que já existe. Linhas novas viram lançamentos de cartão avulsos (`frequency: Variable`) naquela fatura; a fatura é criada se não existir.
+
+**Body:**
+
+| Campo | Tipo |
+|-------|------|
+| `statementMonth` | int (1-12) |
+| `statementYear` | int |
+| `dryRun` | bool — `true` apenas classifica as linhas, sem gravar e sem exigir categoria/correspondente |
+| `rows` | array de linhas |
+
+Cada linha:
+
+| Campo | Tipo |
+|-------|------|
+| `externalId` | string \| null — coluna `id_sistema` do CSV |
+| `description` | string |
+| `amount` | decimal (positivo) |
+| `date` | string — `yyyy-MM-dd` ou `dd/MM/yyyy` |
+| `type` | `Expense` \| `Income` (estorno) |
+| `categoryId` | guid \| null — obrigatório para gravar |
+| `attributionProfileId` | guid \| null |
+| `observations` | string \| null |
+
+**Uma linha já existe quando:**
+
+1. `externalId` é o `id` de um lançamento do lar ativo (em qualquer fatura); ou
+2. data + valor + tipo + descrição (sem diferenciar maiúsculas nem espaços repetidos) batem com um lançamento dessa fatura ainda não casado com outra linha. Cada lançamento casa com no máximo uma linha: duas linhas idênticas contra um lançamento resultam em uma existente e uma nova.
+
+Linhas existentes são ignoradas e nunca alteradas.
+
+**Resposta `data`:** `ImportStatementResult`:
+
+| Campo | Tipo |
+|-------|------|
+| `created` | int — sempre 0 com `dryRun` |
+| `skipped` | int — linhas já existentes |
+| `errors` | string[] — `Linha N: "descrição": motivo` |
+| `rows` | array de `{ index, status, message }`, na ordem recebida; `status` é `New`, `Existing` ou `Error` |
+
+- Erro em uma linha não interrompe as demais.
+- **400** se o cartão não pertencer ao lar ativo ou `statementMonth` estiver fora de 1-12.
+
+---
+
 ### `PATCH /api/credit-cards/{creditCardId}/statement/{statementId}/reviewed`
 
 Marca ou desmarca como revisados **todos** os lançamentos da fatura.
