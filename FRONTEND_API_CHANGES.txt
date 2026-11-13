@@ -424,6 +424,34 @@ Frontend action required:
 - Deploy the backend first; the new screen must not call the endpoint
   before it exists in production.
 
+------------------------------------------------------------
+16. NEW MODE — CardPayoff on /api/simulations
+------------------------------------------------------------
+Purpose : simulate paying off, in one month, every future card
+          installment (all cards, or the chosen ones).
+
+Changes :
+  mode           new value "CardPayoff"
+  creditCardIds  new field on body and response: guid[] | null
+                 null = every card of the household (also cards
+                 created later); otherwise 1..50 distinct ids of cards
+                 of the active household. Always null in other modes.
+  amount         ignored and returned as 0 in CardPayoff. The client
+                 computes the value from the current transactions.
+  type           must be "Expense" in CardPayoff.
+
+Errors: 400 'Cartão não encontrado neste lar.' for a card of another
+household; 400 for an empty or repeated list.
+
+Migration: AddSimulationCreditCardIds (nullable uuid[] column, existing
+rows unchanged).
+
+Frontend action required:
+- Deploy the backend first; older clients ignore the new field, but a
+  client that sends CardPayoff needs the new API.
+
+Full reference: docs/API-ENDPOINTS.md, section "8. Simulações salvas".
+
 ============================================================
 END OF DOCUMENT
 ============================================================

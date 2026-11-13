@@ -56,6 +56,10 @@ public class SimulationConfiguration : IEntityTypeConfiguration<Simulation>
         builder.Property(s => s.Months)
             .HasColumnName("months");
 
+        // Só em CardPayoff; nulo = todos os cartões do lar. Array nativo do Postgres (uuid[]).
+        builder.Property(s => s.CreditCardIds)
+            .HasColumnName("credit_card_ids");
+
         builder.Property(s => s.CreatedAt)
             .HasColumnName("created_at")
             .IsRequired();

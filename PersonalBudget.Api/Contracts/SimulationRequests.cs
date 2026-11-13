@@ -15,11 +15,13 @@ public record SimulationRequest(
     /// <summary>Obrigatório (1 a 120) em Installment; ignorado nos demais modos.</summary>
     int? Installments,
     /// <summary>Só vale em Monthly: 0 a 120; null/0 = até o fim do horizonte.</summary>
-    int? Months
+    int? Months,
+    /// <summary>Só vale em CardPayoff: cartões do lar a quitar; null/omitido = todos.</summary>
+    IReadOnlyList<Guid>? CreditCardIds = null
 )
 {
     public SimulationInput ToInput() =>
-        new(Description, Type, Mode, StartMonth, Amount, AmountKind, Installments, Months);
+        new(Description, Type, Mode, StartMonth, Amount, AmountKind, Installments, Months, CreditCardIds);
 }
 
 /// <summary>Corpo de POST /api/simulations/import.</summary>
