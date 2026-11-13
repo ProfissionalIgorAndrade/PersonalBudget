@@ -25,7 +25,8 @@ public static class SimulationValidator
             input.Amount,
             input.AmountKind ?? SimulationAmountKind.PerInstallment,
             input.Installments,
-            input.Months);
+            input.Months,
+            input.CreditCardIds);
 
         if (error is not null)
             throw new DomainException($"{BuildLabel(number, input.Description)}: {error}");
