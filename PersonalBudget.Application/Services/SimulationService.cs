@@ -12,15 +12,18 @@ public class SimulationService : ISimulationService
     private readonly ISimulationRepository _simulations;
     private readonly IHouseholdMemberProfileRepository _profiles;
     private readonly IUserRepository _users;
+    private readonly ICreditCardRepository _creditCards;
 
     public SimulationService(
         ISimulationRepository simulations,
         IHouseholdMemberProfileRepository profiles,
-        IUserRepository users)
+        IUserRepository users,
+        ICreditCardRepository creditCards)
     {
         _simulations = simulations;
         _profiles = profiles;
         _users = users;
+        _creditCards = creditCards;
     }
 
     public async Task<IReadOnlyList<SimulationResponse>> GetAllAsync(Guid userId, Guid householdId)
@@ -42,6 +45,7 @@ public class SimulationService : ISimulationService
                 s.AmountKind,
                 s.Installments,
                 s.Months,
+                s.CreditCardIds,
                 s.OwnerUserId,
                 ownerNames[s.OwnerUserId],
                 s.OwnerUserId == userId,
@@ -53,6 +57,7 @@ public class SimulationService : ISimulationService
     public async Task<Guid> CreateAsync(CreateSimulationCommand command)
     {
         SimulationValidator.Validate(command.Input);
+        await EnsureCardsInHouseholdAsync(command.HouseholdId, [command.Input]);
         await EnsureWithinCapAsync(command.HouseholdId, command.UserId, adding: 1);
 
         var simulation = NewSimulation(command.UserId, command.HouseholdId, command.Input, createdAt: null);
@@ -65,6 +70,7 @@ public class SimulationService : ISimulationService
         var simulation = await GetOwnedAsync(command.SimulationId, command.UserId, command.HouseholdId);
 
         SimulationValidator.Validate(command.Input);
+        await EnsureCardsInHouseholdAsync(command.HouseholdId, [command.Input]);
 
         var input = command.Input;
         simulation.Update(
@@ -75,7 +81,8 @@ public class SimulationService : ISimulationService
             input.Amount,
             input.AmountKind ?? SimulationAmountKind.PerInstallment,
             input.Installments,
-            input.Months);
+            input.Months,
+            input.CreditCardIds);
 
         await _simulations.UpdateAsync(simulation);
     }
@@ -102,6 +109,8 @@ public class SimulationService : ISimulationService
         for (var i = 0; i < items.Count; i++)
             SimulationValidator.Validate(items[i], i + 1);
 
+        await EnsureCardsInHouseholdAsync(command.HouseholdId, items.Select(i => i!).ToList());
+
         await EnsureWithinCapAsync(command.HouseholdId, command.UserId, adding: items.Count);
 
         // Instantes crescentes (1 ms) preservam a ordem recebida na lista ordenada por criação.
@@ -126,8 +135,28 @@ public class SimulationService : ISimulationService
             input.AmountKind ?? SimulationAmountKind.PerInstallment,
             input.Installments,
             input.Months,
-            createdAt);
+            createdAt,
+            input.CreditCardIds);
 
+
+    /// <summary>
+    /// Quitação de cartão só pode citar cartões do próprio lar (ativos ou não: um cartão desativado
+    /// depois de criada a simulação não impede editá-la). Uma consulta só, para a lista inteira.
+    /// </summary>
+    private async Task EnsureCardsInHouseholdAsync(Guid householdId, IReadOnlyList<SimulationInput> inputs)
+    {
+        var requested = inputs
+            .Where(i => i.Mode == SimulationMode.CardPayoff && i.CreditCardIds is not null)
+            .SelectMany(i => i.CreditCardIds!)
+            .ToHashSet();
+        if (requested.Count == 0)
+            return;
+
+        var cards = await _creditCards.GetAllByHouseholdAsync(householdId);
+        var known = cards.Select(c => c.Id).ToHashSet();
+        if (!requested.IsSubsetOf(known))
+            throw new DomainException("Cartão não encontrado neste lar.");
+    }
     private async Task EnsureWithinCapAsync(Guid householdId, Guid userId, int adding)
     {
         var current = await _simulations.CountByOwnerAsync(householdId, userId);

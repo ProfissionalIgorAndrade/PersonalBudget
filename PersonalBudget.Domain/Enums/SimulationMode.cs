@@ -6,5 +6,11 @@ public enum SimulationMode
     /// <summary>Parcelada, em <see cref="Simulation.Installments"/> meses.</summary>
     Installment = 2,
     /// <summary>Todo mês, por <see cref="Simulation.Months"/> meses (nulo = até o fim do horizonte).</summary>
-    Monthly = 3
+    Monthly = 3,
+    /// <summary>
+    /// Quitação antecipada, no mês de início, das parcelas de cartão das faturas seguintes.
+    /// O valor não é guardado: o cliente calcula a partir dos lançamentos atuais.
+    /// Os cartões ficam em <see cref="Simulation.CreditCardIds"/> (nulo = todos do lar).
+    /// </summary>
+    CardPayoff = 4
 }

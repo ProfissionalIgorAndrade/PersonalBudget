@@ -13,6 +13,7 @@ public static class SimulationRules
     public const int MinStartYear = 2000;
     public const int MaxStartYear = 2100;
     public const int MaxPerOwner = 50;
+    public const int MaxCreditCards = 50;
 
     /// <summary>
     /// Devolve a primeira violação (mensagem em pt-BR, iniciada em minúscula, sem prefixo)
@@ -26,7 +27,8 @@ public static class SimulationRules
         decimal amount,
         SimulationAmountKind amountKind,
         int? installments,
-        int? months)
+        int? months,
+        IReadOnlyCollection<Guid>? creditCardIds = null)
     {
         if ((description?.Trim().Length ?? 0) > MaxDescriptionLength)
             return $"a descrição deve ter no máximo {MaxDescriptionLength} caracteres.";
@@ -35,10 +37,15 @@ public static class SimulationRules
             return "tipo inválido. Use Income ou Expense.";
 
         if (!Enum.IsDefined(mode))
-            return "modo inválido. Use Single, Installment ou Monthly.";
+            return "modo inválido. Use Single, Installment, Monthly ou CardPayoff.";
 
         if (!TryParseStartMonth(startMonth, out _))
             return "mês de início inválido. Use o formato yyyy-MM (ex.: 2026-10).";
+
+        // Na quitação o valor vem das parcelas, então valor, tipo de valor, parcelas e meses
+        // são ignorados; só os cartões são conferidos.
+        if (mode == SimulationMode.CardPayoff)
+            return CardPayoffError(type, creditCardIds);
 
         if (amount <= 0)
             return "o valor deve ser maior que zero.";
@@ -51,6 +58,30 @@ public static class SimulationRules
 
         if (mode == SimulationMode.Monthly && months is { } m && (m < 0 || m > MaxMonthlyDuration))
             return $"a duração mensal deve estar entre 0 (até o fim do horizonte) e {MaxMonthlyDuration} meses.";
+
+        return null;
+    }
+
+    private static string? CardPayoffError(SimulationType type, IReadOnlyCollection<Guid>? creditCardIds)
+    {
+        if (type != SimulationType.Expense)
+            return "a quitação de cartão é sempre uma despesa (Expense).";
+
+        // Nulo = todos os cartões do lar.
+        if (creditCardIds is null)
+            return null;
+
+        if (creditCardIds.Count == 0)
+            return "escolha ao menos um cartão, ou envie creditCardIds nulo para todos.";
+
+        if (creditCardIds.Count > MaxCreditCards)
+            return $"no máximo {MaxCreditCards} cartões por quitação.";
+
+        if (creditCardIds.Contains(Guid.Empty))
+            return "cartão inválido na lista.";
+
+        if (creditCardIds.Distinct().Count() != creditCardIds.Count)
+            return "a lista de cartões tem cartões repetidos.";
 
         return null;
     }

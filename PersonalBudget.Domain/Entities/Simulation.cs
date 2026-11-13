@@ -10,14 +10,20 @@ public class Simulation
     public string Description { get; private set; } = "";
     public SimulationType Type { get; private set; }
     public SimulationMode Mode { get; private set; }
-    /// <summary>Mês de início no formato "yyyy-MM".</summary>
+    /// <summary>Mês de início no formato "yyyy-MM". Em <see cref="SimulationMode.CardPayoff"/>, o mês da quitação.</summary>
     public string StartMonth { get; private set; } = "";
+    /// <summary>Zero em <see cref="SimulationMode.CardPayoff"/>: o valor é calculado a partir das parcelas.</summary>
     public decimal Amount { get; private set; }
     public SimulationAmountKind AmountKind { get; private set; }
     /// <summary>Obrigatório (1 a 120) em <see cref="SimulationMode.Installment"/>; nulo nos demais modos.</summary>
     public int? Installments { get; private set; }
     /// <summary>Só em <see cref="SimulationMode.Monthly"/>: duração em meses (1 a 120). Nulo = até o fim do horizonte.</summary>
     public int? Months { get; private set; }
+    /// <summary>
+    /// Só em <see cref="SimulationMode.CardPayoff"/>: os cartões quitados. Nulo = todos os cartões
+    /// do lar, inclusive os criados depois. Nos demais modos é sempre nulo.
+    /// </summary>
+    public List<Guid>? CreditCardIds { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
@@ -34,6 +40,7 @@ public class Simulation
         SimulationAmountKind amountKind,
         int? installments,
         int? months,
+        IReadOnlyCollection<Guid>? creditCardIds,
         DateTime createdAt)
     {
         if (householdId == Guid.Empty)
@@ -45,11 +52,12 @@ public class Simulation
         HouseholdId = householdId;
         OwnerUserId = ownerUserId;
         CreatedAt = createdAt;
-        Apply(description, type, mode, startMonth, amount, amountKind, installments, months);
+        Apply(description, type, mode, startMonth, amount, amountKind, installments, months, creditCardIds);
         UpdatedAt = createdAt;
     }
 
     /// <param name="createdAt">Opcional; omitido = agora (UTC). A importação em lote usa instantes crescentes para preservar a ordem.</param>
+    /// <param name="creditCardIds">Só em <see cref="SimulationMode.CardPayoff"/>; nulo = todos os cartões do lar.</param>
     public static Simulation Create(
         Guid householdId,
         Guid ownerUserId,
@@ -61,9 +69,10 @@ public class Simulation
         SimulationAmountKind amountKind,
         int? installments,
         int? months,
-        DateTime? createdAt = null)
+        DateTime? createdAt = null,
+        IReadOnlyCollection<Guid>? creditCardIds = null)
         => new(householdId, ownerUserId, description, type, mode, startMonth, amount, amountKind,
-            installments, months, createdAt ?? DateTime.UtcNow);
+            installments, months, creditCardIds, createdAt ?? DateTime.UtcNow);
 
     public void Update(
         string? description,
@@ -73,9 +82,10 @@ public class Simulation
         decimal amount,
         SimulationAmountKind amountKind,
         int? installments,
-        int? months)
+        int? months,
+        IReadOnlyCollection<Guid>? creditCardIds = null)
     {
-        Apply(description, type, mode, startMonth, amount, amountKind, installments, months);
+        Apply(description, type, mode, startMonth, amount, amountKind, installments, months, creditCardIds);
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -105,21 +115,25 @@ public class Simulation
         decimal amount,
         SimulationAmountKind amountKind,
         int? installments,
-        int? months)
+        int? months,
+        IReadOnlyCollection<Guid>? creditCardIds)
     {
-        var error = SimulationRules.FirstError(description, type, mode, startMonth, amount, amountKind, installments, months);
+        var error = SimulationRules.FirstError(description, type, mode, startMonth, amount, amountKind, installments, months, creditCardIds);
         if (error is not null)
             throw new DomainException(char.ToUpperInvariant(error[0]) + error[1..]);
 
         SimulationRules.TryParseStartMonth(startMonth, out var normalizedMonth);
 
+        var payoff = mode == SimulationMode.CardPayoff;
+
         Description = description?.Trim() ?? "";
         Type = type;
         Mode = mode;
         StartMonth = normalizedMonth;
-        Amount = amount;
-        AmountKind = amountKind;
+        Amount = payoff ? 0m : amount;
+        AmountKind = payoff ? SimulationAmountKind.PerInstallment : amountKind;
         Installments = mode == SimulationMode.Installment ? installments : null;
         Months = mode == SimulationMode.Monthly && months is > 0 ? months : null;
+        CreditCardIds = payoff && creditCardIds is not null ? creditCardIds.ToList() : null;
     }
 }

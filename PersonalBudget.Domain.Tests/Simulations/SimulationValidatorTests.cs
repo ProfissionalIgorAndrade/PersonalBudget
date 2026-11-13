@@ -64,7 +64,7 @@ public class SimulationValidatorTests
 
     [Fact]
     public void InvalidMode_Fails()
-        => ShouldFail(Input(mode: (SimulationMode)8), 1, "Simulação #1 (\"Carro\"): modo inválido. Use Single, Installment ou Monthly.");
+        => ShouldFail(Input(mode: (SimulationMode)8), 1, "Simulação #1 (\"Carro\"): modo inválido. Use Single, Installment, Monthly ou CardPayoff.");
 
     [Fact]
     public void InvalidStartMonth_Fails()

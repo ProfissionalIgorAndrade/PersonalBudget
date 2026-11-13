@@ -813,9 +813,10 @@ Query `months` (1 a 24, padrão 6). Body: `{ scenarioName, impacts: [{ descripti
 
 Simulações "E se...?" guardadas no servidor, **por lar**. Todo membro do lar ativo (`X-Household-Id`) vê todas as simulações do lar; quem cria é o **dono**, e **só o dono edita ou apaga**. O liga/desliga de cada simulação é pessoal e fica só no cliente (nunca vai para o servidor). Todos os endpoints são autenticados.
 
-**Item** (`data` de `GET`): `id`, `description`, `type`, `mode`, `startMonth`, `amount`, `amountKind`, `installments`, `months`, `ownerUserId`, `ownerName`, `isOwner`, `createdAt`, `updatedAt`.
+**Item** (`data` de `GET`): `id`, `description`, `type`, `mode`, `startMonth`, `amount`, `amountKind`, `installments`, `months`, `creditCardIds`, `ownerUserId`, `ownerName`, `isOwner`, `createdAt`, `updatedAt`.
 
-- `type`: `Income` \| `Expense`. `mode`: `Single` \| `Installment` \| `Monthly`. `amountKind`: `PerInstallment` \| `Total` (strings).
+- `type`: `Income` \| `Expense`. `mode`: `Single` \| `Installment` \| `Monthly` \| `CardPayoff`. `amountKind`: `PerInstallment` \| `Total` (strings).
+- `CardPayoff` (quitar parcelas de cartão): no mês `startMonth`, paga de uma vez todas as parcelas dos cartões escolhidos que cairiam nas **faturas seguintes**. O servidor guarda só o mês e os cartões; **o valor é calculado no cliente** a partir dos lançamentos atuais, então `amount` volta `0`. `creditCardIds` `null` = todos os cartões do lar (inclusive os criados depois). Nos demais modos `creditCardIds` é sempre `null`.
 - `ownerName`: nome do perfil vinculado do dono no lar; se não houver, o nome do usuário; senão `"Membro"`. Nomes podem repetir: use `ownerUserId` para identificar o dono. `isOwner` é `true` quando o dono é o usuário autenticado.
 - Ordem: `createdAt` crescente e, em empate, `id`. Estável entre aparelhos.
 - `installments` só vem preenchido em `Installment`; `months` só em `Monthly` (`null` = até o fim do horizonte).
@@ -826,12 +827,13 @@ Simulações "E se...?" guardadas no servidor, **por lar**. Todo membro do lar a
 |-------|------|--------|
 | `description` | string \| null | Até **120** caracteres (após trim); vazio é aceito |
 | `type` | string | `Income` ou `Expense` |
-| `mode` | string | `Single`, `Installment` ou `Monthly` |
-| `startMonth` | string | `yyyy-MM`, ano de **2000 a 2100** |
-| `amount` | decimal | **> 0** |
+| `mode` | string | `Single`, `Installment`, `Monthly` ou `CardPayoff` |
+| `startMonth` | string | `yyyy-MM`, ano de **2000 a 2100**. Em `CardPayoff`, o mês da quitação |
+| `amount` | decimal | **> 0**; ignorado (gravado `0`) em `CardPayoff` |
 | `amountKind` | string \| null | Omitido = `PerInstallment` |
 | `installments` | int \| null | **Obrigatório, 1 a 120**, em `Installment`; ignorado nos demais modos |
 | `months` | int \| null | Só em `Monthly`: **0 a 120**; `null`/`0` = até o fim do horizonte; ignorado nos demais modos |
+| `creditCardIds` | guid[] \| null | Só em `CardPayoff`: `null`/omitido = todos os cartões do lar; senão **1 a 50** ids distintos de cartões **do lar ativo**. `type` precisa ser `Expense`. Ignorado nos demais modos |
 
 ### `GET /api/simulations`
 
@@ -862,6 +864,7 @@ Cria várias simulações de uma vez para o usuário autenticado (ex.: as que es
 **Erros:**
 
 - `400` com `{ success: false, message }`: validação (descrição > 120, `startMonth` inválido ou fora de 2000..2100, `amount` ≤ 0, `installments` fora de 1..120 em `Installment`, `months` fora de 0..120 em `Monthly`, `type`/`mode`/`amountKind` ausente ou inválido), limite de 50 por dono, importação vazia. A mensagem diz qual simulação falhou, ex.: `Simulação #2 ("Viagem"): o valor deve ser maior que zero.` (o `#N` só aparece na importação). Nome de enum desconhecido ou corpo ausente também retornam `400`/`415` pela validação padrão do ASP.NET (`ProblemDetails`).
+- `400` em `CardPayoff`: `type` diferente de `Expense`, `creditCardIds` vazio, repetido ou com mais de 50 itens; `Cartão não encontrado neste lar.` quando algum id não é cartão do lar ativo.
 - `400` `Simulação não encontrada.`: id inexistente **ou de outro lar**.
 - `403` `Simulação não pertence ao usuário.`: `PUT`/`DELETE` por quem não é o dono.
 
@@ -875,6 +878,10 @@ POST /api/simulations
   "startMonth": "2026-11", "amount": 3600, "amountKind": "Total", "installments": 12 }
 
 201 { "success": true, "message": "Simulação criada.", "data": { "id": "..." } }
+
+POST /api/simulations
+{ "description": "Zerar cartões", "type": "Expense", "mode": "CardPayoff",
+  "startMonth": "2026-12", "amount": 0, "creditCardIds": null }
 ```
 
 ---

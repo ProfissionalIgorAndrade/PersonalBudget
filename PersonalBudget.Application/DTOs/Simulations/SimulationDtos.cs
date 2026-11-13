@@ -13,7 +13,9 @@ public record SimulationInput(
     /// <summary>Obrigatório (1 a 120) em Installment; ignorado nos demais modos.</summary>
     int? Installments,
     /// <summary>Só vale em Monthly: 0 a 120; null/0 = até o fim do horizonte.</summary>
-    int? Months
+    int? Months,
+    /// <summary>Só vale em CardPayoff: cartões do lar a quitar; null = todos.</summary>
+    IReadOnlyList<Guid>? CreditCardIds = null
 );
 
 public record CreateSimulationCommand(Guid UserId, Guid HouseholdId, SimulationInput Input);
@@ -35,6 +37,8 @@ public record SimulationResponse(
     SimulationAmountKind AmountKind,
     int? Installments,
     int? Months,
+    /// <summary>Só em CardPayoff; null = todos os cartões do lar.</summary>
+    IReadOnlyList<Guid>? CreditCardIds,
     Guid OwnerUserId,
     string OwnerName,
     bool IsOwner,
